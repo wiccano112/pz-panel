@@ -21,7 +21,7 @@ export default function SandboxError({
       </div>
       <h3 className="text-xl font-bold text-white">Failed to load Sandbox Variables</h3>
       <p className="text-sm text-zinc-400 max-w-md mx-auto">
-        Unable to read servertest_SandboxVars.lua. Please verify server files exist and are readable.
+        Unable to read SandboxVars.lua. Please verify server files exist and are readable.
       </p>
       <button
         onClick={() => reset()}

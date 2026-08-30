@@ -102,7 +102,7 @@ export default function SandboxManagerClient({ initialVars }: SandboxManagerClie
                 </div>
                 <div>
                   <h4 className="text-lg font-bold text-white">Sandbox Settings Saved</h4>
-                  <p className="text-xs text-zinc-400">servertest_SandboxVars.lua updated successfully</p>
+                  <p className="text-xs text-zinc-400">Sandbox configuration was successfully updated</p>
                 </div>
               </div>
               <button

@@ -75,7 +75,7 @@
       </components>
       <impl location="src/lib/playerUtils.ts">
         <dep type="builtin">node:sqlite</dep>
-        <database path="/opt/pz-server/data/db/servertest.db"/>
+        <database path="${PZ_SERVER_DIR}/data/db/${PZ_SERVER_NAME}.db"/>
         <route path="src/app/api/players/live/route.ts" method="GET" poll="swr-6000ms"/>
         <features>Active players, whitelist CRUD, SteamID/IP bans, in-game server broadcast messages</features>
       </impl>

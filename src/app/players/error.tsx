@@ -21,7 +21,7 @@ export default function PlayersError({
       </div>
       <h3 className="text-xl font-bold text-white">Failed to load Players & Moderation Database</h3>
       <p className="text-sm text-zinc-400 max-w-md mx-auto">
-        Unable to communicate with servertest.db or the PZ server process.
+        Unable to communicate with the server SQLite database or PZ process.
       </p>
       <button
         onClick={() => reset()}

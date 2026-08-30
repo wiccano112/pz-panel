@@ -154,7 +154,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
                 </div>
                 <div>
                   <h4 className="text-lg font-bold text-white">Configuration Saved</h4>
-                  <p className="text-xs text-zinc-400">servertest.ini was successfully updated</p>
+                  <p className="text-xs text-zinc-400">Server configuration file was successfully updated</p>
                 </div>
               </div>
               <button
