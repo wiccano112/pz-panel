@@ -1,8 +1,8 @@
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import fs from 'fs/promises';
-import ini from 'ini';
 import { CONFIG } from '@/lib/config';
+
 import { CORE_MAP_NAME, CACHE_TTL_MS } from '@/constants/game';
 import { withLock } from '@/lib/mutex';
 import { getOrSetCache, invalidateCache } from '@/lib/cache';
@@ -164,14 +164,67 @@ export async function executeServerAction(action: 'start' | 'stop' | 'restart') 
   }
 }
 
+// Helper functions to parse and serialize PZ INI files correctly preserving semicolons and comments
+function parsePzIni(content: string): Record<string, string> {
+  const props: Record<string, string> = {};
+  const lines = content.split(/\r?\n/);
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eqIdx = line.indexOf('=');
+    if (eqIdx !== -1) {
+      const key = line.slice(0, eqIdx).trim();
+      const val = line.slice(eqIdx + 1).trim();
+      props[key] = val;
+    }
+  }
+  return props;
+}
+
+function updatePzIni(content: string, newProps: Record<string, string | number | boolean>): string {
+  const lines = content.split(/\r?\n/);
+  const updatedKeys = new Set<string>();
+  const resultLines: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) {
+      resultLines.push(line);
+      continue;
+    }
+    const eqIdx = line.indexOf('=');
+    if (eqIdx !== -1) {
+      const key = line.slice(0, eqIdx).trim();
+      if (key in newProps) {
+        resultLines.push(`${key}=${String(newProps[key])}`);
+        updatedKeys.add(key);
+      } else {
+        resultLines.push(line);
+      }
+    } else {
+      resultLines.push(line);
+    }
+  }
+
+  // Append any new keys that were not in the original file
+  for (const [k, v] of Object.entries(newProps)) {
+    if (!updatedKeys.has(k)) {
+      resultLines.push(`${k}=${String(v)}`);
+    }
+  }
+
+  return resultLines.join('\n');
+}
+
 export async function readIniFile() {
   try {
     const content = await fs.readFile(CONFIG.iniPath, 'utf-8');
-    const parsed = ini.parse(content);
+    const parsed = parsePzIni(content);
 
-    const workshopItems = parsed.WorkshopItems ? String(parsed.WorkshopItems).split(';').filter(Boolean) : [];
-    const mods = parsed.Mods ? String(parsed.Mods).split(';').filter(Boolean) : [];
-    const rawMaps = parsed.Map ? String(parsed.Map).split(';').filter(Boolean) : [];
+    const workshopItems = parsed.WorkshopItems ? parsed.WorkshopItems.split(';').filter(Boolean) : [];
+    const mods = parsed.Mods ? parsed.Mods.split(';').filter(Boolean) : [];
+    const rawMaps = parsed.Map ? parsed.Map.split(';').filter(Boolean) : [];
     
     // Ensure CORE_MAP_NAME is in the array and strictly last
     const nonCoreMaps = rawMaps.filter(m => m !== CORE_MAP_NAME);
@@ -186,21 +239,26 @@ export async function readIniFile() {
 export async function saveIniFile(workshopItems: string[], mods: string[], maps: string[]): Promise<boolean> {
   return withLock('ini_config_file', async () => {
     try {
-      const content = await fs.readFile(CONFIG.iniPath, 'utf-8');
-      const parsed = ini.parse(content);
+      let content = '';
+      try {
+        content = await fs.readFile(CONFIG.iniPath, 'utf-8');
+      } catch {
+        content = '';
+      }
 
-      parsed.WorkshopItems = workshopItems.filter(Boolean).join(';');
-      parsed.Mods = mods.filter(Boolean).join(';');
-      
       // Ensure CORE_MAP_NAME is saved and strictly at the end
       const nonCoreMaps = maps.filter(m => m && m !== CORE_MAP_NAME);
-      parsed.Map = [...nonCoreMaps, CORE_MAP_NAME].join(';');
+      const mapVal = [...nonCoreMaps, CORE_MAP_NAME].join(';');
 
-      const newContent = ini.stringify(parsed);
+      const updated = updatePzIni(content, {
+        WorkshopItems: workshopItems.filter(Boolean).join(';'),
+        Mods: mods.filter(Boolean).join(';'),
+        Map: mapVal,
+      });
       
       // Atomic write via temporary file
       const tmpPath = `${CONFIG.iniPath}.tmp.${Date.now()}`;
-      await fs.writeFile(tmpPath, newContent, 'utf-8');
+      await fs.writeFile(tmpPath, updated, 'utf-8');
       await fs.rename(tmpPath, CONFIG.iniPath);
 
       invalidateCache();
@@ -215,20 +273,7 @@ export async function saveIniFile(workshopItems: string[], mods: string[], maps:
 export async function readServerProperties(): Promise<Record<string, string>> {
   try {
     const content = await fs.readFile(CONFIG.iniPath, 'utf-8');
-    const parsed = ini.parse(content) as Record<string, unknown>;
-    const properties: Record<string, string> = {};
-
-    for (const [key, value] of Object.entries(parsed)) {
-      if (typeof value === 'object' && value !== null) {
-        for (const [subKey, subVal] of Object.entries(value as Record<string, unknown>)) {
-          properties[`${key}.${subKey}`] = String(subVal ?? '');
-        }
-      } else {
-        properties[key] = String(value ?? '');
-      }
-    }
-
-    return properties;
+    return parsePzIni(content);
   } catch (error) {
     console.error('Failed to read server properties from INI:', error);
     return {};
@@ -240,27 +285,27 @@ export async function saveServerProperties(
 ): Promise<{ success: boolean; error?: string }> {
   return withLock('ini_config_file', async () => {
     try {
-      let parsed: Record<string, unknown> = {};
+      let content = '';
       try {
-        const content = await fs.readFile(CONFIG.iniPath, 'utf-8');
-        parsed = ini.parse(content) as Record<string, unknown>;
+        content = await fs.readFile(CONFIG.iniPath, 'utf-8');
       } catch {
-        parsed = {};
+        content = '';
       }
 
+      const formattedProps: Record<string, string | number | boolean> = {};
       for (const [key, val] of Object.entries(updatedProps)) {
         if (typeof val === 'boolean') {
-          parsed[key] = val ? 'true' : 'false';
+          formattedProps[key] = val ? 'true' : 'false';
         } else {
-          parsed[key] = String(val);
+          formattedProps[key] = val;
         }
       }
 
-      const newContent = ini.stringify(parsed);
+      const updated = updatePzIni(content, formattedProps);
 
       // Atomic write via temporary file
       const tmpPath = `${CONFIG.iniPath}.tmp.${Date.now()}`;
-      await fs.writeFile(tmpPath, newContent, 'utf-8');
+      await fs.writeFile(tmpPath, updated, 'utf-8');
       await fs.rename(tmpPath, CONFIG.iniPath);
 
       invalidateCache();
@@ -271,4 +316,5 @@ export async function saveServerProperties(
     }
   });
 }
+
 
