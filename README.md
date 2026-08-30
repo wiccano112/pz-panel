@@ -22,23 +22,25 @@ Desarrollado con **Next.js 16 (App Router)**, **React 19**, **TypeScript** estri
   - Paginación integrada (12 mods por página).
   - Estrategia híbrida de resolución de `Mod ID`: detección automática para mods populares conocidos y modal de asistencia con enlace directo a Steam para mods de la comunidad.
 - **Configuración INI del Servidor:**
-  - Gestión visual de `WorkshopItems`, `Mods` y `Maps` sincronizada directamente con `servertest.ini`.
-  - Protección de mapa core: `Muldraugh, KY` se mantiene siempre protegido al final del orden de mapas.
+  - Columnas organizadas en orden de importancia: `Mod IDs (Load Order)` -> `Map IDs (Priority)` -> `Workshop Items`.
+  - **Reordenamiento Interactivo (Drag & Drop):** Arrastradores visuales (`GripVertical`) y botones de subida/bajada rápida para configurar el orden de carga y prioridades de mapas.
+  - Protección de mapa core: `Muldraugh, KY` se mantiene siempre protegido e inamovible al final del orden de mapas.
   - Aviso emergente de reinicio requerido tras guardar cambios.
 
 ### 3. 🛠️ Configuración de Sandbox del Mundo (`/sandbox`)
 - **Editor Visual de `servertest_SandboxVars.lua`:**
-  - Organizado en pestañas temáticas:
+  - Organizado en 6 pestañas temáticas:
     - 🧟 **Zombis & Población:** Densidad, distribución, respawn, velocidad, fuerza, resistencia y transmisión de infección.
     - 📦 **Botín & Recursos:** Rareza de armas cuerpo a cuerpo, armas de fuego, munición, comida fresca/enlatada, medicina y libros.
     - 🌍 **Mundo & Clima:** Duración del día, corte de agua y electricidad, eventos de helicóptero, temperatura y lluvia.
     - 🚗 **Vehículos & Combustible:** Aparición de autos, nivel de gasolina, consumo y llaves.
-    - 👤 **Superviviente & Multiplicadores:** Multiplicador de XP, kit de inicio, nutrición y descomposición de cadáveres.
+    - 👤 **Superviviente & Multiplicadores:** Multiplicador global de XP, kit de inicio, nutrición y descomposición de cadáveres.
+    - ⚙️ **Advanced & Build 42:** Animales y ecología B42, balística de armas de fuego, picos de hordas, generadores, gasolineras, sótanos, minimapa y multiplicadores de XP por cada una de las 35 habilidades individuales.
   - Buscador global de variables de sandbox.
   - Guardado atómico en disco (escritura en `.tmp` y reemplazo seguro) para prevenir corrupción de archivos.
 
 ### 4. 👥 Jugadores & Moderación (`/players`)
-- **Supervivientes Conectados en Vivo:** Detección automática de jugadores activos en la sesión actual.
+- **Supervivientes Conectados en Vivo:** Detección automática de jugadores activos en la sesión actual con polling pasivo (cada 6s).
 - **Gestión de Lista Blanca (Whitelist):**
   - Añadir y remover usuarios con asignación de roles (`Admin`, `Moderator`, `Overseer`, `GM`, `User`) y Steam ID (17 dígitos).
   - Integración nativa directa con la base de datos SQLite del servidor (`servertest.db`).
@@ -93,4 +95,4 @@ pnpm tsc --noEmit
 
 ## 🤖 Información de Arquitectura para Agentes IA
 - Las reglas de desarrollo y flujos de trabajo autónomos se encuentran en [`AGENTS.md`](AGENTS.md) y en [`.agents/rules/`](.agents/rules/).
-- La especificación de componentes y rutas se encuentra documentada en formato denso en [`docs/ai_architecture.xml`](docs/ai_architecture.xml).
+- La especificación de componentes y rutas se encuentra documentada en formato denso en [`docs/ai_architecture.xml`](docs/ai_architecture.xml) y [`docs/frontend_plan.md`](docs/frontend_plan.md).

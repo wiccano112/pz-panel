@@ -1,59 +1,75 @@
-# Plan Arquitectónico del Frontend (PZ-Panel)
+# Plan y Arquitectura del Frontend (PZ-Panel)
 
 ## 1. Visión General y Stack
 - **Framework:** Next.js 16 (App Router) + React 19
-- **Estilos:** Tailwind CSS + shadcn/ui
-- **Patrón de Arquitectura:** Integración de Server Components (RSC) para cargas iniciales e hidratación de Client Components para interactividad, mutaciones y polling en tiempo real.
+- **Estilos:** Tailwind CSS v4 + Lucide React Icons
+- **Lenguaje:** TypeScript (Tipado estricto, sin uso de `any`)
+- **Estrategia de Estado:** React 19 Server Actions (`useActionState`) para mutaciones con retroalimentación inmediata, y SWR / Server-Sent Events para streams y telemetría en tiempo real.
+
+---
 
 ## 2. Estructura de Rutas (App Router)
-- `/` (Dashboard principal de estado y métricas)
-- `/mods` (Gestor visual de Mods, Mapas y Workshop)
-- `/api/stats` (Route Handler para el polling de las métricas en tiempo real de Docker)
+
+- **`/` (Dashboard Principal):**
+  - Control de energía (Start, Stop, Restart).
+  - Telemetría en tiempo real (CPU, RAM, Red, Uptime, Jugadores).
+  - Terminal de logs en vivo mediante Server-Sent Events (`tail -f pz-server`).
+- **`/mods` (Gestor de Mods & Steam Workshop):**
+  - Catálogo dinámico con API de Steam Workshop para la versión Build 42.
+  - Gestión y reordenamiento interactivo (Drag & Drop) de `Mod IDs`, `Map IDs` y `Workshop Items`.
+- **`/sandbox` (Configuración de Sandbox del Mundo):**
+  - Editor visual categorizado para `servertest_SandboxVars.lua`.
+  - Pestañas temáticas: Zombis, Botín, Mundo, Vehículos, Superviviente y Opciones Avanzadas (B42).
+- **`/players` (Gestión de Jugadores & Moderación):**
+  - Supervivientes activos en vivo (polling SWR).
+  - CRUD de Lista Blanca (Whitelist) y roles de permisos.
+  - Sistema de baneos por Steam ID e IP con persistencia nativa en `servertest.db`.
+  - Anuncios directos al chat global del servidor (`servermsg`).
+
+---
 
 ## 3. Estructura de Componentes
 
-### 3.1 Componentes Globales (Layout)
-- **`Sidebar` (Server Component):** Menú de navegación global del panel (Dashboard, Mods).
-- **`Layout` (Server Component):** Contenedor raíz que integra el `Sidebar` y envuelve el contenido dinámico mediante `{children}`.
+### 3.1 Layout Global
+- **`Sidebar` / `NavLinks` (`src/components/NavLinks.tsx`):** Menú lateral persistente con enlaces e iconos dinámicos para las 4 secciones principales.
 
-### 3.2 Pantalla Principal (Dashboard - `/`)
-- **`DashboardPage` (Server Component):** 
-  - Punto de entrada de la página. 
-  - Ejecuta la carga estática inicial de `getServerStatus()` desde `serverUtils.ts`.
-- **`ServerStatusCard` (Client Component):** 
-  - Muestra el estado del contenedor Docker.
-  - Expone botones de control (Start, Stop, Restart).
-  - Implementa el hook `useActionState` y `useTransition` de React 19 para invocar la Server Action `executeServerAction(action)` de forma asíncrona, gestionando su estado `pending` para deshabilitar los botones mientras la acción se ejecuta.
-- **`ServerMetricsCard` (Client Component):**
-  - Muestra el uso de CPU, RAM y Network IO.
-  - Implementa la librería `swr` de Vercel (o React Query) apuntando al endpoint `/api/stats` para realizar un polling periódico (ej. cada 3 segundos) y mantener los indicadores actualizados en vivo.
+### 3.2 Dashboard (`/`)
+- **`DashboardPage` (`src/app/page.tsx` - Server Component):** Renderizado inicial del servidor con estado base del contenedor.
+- **`ServerStatusCard` (`src/components/ServerStatusCard.tsx`):** Control del ciclo de vida del contenedor Docker vía Server Actions.
+- **`ServerMetricsCard` (`src/components/ServerMetricsCard.tsx`):** Polling cada 3 segundos a `/api/stats`.
+- **`ServerLogsCard` (`src/components/ServerLogsCard.tsx`):** Conexión SSE a `/api/logs`, filtrado por nivel de log (All, Info, Warning, Error, Debug), buscador y auto-scroll.
 
-### 3.3 Pantalla de Mods (Mods Manager - `/mods`)
-- **`ModsPage` (Server Component):** 
-  - Realiza un fetch seguro inicial llamando a la función `readIniFile()` en el servidor.
-  - Entrega los arreglos de `workshopItems`, `mods` y `maps` al componente cliente mediante props (`initialData`).
-- **`ModManagerClient` (Client Component):** 
-  - Recibe el `initialData` y gestiona el estado local interactivo del usuario (Listas interactivas o drag&drop).
-  - Componentes internos:
-    - **`WorkshopList`**: Para gestionar IDs de Steam Workshop.
-    - **`ModList`**: Para gestionar los IDs internos de los Mods.
-    - **`MapList`**: Para gestionar el ordenamiento y activación de Mapas.
-    - **`ModCatalog`**: Catálogo estático de los mods más populares de la comunidad. Debe incluir un botón de "Añadir Mod" que inyecte automáticamente el Workshop ID y el Mod ID correspondientes a los arreglos de estado local (`workshopItems` y `mods`), para ser posteriormente guardados.
-  - **Mutación de Datos:** Cuenta con un botón central de guardado que invoca la Server Action `saveIniFile(newWorkshopItems, newMods, newMaps)` envolviéndola en `useActionState` para manejar el *loading state* y *error handling*.
+### 3.3 Gestor de Mods (`/mods`)
+- **`ModsPage` (`src/app/mods/page.tsx` - Server Component):** Lectura inicial de `servertest.ini`.
+- **`ModManagerClient` (`src/components/ModManagerClient.tsx`):**
+  - Columnas reordenadas: `Mod IDs (Load Order)` -> `Map IDs (Priority)` -> `Workshop Items`.
+  - Arrastradores visuales (`GripVertical`) y botones de subida/bajada rápida para definir el orden de carga.
+  - Bloqueo visual e inamovible de `Muldraugh, KY` como mapa base al final de la lista.
+- **`ModCatalog` (`src/components/ModCatalog.tsx`):**
+  - Consumo SWR de `/api/workshop`.
+  - Paginación a 12 ítems por página, búsqueda con debounce (400ms) y selector de rango temporal.
+  - Diálogo modal con enlace a Steam para resolución de `Mod ID` en mods comunitarios.
 
-## 4. Estrategia de Consumo de Datos (Data Fetching & Mutations)
+### 3.4 Configuración de Sandbox (`/sandbox`)
+- **`SandboxPage` (`src/app/sandbox/page.tsx` - Server Component):** Carga inicial de variables Lua.
+- **`SandboxManagerClient` (`src/components/SandboxManagerClient.tsx`):**
+  - 6 pestañas organizadas con iconos dinámicos.
+  - Buscador reactivo instantáneo entre todas las variables.
+  - Guardado atómico con modal informativo de reinicio requerido.
 
-### 4.1 Carga Inicial (RSC)
-- Evitamos los skeleton loaders innecesarios delegando la primera carga a Next.js Server Components. Funciones como `getServerStatus()` y `readIniFile()` se ejecutan a nivel de Node sin requerir endpoints adicionales en la fase de render.
+### 3.5 Jugadores & Moderación (`/players`)
+- **`PlayersPage` (`src/app/players/page.tsx` - Server Component):** Carga de datos de jugadores y base de datos.
+- **`PlayerManagerClient` (`src/components/PlayerManagerClient.tsx`):**
+  - 4 sub-pestañas: Jugadores en Vivo, Whitelist, Baneos y Broadcast.
+  - Mutaciones seguras con consultas SQL parametrizadas a través de Server Actions.
 
-### 4.2 Mutaciones de Estado (React 19 Server Actions)
-- Cualquier modificación (encender servidor, guardar configuración INI) invocará Server Actions directas, eliminando la necesidad de crear rutas de API tipo `POST /api/...`.
-- `useActionState` controlará la reactividad, devolviendo éxito o mensaje de error estructurado hacia la UI.
+---
 
-### 4.3 Telemetría en Tiempo Real
-- Para `getServerStats()`, el patrón de Server Actions es ineficiente debido a la sobrecarga del polling. Por ello, delegaremos esto a un `Route Handler` estándar (`/app/api/stats/route.ts`) respondiendo en JSON.
-- El Cliente consumirá esta ruta pasivamente a través de SWR, separando el ciclo de renderizado de React de las continuas comprobaciones a Docker.
+## 4. Endpoints y Route Handlers
 
-## 5. Reglas de Negocio en la Interfaz (Business Logic)
-- **Bloqueo del Mapa Core:** La UI en `MapList` debe bloquear o advertir al usuario sobre "Muldraugh, KY". Aunque el backend en `serverUtils.ts` inyecta forzosamente esta entrada al final del arreglo de mapas por seguridad, la UI debe reflejar esto de forma visual deshabilitando su botón de eliminar o mostrando un candado para evitar confusión.
-- **Prevención de Spam en Comandos de Docker:** El `ServerStatusCard` debe hacer "debounce" y bloquear estrictamente múltiples envíos de comandos de encendido o reinicio simultáneos mientras un `useActionState` subyacente de `executeServerAction` se encuentre procesándose.
+| Ruta | Método | Propósito | Estrategia |
+| :--- | :--- | :--- | :--- |
+| `/api/stats` | `GET` | Telemetría de Docker stats y jugadores | Polling SWR (3s) |
+| `/api/logs` | `GET` | Stream de salida de `docker logs -f` | Server-Sent Events (SSE) |
+| `/api/workshop` | `GET` | Búsqueda y paginación en Steam Workshop | Next.js fetch cache + SWR |
+| `/api/players/live` | `GET` | Lista de jugadores conectados y base de datos | Polling SWR (6s) |
