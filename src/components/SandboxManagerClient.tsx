@@ -2,7 +2,7 @@
 
 import { useState, useActionState, useMemo } from 'react';
 import { handleSaveSandboxAction } from '@/app/actions';
-import { SANDBOX_CATEGORIES } from '@/lib/sandboxUtils';
+import { SANDBOX_CATEGORIES } from '@/constants/sandbox';
 import { SandboxVarsData } from '@/types/sandbox';
 import {
   Skull,
