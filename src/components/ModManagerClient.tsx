@@ -2,7 +2,19 @@
 
 import { useState, useActionState } from 'react';
 import { handleSaveIniAction } from '@/app/actions';
-import { Trash2, Lock, Plus, Save, RefreshCw, X, CheckCircle2, ArrowRight } from 'lucide-react';
+import {
+  Trash2,
+  Lock,
+  Plus,
+  Save,
+  RefreshCw,
+  X,
+  CheckCircle2,
+  ArrowRight,
+  GripVertical,
+  ChevronUp,
+  ChevronDown,
+} from 'lucide-react';
 import Link from 'next/link';
 import ModCatalog from '@/components/ModCatalog';
 
@@ -22,6 +34,10 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
   const [maps, setMaps] = useState(initialData.maps);
   const [dismissedState, setDismissedState] = useState<unknown>(null);
 
+  // Drag & Drop State
+  const [draggedItem, setDraggedItem] = useState<{ type: 'workshop' | 'mod' | 'map'; index: number } | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<{ type: 'workshop' | 'mod' | 'map'; index: number } | null>(null);
+
   const [state, formAction, isPending] = useActionState(handleSaveIniAction, null);
 
   const showRestartModal = Boolean(state && !state.error && dismissedState !== state);
@@ -34,6 +50,60 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
       if (mapToRemove === 'Muldraugh, KY') return;
       setMaps(prev => prev.filter((_, i) => i !== index));
     }
+  };
+
+  const moveItem = (type: 'workshop' | 'mod' | 'map', fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0) return;
+
+    if (type === 'mod') {
+      setMods(prev => {
+        if (toIndex >= prev.length) return prev;
+        const copy = [...prev];
+        const [item] = copy.splice(fromIndex, 1);
+        copy.splice(toIndex, 0, item);
+        return copy;
+      });
+    } else if (type === 'map') {
+      setMaps(prev => {
+        const nonCoreMaps = prev.filter(m => m !== 'Muldraugh, KY');
+        if (fromIndex >= nonCoreMaps.length || toIndex >= nonCoreMaps.length) return prev;
+        const copy = [...nonCoreMaps];
+        const [item] = copy.splice(fromIndex, 1);
+        copy.splice(toIndex, 0, item);
+        return [...copy, 'Muldraugh, KY'];
+      });
+    } else if (type === 'workshop') {
+      setWorkshopItems(prev => {
+        if (toIndex >= prev.length) return prev;
+        const copy = [...prev];
+        const [item] = copy.splice(fromIndex, 1);
+        copy.splice(toIndex, 0, item);
+        return copy;
+      });
+    }
+  };
+
+  const handleDragStart = (type: 'workshop' | 'mod' | 'map', index: number) => {
+    setDraggedItem({ type, index });
+  };
+
+  const handleDragOver = (e: React.DragEvent, type: 'workshop' | 'mod' | 'map', index: number) => {
+    e.preventDefault();
+    if (draggedItem && draggedItem.type === type) {
+      setDragOverIndex({ type, index });
+    }
+  };
+
+  const handleDrop = (type: 'workshop' | 'mod' | 'map', targetIndex: number) => {
+    if (!draggedItem || draggedItem.type !== type) return;
+    moveItem(type, draggedItem.index, targetIndex);
+    setDraggedItem(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedItem(null);
+    setDragOverIndex(null);
   };
 
   const addModFromCatalog = (modItem: { name: string; workshopId: string; modId: string; mapId?: string }) => {
@@ -131,12 +201,197 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
         installedWorkshopIds={workshopItems} 
       />
 
+      {/* Configured Mods, Maps, and Workshop Items Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
-        {/* Workshop Items */}
+        {/* CARD 1: Mod IDs (Load Order) */}
         <div className="bg-zinc-900 p-4 shadow rounded-lg border border-zinc-700 flex flex-col">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="font-semibold text-white">Workshop Items</h3>
+            <div>
+              <h3 className="font-semibold text-white">Mod IDs (Load Order)</h3>
+              <p className="text-[11px] text-zinc-400">Drag to change loading priority</p>
+            </div>
+            <button 
+              onClick={() => addItemManual('mod')} 
+              className="text-zinc-400 hover:text-indigo-400 transition-colors p-1 cursor-pointer"
+              title="Add Mod ID manually"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          </div>
+          <ul className="flex-1 overflow-y-auto max-h-96 space-y-2">
+            {mods.length === 0 && <li className="text-sm text-zinc-500 text-center py-4">No mods configured</li>}
+            {mods.map((mod, idx) => {
+              const isDragging = draggedItem?.type === 'mod' && draggedItem.index === idx;
+              const isOver = dragOverIndex?.type === 'mod' && dragOverIndex.index === idx;
+
+              return (
+                <li
+                  key={idx}
+                  draggable
+                  onDragStart={() => handleDragStart('mod', idx)}
+                  onDragOver={(e) => handleDragOver(e, 'mod', idx)}
+                  onDrop={() => handleDrop('mod', idx)}
+                  onDragEnd={handleDragEnd}
+                  className={`flex justify-between items-center p-2 bg-zinc-800 rounded border transition-all ${
+                    isDragging
+                      ? 'opacity-40 border-dashed border-indigo-500'
+                      : isOver
+                      ? 'border-indigo-400 bg-zinc-750'
+                      : 'border-zinc-700 hover:border-zinc-600'
+                  }`}
+                >
+                  <div className="flex items-center space-x-2 min-w-0 flex-1">
+                    <span
+                      className="text-zinc-500 hover:text-zinc-300 cursor-grab active:cursor-grabbing p-0.5"
+                      title="Drag to reorder"
+                    >
+                      <GripVertical className="w-4 h-4" />
+                    </span>
+                    <span className="text-[11px] font-mono text-zinc-500 w-5 text-center">{idx + 1}</span>
+                    <span className="text-sm font-mono truncate text-zinc-100">{mod}</span>
+                  </div>
+
+                  <div className="flex items-center space-x-1">
+                    {/* Quick Move Up/Down */}
+                    <button
+                      type="button"
+                      onClick={() => moveItem('mod', idx, idx - 1)}
+                      disabled={idx === 0}
+                      className="p-1 text-zinc-400 hover:text-zinc-200 disabled:opacity-20 disabled:hover:text-zinc-400 cursor-pointer"
+                      title="Move Up"
+                    >
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveItem('mod', idx, idx + 1)}
+                      disabled={idx === mods.length - 1}
+                      className="p-1 text-zinc-400 hover:text-zinc-200 disabled:opacity-20 disabled:hover:text-zinc-400 cursor-pointer"
+                      title="Move Down"
+                    >
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeItem('mod', idx)}
+                      className="p-1 text-red-500 hover:text-red-400 transition-colors cursor-pointer"
+                      title="Remove Mod ID"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+        {/* CARD 2: Map IDs (Map Order) */}
+        <div className="bg-zinc-900 p-4 shadow rounded-lg border border-zinc-700 flex flex-col">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h3 className="font-semibold text-white">Map IDs (Priority)</h3>
+              <p className="text-[11px] text-zinc-400">Custom maps must load before base map</p>
+            </div>
+            <button 
+              onClick={() => addItemManual('map')} 
+              className="text-zinc-400 hover:text-indigo-400 transition-colors p-1 cursor-pointer"
+              title="Add Map ID manually"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          </div>
+          <ul className="flex-1 overflow-y-auto max-h-96 space-y-2">
+            {maps.length === 0 && <li className="text-sm text-zinc-500 text-center py-4">No maps configured</li>}
+            {maps.map((map, idx) => {
+              const isCore = map === 'Muldraugh, KY';
+              const nonCoreCount = maps.filter(m => m !== 'Muldraugh, KY').length;
+              const isDragging = draggedItem?.type === 'map' && draggedItem.index === idx;
+              const isOver = dragOverIndex?.type === 'map' && dragOverIndex.index === idx;
+
+              return (
+                <li
+                  key={idx}
+                  draggable={!isCore}
+                  onDragStart={() => !isCore && handleDragStart('map', idx)}
+                  onDragOver={(e) => !isCore && handleDragOver(e, 'map', idx)}
+                  onDrop={() => !isCore && handleDrop('map', idx)}
+                  onDragEnd={handleDragEnd}
+                  className={`flex justify-between items-center p-2 rounded border transition-all ${
+                    isCore
+                      ? 'bg-amber-900/40 border-amber-700'
+                      : isDragging
+                      ? 'opacity-40 border-dashed border-indigo-500 bg-zinc-800'
+                      : isOver
+                      ? 'border-indigo-400 bg-zinc-750'
+                      : 'bg-zinc-800 border-zinc-700 hover:border-zinc-600'
+                  }`}
+                >
+                  <div className="flex items-center space-x-2 min-w-0 flex-1">
+                    {!isCore ? (
+                      <span
+                        className="text-zinc-500 hover:text-zinc-300 cursor-grab active:cursor-grabbing p-0.5"
+                        title="Drag to reorder map priority"
+                      >
+                        <GripVertical className="w-4 h-4" />
+                      </span>
+                    ) : (
+                      <span className="w-5 text-center text-amber-500" title="Core map locked at base priority">
+                        <Lock className="w-3.5 h-3.5 mx-auto" />
+                      </span>
+                    )}
+                    <span className="text-[11px] font-mono text-zinc-500 w-5 text-center">{idx + 1}</span>
+                    <span className="text-sm font-mono truncate text-zinc-100">{map}</span>
+                  </div>
+
+                  {isCore ? (
+                    <span className="text-[10px] text-amber-400 font-semibold px-2 py-0.5 bg-amber-950/60 rounded border border-amber-800">
+                      Core Base
+                    </span>
+                  ) : (
+                    <div className="flex items-center space-x-1">
+                      <button
+                        type="button"
+                        onClick={() => moveItem('map', idx, idx - 1)}
+                        disabled={idx === 0}
+                        className="p-1 text-zinc-400 hover:text-zinc-200 disabled:opacity-20 disabled:hover:text-zinc-400 cursor-pointer"
+                        title="Move Up"
+                      >
+                        <ChevronUp className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveItem('map', idx, idx + 1)}
+                        disabled={idx >= nonCoreCount - 1}
+                        className="p-1 text-zinc-400 hover:text-zinc-200 disabled:opacity-20 disabled:hover:text-zinc-400 cursor-pointer"
+                        title="Move Down"
+                      >
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeItem('map', idx)}
+                        className="p-1 text-red-500 hover:text-red-400 transition-colors cursor-pointer"
+                        title="Remove Map ID"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+        {/* CARD 3: Workshop Items (Download Queue) */}
+        <div className="bg-zinc-900 p-4 shadow rounded-lg border border-zinc-700 flex flex-col">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h3 className="font-semibold text-white">Workshop Items</h3>
+              <p className="text-[11px] text-zinc-400">Steam Workshop download IDs</p>
+            </div>
             <button 
               onClick={() => addItemManual('workshop')} 
               className="text-zinc-400 hover:text-indigo-400 transition-colors p-1 cursor-pointer"
@@ -147,70 +402,65 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
           </div>
           <ul className="flex-1 overflow-y-auto max-h-96 space-y-2">
             {workshopItems.length === 0 && <li className="text-sm text-zinc-500 text-center py-4">No items</li>}
-            {workshopItems.map((item, idx) => (
-              <li key={idx} className="flex justify-between items-center p-2 bg-zinc-800 rounded border border-zinc-700">
-                <span className="text-sm font-mono truncate text-zinc-100">{item}</span>
-                <button onClick={() => removeItem('workshop', idx)} className="text-red-500 hover:text-red-400 transition-colors cursor-pointer">
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+            {workshopItems.map((item, idx) => {
+              const isDragging = draggedItem?.type === 'workshop' && draggedItem.index === idx;
+              const isOver = dragOverIndex?.type === 'workshop' && dragOverIndex.index === idx;
 
-        {/* Mods */}
-        <div className="bg-zinc-900 p-4 shadow rounded-lg border border-zinc-700 flex flex-col">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-semibold text-white">Mod IDs</h3>
-            <button 
-              onClick={() => addItemManual('mod')} 
-              className="text-zinc-400 hover:text-indigo-400 transition-colors p-1 cursor-pointer"
-              title="Add Mod ID manually"
-            >
-              <Plus className="w-5 h-5" />
-            </button>
-          </div>
-          <ul className="flex-1 overflow-y-auto max-h-96 space-y-2">
-            {mods.length === 0 && <li className="text-sm text-zinc-500 text-center py-4">No mods</li>}
-            {mods.map((mod, idx) => (
-              <li key={idx} className="flex justify-between items-center p-2 bg-zinc-800 rounded border border-zinc-700">
-                <span className="text-sm font-mono truncate text-zinc-100">{mod}</span>
-                <button onClick={() => removeItem('mod', idx)} className="text-red-500 hover:text-red-400 transition-colors cursor-pointer">
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Maps */}
-        <div className="bg-zinc-900 p-4 shadow rounded-lg border border-zinc-700 flex flex-col">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-semibold text-white">Map IDs</h3>
-            <button 
-              onClick={() => addItemManual('map')} 
-              className="text-zinc-400 hover:text-indigo-400 transition-colors p-1 cursor-pointer"
-              title="Add Map ID manually"
-            >
-              <Plus className="w-5 h-5" />
-            </button>
-          </div>
-          <ul className="flex-1 overflow-y-auto max-h-96 space-y-2">
-            {maps.length === 0 && <li className="text-sm text-zinc-500 text-center py-4">No maps</li>}
-            {maps.map((map, idx) => {
-              const isCore = map === 'Muldraugh, KY';
               return (
-                <li key={idx} className={`flex justify-between items-center p-2 rounded border ${isCore ? 'bg-amber-900/40 border-amber-700' : 'bg-zinc-800 border-zinc-700'}`}>
-                  <span className="text-sm font-mono truncate text-zinc-100">{map}</span>
-                  {isCore ? (
-                    <span title="Core map cannot be removed">
-                      <Lock className="w-4 h-4 text-amber-500" />
+                <li
+                  key={idx}
+                  draggable
+                  onDragStart={() => handleDragStart('workshop', idx)}
+                  onDragOver={(e) => handleDragOver(e, 'workshop', idx)}
+                  onDrop={() => handleDrop('workshop', idx)}
+                  onDragEnd={handleDragEnd}
+                  className={`flex justify-between items-center p-2 bg-zinc-800 rounded border transition-all ${
+                    isDragging
+                      ? 'opacity-40 border-dashed border-indigo-500'
+                      : isOver
+                      ? 'border-indigo-400 bg-zinc-750'
+                      : 'border-zinc-700 hover:border-zinc-600'
+                  }`}
+                >
+                  <div className="flex items-center space-x-2 min-w-0 flex-1">
+                    <span
+                      className="text-zinc-500 hover:text-zinc-300 cursor-grab active:cursor-grabbing p-0.5"
+                      title="Drag to reorder"
+                    >
+                      <GripVertical className="w-4 h-4" />
                     </span>
-                  ) : (
-                    <button onClick={() => removeItem('map', idx)} className="text-red-500 hover:text-red-400 transition-colors cursor-pointer">
+                    <span className="text-[11px] font-mono text-zinc-500 w-5 text-center">{idx + 1}</span>
+                    <span className="text-sm font-mono truncate text-zinc-100">{item}</span>
+                  </div>
+
+                  <div className="flex items-center space-x-1">
+                    <button
+                      type="button"
+                      onClick={() => moveItem('workshop', idx, idx - 1)}
+                      disabled={idx === 0}
+                      className="p-1 text-zinc-400 hover:text-zinc-200 disabled:opacity-20 disabled:hover:text-zinc-400 cursor-pointer"
+                      title="Move Up"
+                    >
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveItem('workshop', idx, idx + 1)}
+                      disabled={idx === workshopItems.length - 1}
+                      className="p-1 text-zinc-400 hover:text-zinc-200 disabled:opacity-20 disabled:hover:text-zinc-400 cursor-pointer"
+                      title="Move Down"
+                    >
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeItem('workshop', idx)}
+                      className="p-1 text-red-500 hover:text-red-400 transition-colors cursor-pointer"
+                      title="Remove Workshop Item"
+                    >
                       <Trash2 className="w-4 h-4" />
                     </button>
-                  )}
+                  </div>
                 </li>
               );
             })}
@@ -228,7 +478,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
           <button
             type="submit"
             disabled={isPending}
-            className="flex items-center space-x-2 px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-500 transition-colors disabled:opacity-50 cursor-pointer"
+            className="flex items-center space-x-2 px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-500 transition-colors disabled:opacity-50 cursor-pointer font-medium"
           >
             <Save className="w-5 h-5" />
             <span>{isPending ? 'Saving...' : 'Save Configuration'}</span>
