@@ -24,6 +24,57 @@ export async function getServerStats() {
   }
 }
 
+export async function getServerUptime(): Promise<string | null> {
+  try {
+    const { stdout } = await execFileAsync('docker', [
+      'inspect',
+      '--format', '{{.State.StartedAt}}',
+      'pz-server',
+    ]);
+    const startedAt = stdout.trim();
+    if (!startedAt || startedAt === '0001-01-01T00:00:00Z') return null;
+
+    const startMs = new Date(startedAt).getTime();
+    if (isNaN(startMs)) return null;
+
+    let diffSec = Math.floor((Date.now() - startMs) / 1000);
+    if (diffSec < 0) return null;
+
+    const days = Math.floor(diffSec / 86400);
+    diffSec %= 86400;
+    const hours = Math.floor(diffSec / 3600);
+    diffSec %= 3600;
+    const minutes = Math.floor(diffSec / 60);
+    const seconds = diffSec % 60;
+
+    if (days > 0) {
+      return `${days}d ${hours}h ${minutes}m`;
+    } else if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else {
+      return `${minutes}m ${seconds}s`;
+    }
+  } catch {
+    return null;
+  }
+}
+
+export async function getConnectedPlayers(): Promise<number> {
+  try {
+    // docker logs doesn't support execFile with shell redirection, so we pipe through sh
+    const { stdout } = await execFileAsync('sh', [
+      '-c',
+      'docker logs pz-server --since 30m 2>&1',
+    ]);
+    const lines = stdout.split('\n');
+    const connected = lines.filter(l => l.includes('PlayerConnected')).length;
+    const disconnected = lines.filter(l => l.includes('PlayerDisconnected')).length;
+    return Math.max(0, connected - disconnected);
+  } catch {
+    return 0;
+  }
+}
+
 export async function executeServerAction(action: 'start' | 'stop' | 'restart') {
   const cwd = '/opt/pz-server';
   try {
