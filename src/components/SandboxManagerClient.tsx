@@ -17,6 +17,7 @@ import {
   ArrowRight,
   Search,
   Sliders,
+  Wrench,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -30,6 +31,7 @@ const CATEGORY_ICONS: Record<string, typeof Skull> = {
   world: Sun,
   vehicles: Car,
   character: UserCheck,
+  advanced: Wrench,
 };
 
 export default function SandboxManagerClient({ initialVars }: SandboxManagerClientProps) {
