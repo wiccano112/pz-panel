@@ -1,0 +1,119 @@
+<feature id="f6_workshop_catalog" status="planned" priority="high">
+
+  <summary>
+    Reemplazar el catálogo estático de POPULAR_MODS por integración dinámica con la API de Steam Workshop.
+    El catálogo debe mostrar los mods más populares de PZ Build 42 (appid=108600) de los últimos 30 días,
+    con una barra de búsqueda para exploración manual por el usuario.
+  </summary>
+
+  <steam_api>
+    <!-- Endpoint principal para búsqueda y listado de items de Workshop -->
+    <endpoint method="POST" url="https://api.steampowered.com/IPublishedFileService/QueryFiles/v1/">
+      <key_params>
+        <param name="key" value="STEAM_API_KEY (requerida, configurar en .env.local como STEAM_API_KEY)"/>
+        <param name="appid" value="108600" note="Project Zomboid appid"/>
+        <param name="query_type" value="1" note="1=Ranked by vote (trending/popular)"/>
+        <param name="numperpage" value="20"/>
+        <param name="return_short_description" value="true"/>
+        <param name="return_previews" value="true" note="Para obtener la imagen thumbnail"/>
+        <param name="days" value="30" note="Filtro últimos 30 días"/>
+        <param name="requiredtags" value="Build 42" note="Filtrar solo mods compatibles con la versión 42"/>
+        <param name="return_tags" value="true"/>
+        <param name="search_text" value="[opcional: término de búsqueda del usuario]"/>
+      </key_params>
+      <response_fields_needed>
+        publishedfileid, title, short_description, preview_url, subscriptions
+      </response_fields_needed>
+    </endpoint>
+
+    <!-- Mapeo de campos de la respuesta Steam a la estructura interna del catálogo -->
+    <internal_mod_structure>
+      workshopId    → publishedfileid (string)
+      name          → title
+      description   → short_description
+      imageUrl      → preview_url
+      subscribers   → subscriptions
+      modId         → NO disponible en API de Steam (ver nota crítica abajo)
+    </internal_mod_structure>
+
+    <!-- PROBLEMA CRÍTICO: El modId (ej. "RavenCreek") no está en la API de Steam.
+         Es un campo interno del mod definido por el autor en el archivo info.txt.
+         Solución recomendada:
+         1. Al hacer clic en "Instalar", pedir al usuario que confirme/ingrese el Mod ID.
+         2. Mantener un mapeo estático curado para los mods más populares conocidos como fallback.
+         3. Futura mejora: descargar el mod en un directorio temp y leer el info.txt para extraer el modId. -->
+    <mod_id_resolution_strategy>
+      HYBRID: API de Steam para metadatos + lookup table estática para modIds conocidos.
+      Si el workshopId no está en la tabla, mostrar input para que el usuario ingrese el modId manualmente al instalar.
+    </mod_id_resolution_strategy>
+  </steam_api>
+
+  <architecture>
+    <layer name="backend">
+      <file path="src/lib/steamApi.ts" action="create">
+        Módulo dedicado para interactuar con Steam API.
+        Funciones:
+        - getPopularMods(days: number, tag: string): Promise de lista de mods populares.
+        - searchMods(query: string, tag: string): Promise de mods filtrados por búsqueda.
+        Usa fetch nativo de Node.js 26. Lee STEAM_API_KEY desde process.env.
+        Implementa cache con next: revalidate: 3600 (1 hora) para no exceder rate limits de Steam.
+      </file>
+      <file path="src/app/api/workshop/route.ts" action="create">
+        Route Handler GET que acepta query params:
+        - ?q= (término de búsqueda, opcional)
+        - ?days= (default 30)
+        - ?tag= (default 'Build 42')
+        Retorna JSON con array de mods.
+        Rate limit: cachear respuesta en memory o usar next cache.
+      </file>
+    </layer>
+    <layer name="frontend">
+      <file path="src/components/ModCatalog.tsx" action="create" extract_from="ModManagerClient.tsx">
+        Extraer sección del catálogo como componente independiente.
+        Estado local: searchQuery (string), results (mod[]), isLoading (bool).
+        Implementa useSWR apuntando a /api/workshop?q={searchQuery}.
+        Debounce de 400ms en el input de búsqueda para no spamear el endpoint.
+        Muestra thumbnail de Steam, nombre, descripción corta y suscriptores.
+        Botón "Instalar": si modId no está en lookup table, mostrar modal/input para ingresarlo.
+      </file>
+    </layer>
+  </architecture>
+
+  <env_setup>
+    Agregar al archivo .env.local (NO commitear al repo):
+    STEAM_API_KEY=tu_api_key_aqui
+    Obtener en: https://steamcommunity.com/dev/apikey
+    Agregar .env.local a .gitignore (ya está por defecto en Next.js).
+  </env_setup>
+
+  <known_mod_id_lookup_table note="Mapeo estático de workshopId a modId para mods populares conocidos">
+    2196102849 → RavenCreek (map)
+    2392709985 → tsarslib
+    2297098490 → Arsenal(26)GunFighter
+    514427485  → Brita_ArmorPack
+    2590017394 → HydrocraftModpack
+    2038907269 → FilibuRhymesUsedCars
+  </known_mod_id_lookup_table>
+
+  <ui_wireframe>
+    [ModCatalog Card]
+    ┌──────────────────────────────────────┐
+    │ 🔍 [Search mods...         ] [30d ▼] │  ← input debounced + filtro de días
+    ├──────────────────────────────────────┤
+    │ [img] Mod Name          12k subs     │
+    │       Short description...  [+ Add]  │
+    │ [img] Mod Name          8k subs      │
+    │       Short description...  [+ Add]  │
+    │ ...                                  │
+    └──────────────────────────────────────┘
+  </ui_wireframe>
+
+  <implementation_notes>
+    - La Steam API requiere key para IPublishedFileService. Sin key, alternativa: usar el endpoint
+      GetAppDLCInfo que es público, pero tiene menos filtros. Preferir la key autenticada.
+    - Para la versión 42: Steam Workshop usa la tag literal "Build 42" en los mods recientes.
+      Verificar si los mods tienen esta tag antes de mostrarlos como compatibles.
+    - No bloquear la UI si Steam API está caída; mostrar fallback con la lista estática curada.
+  </implementation_notes>
+
+</feature>
