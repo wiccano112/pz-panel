@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server';
+import { getServerStats } from '@/lib/serverUtils';
 
 export async function GET() {
-  // Placeholder for real Docker metrics polling
-  return NextResponse.json({
-    cpu: '0%',
-    ram: '0GB',
-    network: '0B/s',
-  });
+  const stats = await getServerStats();
+  return NextResponse.json(stats);
 }
