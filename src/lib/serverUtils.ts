@@ -10,7 +10,7 @@ export async function getServerStatus() {
   try {
     const { stdout } = await execFileAsync('docker', ['inspect', '-f', '{{.State.Status}}', 'pz-server']);
     return stdout.trim().toUpperCase();
-  } catch (error) {
+  } catch {
     return 'OFFLINE';
   }
 }
@@ -19,7 +19,7 @@ export async function getServerStats() {
   try {
     const { stdout } = await execFileAsync('docker', ['stats', 'pz-server', '--no-stream', '--format', '{"cpu":"{{.CPUPerc}}","ram":"{{.MemUsage}}","net":"{{.NetIO}}"}']);
     return JSON.parse(stdout);
-  } catch (error) {
+  } catch {
     return { cpu: '0.00%', ram: '0B / 0B', net: '0B / 0B' };
   }
 }
@@ -35,8 +35,8 @@ export async function executeServerAction(action: 'start' | 'stop' | 'restart') 
       await execFileAsync('docker', ['compose', 'restart'], { cwd });
     }
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
 
@@ -63,7 +63,7 @@ export async function saveIniFile(newWorkshopItems: string[], newMods: string[],
     const parsed = ini.parse(content);
 
     // Ensure Muldraugh, KY is always at the end
-    let filteredMaps = newMaps.filter(m => m !== 'Muldraugh, KY');
+    const filteredMaps = newMaps.filter(m => m !== 'Muldraugh, KY');
     filteredMaps.push('Muldraugh, KY');
 
     parsed.Mods = newMods.join(';');
