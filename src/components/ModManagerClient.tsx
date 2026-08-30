@@ -74,21 +74,21 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
     <div className="space-y-6">
       
       {/* Mod Catalog */}
-      <div className="bg-white p-6 shadow rounded-lg border border-slate-200">
-        <h3 className="text-lg font-semibold mb-4 flex items-center space-x-2">
-          <PackagePlus className="w-5 h-5 text-blue-500" />
+      <div className="bg-zinc-900 p-6 shadow rounded-lg border border-zinc-700">
+        <h3 className="text-lg font-semibold mb-4 flex items-center space-x-2 text-white">
+          <PackagePlus className="w-5 h-5 text-indigo-400" />
           <span>Mod Catalog (Popular)</span>
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {POPULAR_MODS.map(mod => (
-            <div key={mod.modId} className="p-4 border rounded-md flex justify-between items-center bg-slate-50">
+            <div key={mod.modId} className="p-4 border border-zinc-700 rounded-md flex justify-between items-center bg-zinc-800">
               <div>
-                <p className="font-semibold text-sm">{mod.name}</p>
-                <p className="text-xs text-slate-500">WS: {mod.workshopId}</p>
+                <p className="font-semibold text-sm text-white">{mod.name}</p>
+                <p className="text-xs text-zinc-400">WS: {mod.workshopId}</p>
               </div>
               <button 
                 onClick={() => addModFromCatalog(mod)}
-                className="text-blue-600 hover:text-blue-800 bg-blue-100 p-2 rounded-md"
+                className="text-indigo-300 hover:text-white bg-indigo-600 hover:bg-indigo-500 p-2 rounded-md transition-colors"
                 title="Add to configuration"
               >
                 <Plus className="w-4 h-4" />
@@ -101,17 +101,17 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
         {/* Workshop Items */}
-        <div className="bg-white p-4 shadow rounded-lg border border-slate-200 flex flex-col">
+        <div className="bg-zinc-900 p-4 shadow rounded-lg border border-zinc-700 flex flex-col">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="font-semibold">Workshop Items</h3>
-            <button onClick={() => addItemManual('workshop')} className="text-slate-500 hover:text-blue-600"><Plus className="w-5 h-5" /></button>
+            <h3 className="font-semibold text-white">Workshop Items</h3>
+            <button onClick={() => addItemManual('workshop')} className="text-zinc-400 hover:text-indigo-400 transition-colors"><Plus className="w-5 h-5" /></button>
           </div>
           <ul className="flex-1 overflow-y-auto max-h-96 space-y-2">
-            {workshopItems.length === 0 && <li className="text-sm text-slate-500 text-center py-4">No items</li>}
+            {workshopItems.length === 0 && <li className="text-sm text-zinc-500 text-center py-4">No items</li>}
             {workshopItems.map((item, idx) => (
-              <li key={idx} className="flex justify-between items-center p-2 bg-slate-50 rounded border">
-                <span className="text-sm font-mono truncate">{item}</span>
-                <button onClick={() => removeItem('workshop', idx)} className="text-red-500 hover:text-red-700">
+              <li key={idx} className="flex justify-between items-center p-2 bg-zinc-800 rounded border border-zinc-700">
+                <span className="text-sm font-mono truncate text-zinc-100">{item}</span>
+                <button onClick={() => removeItem('workshop', idx)} className="text-red-500 hover:text-red-400 transition-colors">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </li>
@@ -120,17 +120,17 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
         </div>
 
         {/* Mods */}
-        <div className="bg-white p-4 shadow rounded-lg border border-slate-200 flex flex-col">
+        <div className="bg-zinc-900 p-4 shadow rounded-lg border border-zinc-700 flex flex-col">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="font-semibold">Mod IDs</h3>
-            <button onClick={() => addItemManual('mod')} className="text-slate-500 hover:text-blue-600"><Plus className="w-5 h-5" /></button>
+            <h3 className="font-semibold text-white">Mod IDs</h3>
+            <button onClick={() => addItemManual('mod')} className="text-zinc-400 hover:text-indigo-400 transition-colors"><Plus className="w-5 h-5" /></button>
           </div>
           <ul className="flex-1 overflow-y-auto max-h-96 space-y-2">
-            {mods.length === 0 && <li className="text-sm text-slate-500 text-center py-4">No mods</li>}
+            {mods.length === 0 && <li className="text-sm text-zinc-500 text-center py-4">No mods</li>}
             {mods.map((mod, idx) => (
-              <li key={idx} className="flex justify-between items-center p-2 bg-slate-50 rounded border">
-                <span className="text-sm font-mono truncate">{mod}</span>
-                <button onClick={() => removeItem('mod', idx)} className="text-red-500 hover:text-red-700">
+              <li key={idx} className="flex justify-between items-center p-2 bg-zinc-800 rounded border border-zinc-700">
+                <span className="text-sm font-mono truncate text-zinc-100">{mod}</span>
+                <button onClick={() => removeItem('mod', idx)} className="text-red-500 hover:text-red-400 transition-colors">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </li>
@@ -139,24 +139,24 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
         </div>
 
         {/* Maps */}
-        <div className="bg-white p-4 shadow rounded-lg border border-slate-200 flex flex-col">
+        <div className="bg-zinc-900 p-4 shadow rounded-lg border border-zinc-700 flex flex-col">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="font-semibold">Map IDs</h3>
-            <button onClick={() => addItemManual('map')} className="text-slate-500 hover:text-blue-600"><Plus className="w-5 h-5" /></button>
+            <h3 className="font-semibold text-white">Map IDs</h3>
+            <button onClick={() => addItemManual('map')} className="text-zinc-400 hover:text-indigo-400 transition-colors"><Plus className="w-5 h-5" /></button>
           </div>
           <ul className="flex-1 overflow-y-auto max-h-96 space-y-2">
-            {maps.length === 0 && <li className="text-sm text-slate-500 text-center py-4">No maps</li>}
+            {maps.length === 0 && <li className="text-sm text-zinc-500 text-center py-4">No maps</li>}
             {maps.map((map, idx) => {
               const isCore = map === 'Muldraugh, KY';
               return (
-                <li key={idx} className={`flex justify-between items-center p-2 rounded border ${isCore ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200'}`}>
-                  <span className="text-sm font-mono truncate">{map}</span>
+                <li key={idx} className={`flex justify-between items-center p-2 rounded border ${isCore ? 'bg-amber-900/40 border-amber-700' : 'bg-zinc-800 border-zinc-700'}`}>
+                  <span className="text-sm font-mono truncate text-zinc-100">{map}</span>
                   {isCore ? (
                     <span title="Core map cannot be removed">
-                      <Lock className="w-4 h-4 text-amber-600" />
+                      <Lock className="w-4 h-4 text-amber-500" />
                     </span>
                   ) : (
-                    <button onClick={() => removeItem('map', idx)} className="text-red-500 hover:text-red-700">
+                    <button onClick={() => removeItem('map', idx)} className="text-red-500 hover:text-red-400 transition-colors">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   )}
@@ -168,7 +168,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
       </div>
 
       {/* Save Button & Status */}
-      <div className="bg-white p-4 shadow rounded-lg border border-slate-200 flex items-center justify-between">
+      <div className="bg-zinc-900 p-4 shadow rounded-lg border border-zinc-700 flex items-center justify-between">
         <form action={formAction}>
           <input type="hidden" name="workshopItems" value={JSON.stringify(workshopItems)} />
           <input type="hidden" name="mods" value={JSON.stringify(mods)} />
@@ -177,7 +177,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
           <button
             type="submit"
             disabled={isPending}
-            className="flex items-center space-x-2 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50"
+            className="flex items-center space-x-2 px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-500 transition-colors disabled:opacity-50"
           >
             <Save className="w-5 h-5" />
             <span>{isPending ? 'Saving...' : 'Save Configuration'}</span>
@@ -185,7 +185,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
         </form>
 
         {state?.message && (
-          <span className={`text-sm font-medium ${state.error ? 'text-red-600' : 'text-green-600'}`}>
+          <span className={`text-sm font-medium ${state.error ? 'text-red-400' : 'text-green-400'}`}>
             {state.message}
           </span>
         )}

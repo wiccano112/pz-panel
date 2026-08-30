@@ -6,7 +6,7 @@ export default async function ModsPage() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-4">Mods Manager</h2>
+      <h2 className="text-2xl font-bold mb-4 text-white">Mods Manager</h2>
       <ModManagerClient initialData={initialData} />
     </div>
   );

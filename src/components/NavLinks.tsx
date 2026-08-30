@@ -20,7 +20,7 @@ export default function NavLinks() {
             key={link.href}
             href={link.href}
             className={`px-3 py-2 rounded-md transition-colors ${
-              isActive ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'hover:bg-slate-800 text-slate-300'
+              isActive ? 'bg-indigo-600 hover:bg-indigo-500 text-white' : 'hover:bg-zinc-700 text-zinc-100'
             }`}
           >
             {link.label}

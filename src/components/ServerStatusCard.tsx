@@ -13,11 +13,11 @@ export default function ServerStatusCard({ initialStatus }: ServerStatusCardProp
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'RUNNING': return 'text-green-600 bg-green-100';
+      case 'RUNNING': return 'text-green-400 bg-green-900/50 border border-green-700';
       case 'OFFLINE': 
-      case 'EXITED': return 'text-red-600 bg-red-100';
-      case 'RESTARTING': return 'text-yellow-600 bg-yellow-100';
-      default: return 'text-slate-600 bg-slate-100';
+      case 'EXITED': return 'text-red-400 bg-red-900/50 border border-red-700';
+      case 'RESTARTING': return 'text-yellow-400 bg-yellow-900/50 border border-yellow-700';
+      default: return 'text-zinc-300 bg-zinc-800 border border-zinc-700';
     }
   };
 
@@ -25,11 +25,11 @@ export default function ServerStatusCard({ initialStatus }: ServerStatusCardProp
   const isRunningLike = initialStatus === 'RUNNING' || initialStatus === 'RESTARTING';
 
   return (
-    <div className="p-6 bg-white shadow rounded-lg border border-slate-200">
+    <div className="p-6 bg-zinc-900 shadow rounded-lg border border-zinc-700">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-2">
-          <Server className="w-5 h-5 text-blue-500" />
-          <h3 className="text-lg font-semibold text-slate-800">Server Status</h3>
+          <Server className="w-5 h-5 text-indigo-400" />
+          <h3 className="text-lg font-semibold text-white">Server Status</h3>
         </div>
         <span className={`px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(initialStatus)}`}>
           {initialStatus}
@@ -72,7 +72,7 @@ export default function ServerStatusCard({ initialStatus }: ServerStatusCardProp
       </form>
 
       {state?.message && (
-        <div className={`mt-4 p-3 rounded-md text-sm ${state.error ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200'}`}>
+        <div className={`mt-4 p-3 rounded-md text-sm ${state.error ? 'bg-red-900/50 text-red-300 border border-red-700' : 'bg-green-900/50 text-green-300 border border-green-700'}`}>
           {state.message}
         </div>
       )}
