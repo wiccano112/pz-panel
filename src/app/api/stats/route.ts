@@ -9,7 +9,7 @@ export async function GET() {
       getConnectedPlayers(),
     ]);
     return NextResponse.json({ ...stats, uptime, players });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { cpu: '0%', ram: '0B', net: '0B/s', uptime: null, players: 0, error: 'Internal Server Error' },
       { status: 500 }

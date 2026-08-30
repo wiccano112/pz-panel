@@ -39,7 +39,7 @@ export async function handleSaveIniAction(
     } else {
       return { message: 'Failed to save configuration', error: true };
     }
-  } catch (error) {
+  } catch {
     return { message: 'Failed to parse configuration payload', error: true };
   }
 }
