@@ -1,7 +1,9 @@
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import fs from 'fs/promises';
+import path from 'path';
 import { CONFIG } from '@/lib/config';
+
 
 import { CORE_MAP_NAME, CACHE_TTL_MS } from '@/constants/game';
 import { withLock } from '@/lib/mutex';
@@ -256,6 +258,9 @@ export async function saveIniFile(workshopItems: string[], mods: string[], maps:
         Map: mapVal,
       });
       
+      // Ensure target directory exists
+      await fs.mkdir(path.dirname(CONFIG.iniPath), { recursive: true });
+
       // Atomic write via temporary file
       const tmpPath = `${CONFIG.iniPath}.tmp.${Date.now()}`;
       await fs.writeFile(tmpPath, updated, 'utf-8');
@@ -303,6 +308,9 @@ export async function saveServerProperties(
 
       const updated = updatePzIni(content, formattedProps);
 
+      // Ensure target directory exists
+      await fs.mkdir(path.dirname(CONFIG.iniPath), { recursive: true });
+
       // Atomic write via temporary file
       const tmpPath = `${CONFIG.iniPath}.tmp.${Date.now()}`;
       await fs.writeFile(tmpPath, updated, 'utf-8');
@@ -316,5 +324,6 @@ export async function saveServerProperties(
     }
   });
 }
+
 
 

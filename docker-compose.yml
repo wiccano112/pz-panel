@@ -21,4 +21,5 @@ services:
       # Docker socket to allow managing the PZ server container
       - /var/run/docker.sock:/var/run/docker.sock
       # PZ server directory containing data/Server and data/db
-      - ${PZ_HOST_SERVER_DIR:-/opt/pz-server}:/pz-server:rw
+      - ${PZ_HOST_SERVER_DIR:-${PZ_SERVER_DIR:-/opt/pz-server}}:/pz-server:rw
+
