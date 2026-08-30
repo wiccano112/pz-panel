@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import ModCatalog from '@/components/ModCatalog';
+import { CORE_MAP_NAME } from '@/constants/game';
 
 export interface InitialData {
   workshopItems: string[];
@@ -47,7 +48,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
     if (type === 'mod') setMods(prev => prev.filter((_, i) => i !== index));
     if (type === 'map') {
       const mapToRemove = maps[index];
-      if (mapToRemove === 'Muldraugh, KY') return;
+      if (mapToRemove === CORE_MAP_NAME) return;
       setMaps(prev => prev.filter((_, i) => i !== index));
     }
   };
@@ -65,12 +66,12 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
       });
     } else if (type === 'map') {
       setMaps(prev => {
-        const nonCoreMaps = prev.filter(m => m !== 'Muldraugh, KY');
+        const nonCoreMaps = prev.filter(m => m !== CORE_MAP_NAME);
         if (fromIndex >= nonCoreMaps.length || toIndex >= nonCoreMaps.length) return prev;
         const copy = [...nonCoreMaps];
         const [item] = copy.splice(fromIndex, 1);
         copy.splice(toIndex, 0, item);
-        return [...copy, 'Muldraugh, KY'];
+        return [...copy, CORE_MAP_NAME];
       });
     } else if (type === 'workshop') {
       setWorkshopItems(prev => {
@@ -114,7 +115,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
       setMods(prev => [...prev, modItem.modId]);
     }
     if (modItem.mapId && !maps.includes(modItem.mapId)) {
-      setMaps(prev => [modItem.mapId!, ...prev.filter(m => m !== 'Muldraugh, KY'), 'Muldraugh, KY']);
+      setMaps(prev => [modItem.mapId!, ...prev.filter(m => m !== CORE_MAP_NAME), CORE_MAP_NAME]);
     }
   };
 
@@ -129,12 +130,12 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
       if (!mods.includes(val)) setMods(prev => [...prev, val]);
     }
     if (type === 'map') {
-      if (val === 'Muldraugh, KY') {
-        alert('Muldraugh, KY is a core map and is always included by default.');
+      if (val === CORE_MAP_NAME) {
+        alert(`${CORE_MAP_NAME} is a core base map and is always included by default.`);
         return;
       }
       if (!maps.includes(val)) {
-        setMaps(prev => [val, ...prev.filter(m => m !== 'Muldraugh, KY'), 'Muldraugh, KY']);
+        setMaps(prev => [val, ...prev.filter(m => m !== CORE_MAP_NAME), CORE_MAP_NAME]);
       }
     }
   };
@@ -215,6 +216,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
               onClick={() => addItemManual('mod')} 
               className="text-zinc-400 hover:text-indigo-400 transition-colors p-1 cursor-pointer"
               title="Add Mod ID manually"
+              aria-label="Add Mod ID manually"
             >
               <Plus className="w-5 h-5" />
             </button>
@@ -245,6 +247,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
                     <span
                       className="text-zinc-500 hover:text-zinc-300 cursor-grab active:cursor-grabbing p-0.5"
                       title="Drag to reorder"
+                      aria-label="Drag to reorder mod"
                     >
                       <GripVertical className="w-4 h-4" />
                     </span>
@@ -260,6 +263,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
                       disabled={idx === 0}
                       className="p-1 text-zinc-400 hover:text-zinc-200 disabled:opacity-20 disabled:hover:text-zinc-400 cursor-pointer"
                       title="Move Up"
+                      aria-label={`Move mod ${mod} up`}
                     >
                       <ChevronUp className="w-3.5 h-3.5" />
                     </button>
@@ -269,6 +273,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
                       disabled={idx === mods.length - 1}
                       className="p-1 text-zinc-400 hover:text-zinc-200 disabled:opacity-20 disabled:hover:text-zinc-400 cursor-pointer"
                       title="Move Down"
+                      aria-label={`Move mod ${mod} down`}
                     >
                       <ChevronDown className="w-3.5 h-3.5" />
                     </button>
@@ -277,6 +282,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
                       onClick={() => removeItem('mod', idx)}
                       className="p-1 text-red-500 hover:text-red-400 transition-colors cursor-pointer"
                       title="Remove Mod ID"
+                      aria-label={`Remove mod ${mod}`}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -298,6 +304,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
               onClick={() => addItemManual('map')} 
               className="text-zinc-400 hover:text-indigo-400 transition-colors p-1 cursor-pointer"
               title="Add Map ID manually"
+              aria-label="Add Map ID manually"
             >
               <Plus className="w-5 h-5" />
             </button>
@@ -305,8 +312,8 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
           <ul className="flex-1 overflow-y-auto max-h-96 space-y-2">
             {maps.length === 0 && <li className="text-sm text-zinc-500 text-center py-4">No maps configured</li>}
             {maps.map((map, idx) => {
-              const isCore = map === 'Muldraugh, KY';
-              const nonCoreCount = maps.filter(m => m !== 'Muldraugh, KY').length;
+              const isCore = map === CORE_MAP_NAME;
+              const nonCoreCount = maps.filter(m => m !== CORE_MAP_NAME).length;
               const isDragging = draggedItem?.type === 'map' && draggedItem.index === idx;
               const isOver = dragOverIndex?.type === 'map' && dragOverIndex.index === idx;
 
@@ -333,6 +340,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
                       <span
                         className="text-zinc-500 hover:text-zinc-300 cursor-grab active:cursor-grabbing p-0.5"
                         title="Drag to reorder map priority"
+                        aria-label="Drag to reorder map"
                       >
                         <GripVertical className="w-4 h-4" />
                       </span>
@@ -357,6 +365,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
                         disabled={idx === 0}
                         className="p-1 text-zinc-400 hover:text-zinc-200 disabled:opacity-20 disabled:hover:text-zinc-400 cursor-pointer"
                         title="Move Up"
+                        aria-label={`Move map ${map} up`}
                       >
                         <ChevronUp className="w-3.5 h-3.5" />
                       </button>
@@ -366,6 +375,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
                         disabled={idx >= nonCoreCount - 1}
                         className="p-1 text-zinc-400 hover:text-zinc-200 disabled:opacity-20 disabled:hover:text-zinc-400 cursor-pointer"
                         title="Move Down"
+                        aria-label={`Move map ${map} down`}
                       >
                         <ChevronDown className="w-3.5 h-3.5" />
                       </button>
@@ -374,6 +384,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
                         onClick={() => removeItem('map', idx)}
                         className="p-1 text-red-500 hover:text-red-400 transition-colors cursor-pointer"
                         title="Remove Map ID"
+                        aria-label={`Remove map ${map}`}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -396,6 +407,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
               onClick={() => addItemManual('workshop')} 
               className="text-zinc-400 hover:text-indigo-400 transition-colors p-1 cursor-pointer"
               title="Add workshop item manually"
+              aria-label="Add workshop item manually"
             >
               <Plus className="w-5 h-5" />
             </button>
@@ -426,6 +438,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
                     <span
                       className="text-zinc-500 hover:text-zinc-300 cursor-grab active:cursor-grabbing p-0.5"
                       title="Drag to reorder"
+                      aria-label="Drag to reorder workshop item"
                     >
                       <GripVertical className="w-4 h-4" />
                     </span>
@@ -440,6 +453,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
                       disabled={idx === 0}
                       className="p-1 text-zinc-400 hover:text-zinc-200 disabled:opacity-20 disabled:hover:text-zinc-400 cursor-pointer"
                       title="Move Up"
+                      aria-label={`Move workshop item ${item} up`}
                     >
                       <ChevronUp className="w-3.5 h-3.5" />
                     </button>
@@ -449,6 +463,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
                       disabled={idx === workshopItems.length - 1}
                       className="p-1 text-zinc-400 hover:text-zinc-200 disabled:opacity-20 disabled:hover:text-zinc-400 cursor-pointer"
                       title="Move Down"
+                      aria-label={`Move workshop item ${item} down`}
                     >
                       <ChevronDown className="w-3.5 h-3.5" />
                     </button>
@@ -457,6 +472,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
                       onClick={() => removeItem('workshop', idx)}
                       className="p-1 text-red-500 hover:text-red-400 transition-colors cursor-pointer"
                       title="Remove Workshop Item"
+                      aria-label={`Remove workshop item ${item}`}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

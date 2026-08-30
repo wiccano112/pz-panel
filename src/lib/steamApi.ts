@@ -1,4 +1,6 @@
 import { KnownModEntry, SteamQueryFilesRawResponse, WorkshopModItem } from '@/types/workshop';
+import { CONFIG } from '@/lib/config';
+import { CATALOG_PAGE_SIZE } from '@/constants/game';
 
 export const KNOWN_MOD_LOOKUP: Record<string, KnownModEntry> = {
   '2196102849': { modId: 'RavenCreek', mapId: 'RavenCreek', name: 'Raven Creek' },
@@ -78,8 +80,8 @@ interface FetchWorkshopOptions {
 export async function fetchWorkshopMods(
   options: FetchWorkshopOptions = {}
 ): Promise<{ mods: WorkshopModItem[]; total: number; source: 'steam' | 'fallback'; warning?: string }> {
-  const apiKey = process.env.STEAM_API_KEY;
-  const { query = '', days = 30, tag = 'Build 42', page = 1, numperpage = 12 } = options;
+  const apiKey = CONFIG.steamApiKey;
+  const { query = '', days = 30, tag = 'Build 42', page = 1, numperpage = CATALOG_PAGE_SIZE } = options;
 
   const validPage = Math.max(1, page);
   const validPerPage = Math.min(Math.max(1, numperpage), 50);

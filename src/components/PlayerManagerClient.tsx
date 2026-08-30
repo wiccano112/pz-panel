@@ -22,6 +22,7 @@ import {
   handleUnbanAction,
   handleBroadcastAction,
 } from '@/app/actions';
+import { PLAYERS_POLL_INTERVAL_MS, ROLE_OPTIONS } from '@/constants/game';
 
 export interface PlayerManagerClientProps {
   initialData: PlayersOverviewData;
@@ -42,7 +43,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
     fetcher,
     {
       fallbackData: initialData,
-      refreshInterval: 6000,
+      refreshInterval: PLAYERS_POLL_INTERVAL_MS,
     }
   );
 
@@ -77,6 +78,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
             disabled={isValidating}
             className="flex items-center space-x-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs rounded border border-zinc-700 transition-colors disabled:opacity-50 cursor-pointer"
             title="Refresh player lists"
+            aria-label="Refresh player lists"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isValidating ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
@@ -93,6 +95,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
               ? 'border-indigo-500 text-indigo-400'
               : 'border-transparent text-zinc-400 hover:text-zinc-200'
           }`}
+          aria-label="View live connected players tab"
         >
           <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
           <span>Connected Players</span>
@@ -108,6 +111,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
               ? 'border-indigo-500 text-indigo-400'
               : 'border-transparent text-zinc-400 hover:text-zinc-200'
           }`}
+          aria-label="View whitelist management tab"
         >
           <ShieldCheck className="w-4 h-4" />
           <span>Whitelist</span>
@@ -123,6 +127,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
               ? 'border-indigo-500 text-indigo-400'
               : 'border-transparent text-zinc-400 hover:text-zinc-200'
           }`}
+          aria-label="View ban moderation tab"
         >
           <Ban className="w-4 h-4" />
           <span>Bans</span>
@@ -138,6 +143,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
               ? 'border-indigo-500 text-indigo-400'
               : 'border-transparent text-zinc-400 hover:text-zinc-200'
           }`}
+          aria-label="View server broadcast tab"
         >
           <Megaphone className="w-4 h-4 text-amber-400" />
           <span>Server Broadcast</span>
@@ -149,7 +155,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
         <div className="bg-zinc-900 border border-zinc-700 rounded-b-lg p-6 shadow-xl space-y-4">
           <div className="flex items-center justify-between">
             <h4 className="text-base font-semibold text-white">Active Survivors</h4>
-            <span className="text-xs text-zinc-400">Updates live via server log polling</span>
+            <span className="text-xs text-zinc-400">Updates live via server polling</span>
           </div>
 
           {overview.connectedPlayers.length === 0 ? (
@@ -193,6 +199,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
                             type="submit"
                             disabled={banPending}
                             className="px-2.5 py-1 bg-rose-950/60 hover:bg-rose-900/60 text-rose-300 border border-rose-800 text-xs rounded transition-colors disabled:opacity-50 cursor-pointer"
+                            aria-label={`Kick or ban player ${player.username}`}
                           >
                             Kick / Ban
                           </button>
@@ -236,11 +243,11 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
                   defaultValue="5"
                   className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-sm text-zinc-100 focus:outline-none focus:border-indigo-500 cursor-pointer"
                 >
-                  <option value="5">User (Normal Player)</option>
-                  <option value="4">GM (Game Master)</option>
-                  <option value="3">Overseer</option>
-                  <option value="2">Moderator</option>
-                  <option value="1">Admin</option>
+                  {ROLE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -260,6 +267,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
                   type="submit"
                   disabled={addWhitelistPending}
                   className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-sm font-medium transition-colors disabled:opacity-50 cursor-pointer"
+                  aria-label="Add user to whitelist"
                 >
                   {addWhitelistPending ? 'Adding...' : 'Add to Whitelist'}
                 </button>
@@ -321,7 +329,8 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
                               type="submit"
                               disabled={removeWhitelistPending}
                               className="p-1.5 text-zinc-400 hover:text-red-400 transition-colors cursor-pointer"
-                              title="Remove from whitelist"
+                              title={`Remove ${user.username} from whitelist`}
+                              aria-label={`Remove ${user.username} from whitelist`}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -389,6 +398,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
                   type="submit"
                   disabled={banPending}
                   className="w-full py-2 bg-rose-700 hover:bg-rose-600 text-white rounded text-sm font-medium transition-colors disabled:opacity-50 cursor-pointer"
+                  aria-label="Enforce ban on target"
                 >
                   {banPending ? 'Enforcing...' : 'Enforce Ban'}
                 </button>
@@ -430,6 +440,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
                               type="submit"
                               disabled={unbanPending}
                               className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs rounded border border-zinc-700 transition-colors cursor-pointer"
+                              aria-label={`Unban Steam ID ${b.steamid}`}
                             >
                               Unban
                             </button>
@@ -473,6 +484,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
                               type="submit"
                               disabled={unbanPending}
                               className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs rounded border border-zinc-700 transition-colors cursor-pointer"
+                              aria-label={`Unban IP ${b.ip}`}
                             >
                               Unban
                             </button>
@@ -515,6 +527,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
                 type="submit"
                 disabled={broadcastPending}
                 className="flex items-center space-x-2 px-5 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50 cursor-pointer"
+                aria-label="Send broadcast announcement"
               >
                 <Send className="w-4 h-4" />
                 <span>{broadcastPending ? 'Sending...' : 'Send Broadcast'}</span>

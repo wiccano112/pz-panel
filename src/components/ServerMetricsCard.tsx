@@ -2,6 +2,7 @@
 
 import useSWR from 'swr';
 import { Activity, Clock, Cpu, HardDrive, Network, Users } from 'lucide-react';
+import { METRICS_POLL_INTERVAL_MS } from '@/constants/game';
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -15,7 +16,7 @@ interface ServerMetricsCardProps {
 
 export default function ServerMetricsCard({ status: initialStatus }: ServerMetricsCardProps) {
   const { data, error, isLoading } = useSWR('/api/stats', fetcher, {
-    refreshInterval: 3000,
+    refreshInterval: METRICS_POLL_INTERVAL_MS,
   });
 
   const currentStatus: string = data?.status || initialStatus;

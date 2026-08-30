@@ -1,7 +1,10 @@
 import { spawn } from 'child_process';
 import { NextRequest } from 'next/server';
+import { CONFIG } from '@/lib/config';
 
 export const dynamic = 'force-dynamic';
+
+const MAX_BUFFER_SIZE = 65536; // 64 KB safeguard limit
 
 export async function GET(request: NextRequest) {
   const encoder = new TextEncoder();
@@ -32,14 +35,29 @@ export async function GET(request: NextRequest) {
       };
 
       // Initial ping / connection message
-      sendEvent('[SYSTEM] Connected to server log stream (tail -f pz-server)');
+      sendEvent(`[SYSTEM] Connected to server log stream (tail -f ${CONFIG.containerName})`);
 
-      const proc = spawn('docker', ['logs', '-f', '--tail', '100', 'pz-server']);
+      const proc = spawn('docker', ['logs', '-f', '--tail', '100', CONFIG.containerName]);
 
       let buffer = '';
 
       const handleData = (chunk: Buffer) => {
         buffer += chunk.toString('utf-8');
+
+        // Prevent memory leak if a massive chunk has no line breaks
+        if (buffer.length > MAX_BUFFER_SIZE) {
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+          for (const line of lines) {
+            if (line.trim()) sendEvent(line);
+          }
+          if (buffer.length > MAX_BUFFER_SIZE) {
+            sendEvent(buffer.slice(0, MAX_BUFFER_SIZE));
+            buffer = '';
+          }
+          return;
+        }
+
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
 

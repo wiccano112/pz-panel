@@ -2,80 +2,96 @@ import fs from 'fs';
 import { DatabaseSync } from 'node:sqlite';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
+import { CONFIG } from '@/lib/config';
+import { ROLE_MAP, CACHE_TTL_MS } from '@/constants/game';
+import { getOrSetCache } from '@/lib/cache';
 import { BannedIp, BannedSteamId, ConnectedPlayer, PlayersOverviewData, WhitelistUser } from '@/types/players';
 
 const execFileAsync = promisify(execFile);
-export const PZ_DB_PATH = '/opt/pz-server/data/db/servertest.db';
 
-const ROLE_MAP: Record<number, string> = {
-  1: 'Admin',
-  2: 'Moderator',
-  3: 'Overseer',
-  4: 'GM',
-  5: 'User',
-};
+interface GlobalSqliteStore {
+  __pz_sqlite_db?: DatabaseSync;
+  __pz_sqlite_db_path?: string;
+}
 
-function getDbInstance(): DatabaseSync | null {
-  try {
-    if (!fs.existsSync(PZ_DB_PATH)) {
-      return null;
-    }
-    const db = new DatabaseSync(PZ_DB_PATH);
-    db.exec('PRAGMA busy_timeout = 3000;');
-    return db;
-  } catch (error) {
-    console.error('Failed to open servertest.db:', error);
+const globalSqlite = globalThis as unknown as GlobalSqliteStore;
+
+function getDatabase(): DatabaseSync | null {
+  if (!fs.existsSync(CONFIG.dbPath)) {
     return null;
+  }
+  if (globalSqlite.__pz_sqlite_db && globalSqlite.__pz_sqlite_db_path === CONFIG.dbPath) {
+    return globalSqlite.__pz_sqlite_db;
+  }
+  if (globalSqlite.__pz_sqlite_db) {
+    try {
+      globalSqlite.__pz_sqlite_db.close();
+    } catch {}
+  }
+  const db = new DatabaseSync(CONFIG.dbPath);
+  db.exec('PRAGMA busy_timeout = 3000;');
+  db.exec('PRAGMA journal_mode = WAL;');
+  globalSqlite.__pz_sqlite_db = db;
+  globalSqlite.__pz_sqlite_db_path = CONFIG.dbPath;
+  return db;
+}
+
+function withDb<T>(operation: (db: DatabaseSync) => T): { success: boolean; data?: T; error?: string } {
+  try {
+    const db = getDatabase();
+    if (!db) {
+      return { success: false, error: `Database file not found at ${CONFIG.dbPath}` };
+    }
+    const result = operation(db);
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('Database operation error:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
 
+
 export async function getLiveConnectedPlayers(): Promise<ConnectedPlayer[]> {
-  try {
-    const { stdout } = await execFileAsync('sh', [
-      '-c',
-      'docker logs pz-server --since 60m 2>&1',
-    ]);
+  return getOrSetCache('live_connected_players', CACHE_TTL_MS, async () => {
+    try {
+      const { stdout } = await execFileAsync('docker', [
+        'logs',
+        CONFIG.containerName,
+        '--since',
+        '60m',
+      ]);
 
-    const lines = stdout.split('\n');
-    const activeUserMap = new Map<string, ConnectedPlayer>();
+      const lines = stdout.split('\n');
+      const activeUserMap = new Map<string, ConnectedPlayer>();
 
-    for (const line of lines) {
-      if (line.includes('PlayerConnected')) {
-        const match = line.match(/PlayerConnected\s+([A-Za-z0-9_-]+)/);
-        const username = match ? match[1] : 'Survivor';
-        activeUserMap.set(username, {
-          username,
-          connectedSince: 'Recently',
-          role: 'Player',
-        });
-      } else if (line.includes('PlayerDisconnected')) {
-        const match = line.match(/PlayerDisconnected\s+([A-Za-z0-9_-]+)/);
-        if (match) {
-          activeUserMap.delete(match[1]);
+      for (const line of lines) {
+        if (line.includes('PlayerConnected')) {
+          const match = line.match(/PlayerConnected\s+([A-Za-z0-9_-]+)/);
+          const username = match ? match[1] : 'Survivor';
+          activeUserMap.set(username, {
+            username,
+            connectedSince: 'Recently',
+            role: 'Player',
+          });
+        } else if (line.includes('PlayerDisconnected')) {
+          const match = line.match(/PlayerDisconnected\s+([A-Za-z0-9_-]+)/);
+          if (match) {
+            activeUserMap.delete(match[1]);
+          }
         }
       }
-    }
 
-    return Array.from(activeUserMap.values());
-  } catch {
-    return [];
-  }
+      return Array.from(activeUserMap.values());
+    } catch {
+      return [];
+    }
+  });
 }
 
 export async function getPlayersOverview(): Promise<PlayersOverviewData> {
   const connectedPlayers = await getLiveConnectedPlayers();
-  const db = getDbInstance();
 
-  if (!db) {
-    return {
-      connectedPlayers,
-      whitelist: [],
-      bannedSteamIds: [],
-      bannedIps: [],
-    };
-  }
-
-  try {
+  const dbRes = withDb((db) => {
     // 1. Whitelist
     const rawWhitelist = db
       .prepare('SELECT id, username, role, lastConnection, steamid, displayName FROM whitelist ORDER BY id DESC')
@@ -119,25 +135,15 @@ export async function getPlayersOverview(): Promise<PlayersOverviewData> {
       reason: b.reason || 'No reason provided',
     }));
 
-    return {
-      connectedPlayers,
-      whitelist,
-      bannedSteamIds,
-      bannedIps,
-    };
-  } catch (error) {
-    console.error('Error querying servertest.db:', error);
-    return {
-      connectedPlayers,
-      whitelist: [],
-      bannedSteamIds: [],
-      bannedIps: [],
-    };
-  } finally {
-    try {
-      db.close();
-    } catch {}
-  }
+    return { whitelist, bannedSteamIds, bannedIps };
+  });
+
+  return {
+    connectedPlayers,
+    whitelist: dbRes.data?.whitelist || [],
+    bannedSteamIds: dbRes.data?.bannedSteamIds || [],
+    bannedIps: dbRes.data?.bannedIps || [],
+  };
 }
 
 export function addToWhitelist(payload: {
@@ -146,10 +152,7 @@ export function addToWhitelist(payload: {
   steamid?: string;
   displayName?: string;
 }): { success: boolean; error?: string } {
-  const db = getDbInstance();
-  if (!db) return { success: false, error: 'Database unavailable' };
-
-  try {
+  return withDb((db) => {
     const stmt = db.prepare(
       'INSERT INTO whitelist (username, role, steamid, displayName) VALUES (?, ?, ?, ?)'
     );
@@ -159,114 +162,71 @@ export function addToWhitelist(payload: {
       payload.steamid?.trim() || null,
       payload.displayName?.trim() || null
     );
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
-  } finally {
-    try {
-      db.close();
-    } catch {}
-  }
+    return true;
+  });
 }
 
 export function removeFromWhitelist(id: number): { success: boolean; error?: string } {
-  const db = getDbInstance();
-  if (!db) return { success: false, error: 'Database unavailable' };
-
-  try {
+  return withDb((db) => {
     const stmt = db.prepare('DELETE FROM whitelist WHERE id = ?');
     stmt.run(id);
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
-  } finally {
-    try {
-      db.close();
-    } catch {}
-  }
+    return true;
+  });
 }
 
 export function banSteamId(payload: { steamid: string; reason?: string }): { success: boolean; error?: string } {
-  const db = getDbInstance();
-  if (!db) return { success: false, error: 'Database unavailable' };
-
-  try {
+  return withDb((db) => {
     const stmt = db.prepare('INSERT OR REPLACE INTO bannedid (steamid, reason) VALUES (?, ?)');
     stmt.run(payload.steamid.trim(), payload.reason?.trim() || 'Banned via PZ-Panel');
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
-  } finally {
-    try {
-      db.close();
-    } catch {}
-  }
+    return true;
+  });
 }
 
 export function unbanSteamId(steamid: string): { success: boolean; error?: string } {
-  const db = getDbInstance();
-  if (!db) return { success: false, error: 'Database unavailable' };
-
-  try {
+  return withDb((db) => {
     const stmt = db.prepare('DELETE FROM bannedid WHERE steamid = ?');
     stmt.run(steamid.trim());
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
-  } finally {
-    try {
-      db.close();
-    } catch {}
-  }
+    return true;
+  });
 }
 
 export function banIp(payload: { ip: string; username?: string; reason?: string }): { success: boolean; error?: string } {
-  const db = getDbInstance();
-  if (!db) return { success: false, error: 'Database unavailable' };
-
-  try {
+  return withDb((db) => {
     const stmt = db.prepare('INSERT OR REPLACE INTO bannedip (ip, username, reason) VALUES (?, ?, ?)');
     stmt.run(
       payload.ip.trim(),
       payload.username?.trim() || null,
       payload.reason?.trim() || 'Banned via PZ-Panel'
     );
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
-  } finally {
-    try {
-      db.close();
-    } catch {}
-  }
+    return true;
+  });
 }
 
 export function unbanIp(ip: string): { success: boolean; error?: string } {
-  const db = getDbInstance();
-  if (!db) return { success: false, error: 'Database unavailable' };
-
-  try {
+  return withDb((db) => {
     const stmt = db.prepare('DELETE FROM bannedip WHERE ip = ?');
     stmt.run(ip.trim());
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
-  } finally {
-    try {
-      db.close();
-    } catch {}
-  }
+    return true;
+  });
 }
 
 export async function sendServerBroadcast(message: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const sanitizedMsg = message.replace(/["$`\\]/g, '');
+    // Sanitize message: strip newlines and control characters, limit length
+    const cleanMessage = message.replace(/[\r\n\x00-\x1F]/g, ' ').trim();
+    if (!cleanMessage) {
+      return { success: false, error: 'Broadcast message cannot be empty' };
+    }
+
+    // Base64 encode the payload to ensure 100% shell injection safety
+    const b64 = Buffer.from(cleanMessage, 'utf-8').toString('base64');
+
     await execFileAsync('docker', [
       'exec',
-      'pz-server',
+      CONFIG.containerName,
       'sh',
       '-c',
-      `echo "servermsg \\"${sanitizedMsg}\\"" >> /home/steam/server-console.txt 2>/dev/null || true`,
+      `printf 'servermsg "%s"\\n' "$(echo "${b64}" | base64 -d)" >> /home/steam/server-console.txt 2>/dev/null || true`,
     ]);
     return { success: true };
   } catch (error) {
