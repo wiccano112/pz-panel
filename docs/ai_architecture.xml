@@ -1,32 +1,31 @@
-<project_architecture name="pz-panel" version="1.0">
+<project_architecture name="pz-panel" version="1.2">
   <!-- 
     NOTE TO AGENTS: 
     This file uses dense XML/tags to minimize token usage while maintaining structural context.
     Update this file whenever a new feature, route, or core component is added.
   -->
   <tech_stack>
-    <layer name="frontend" framework="nextjs-16-app-router" ui="tailwind+shadcn"/>
-    <layer name="backend" framework="nextjs-server-actions" tooling="child_process+fs"/>
+    <layer name="frontend" framework="nextjs-16-app-router" ui="tailwind-v4+lucide" runtime="react-19"/>
+    <layer name="backend" framework="nextjs-server-actions+route-handlers" tooling="child_process+fs+node:sqlite" runtime="node-26"/>
   </tech_stack>
   
   <features>
-    <feature id="f1_docker_control" status="backend_implemented" priority="high">
-      <desc>Execute docker compose commands to control server state.</desc>
+    <feature id="f1_docker_control" status="implemented" priority="critical">
+      <desc>Execute docker compose power actions (start/stop/restart) for pz-server container.</desc>
       <impl location="src/lib/serverUtils.ts" method="executeServerAction">
         <dep type="cli">docker compose</dep>
         <sec>No sudo required (docker group). Uses execFile to prevent shell injection.</sec>
       </impl>
     </feature>
     
-    <feature id="f2_system_metrics" status="backend_implemented" priority="high">
-      <desc>Fetch real-time CPU/RAM/NetIO via docker stats.</desc>
-      <impl location="src/lib/serverUtils.ts" method="getServerStats">
-        <dep type="cli">docker stats --format json</dep>
-        <arch>Should be consumed via Route Handler + SWR in UI for polling.</arch>
+    <feature id="f2_system_metrics" status="implemented" priority="high">
+      <desc>Fetch real-time CPU/RAM/NetIO/Uptime/Players via docker stats and logs.</desc>
+      <impl location="src/lib/serverUtils.ts" methods="getServerStats,getServerUptime,getConnectedPlayers">
+        <route path="src/app/api/stats/route.ts" method="GET" poll="swr-3000ms"/>
       </impl>
     </feature>
     
-    <feature id="f3_ini_parser" status="backend_implemented" priority="critical">
+    <feature id="f3_ini_parser" status="implemented" priority="critical">
       <desc>Read and mutate servertest.ini safely.</desc>
       <impl location="src/lib/serverUtils.ts" methods="readIniFile,saveIniFile">
         <dep type="npm">ini</dep>
@@ -34,17 +33,58 @@
       </impl>
     </feature>
     
-    <feature id="f4_ui_dashboard" status="pending">
-      <desc>Main visual dashboard for metrics and power controls.</desc>
+    <feature id="f4_ui_dashboard" status="implemented" priority="high">
+      <desc>Main visual dashboard with power controls, live metrics, and real-time SSE log streaming.</desc>
+      <components>
+        <comp location="src/components/ServerStatusCard.tsx" type="client"/>
+        <comp location="src/components/ServerMetricsCard.tsx" type="client"/>
+        <comp location="src/components/ServerLogsCard.tsx" type="client">
+          <route path="src/app/api/logs/route.ts" method="GET" stream="text/event-stream"/>
+          <features>tail -f, level filter chips (ALL/INFO/WARN/ERROR/DEBUG), auto-scroll, search, copy</features>
+        </comp>
+      </components>
     </feature>
 
-    <feature id="f5_ui_mod_manager" status="pending">
-      <desc>Visual interface for dragging/dropping/enabling mods and maps.</desc>
+    <feature id="f5_ui_mod_manager" status="implemented" priority="high">
+      <desc>Mod and map manager with dynamic Steam Workshop API integration.</desc>
+      <components>
+        <comp location="src/components/ModManagerClient.tsx" type="client"/>
+        <comp location="src/components/ModCatalog.tsx" type="client">
+          <route path="src/app/api/workshop/route.ts" method="GET" poll="swr"/>
+          <features>Steam API IPublishedFileService, 12 per page pagination, debounced search, hybrid modId resolution dialog</features>
+        </comp>
+      </components>
+    </feature>
+
+    <feature id="f6_sandbox_editor" status="implemented" priority="high">
+      <desc>Visual categorized sandbox variables editor for servertest_SandboxVars.lua.</desc>
+      <components>
+        <comp location="src/app/sandbox/page.tsx" type="server"/>
+        <comp location="src/components/SandboxManagerClient.tsx" type="client"/>
+      </components>
+      <impl location="src/lib/sandboxUtils.ts" methods="readSandboxVars,saveSandboxVars">
+        <features>Categorized tabs (Zombies, Loot, World, Vehicles, Character), atomic .tmp file writes, restart reminder modal</features>
+      </impl>
+    </feature>
+
+    <feature id="f7_player_manager" status="implemented" priority="high">
+      <desc>Live player monitor, SQLite whitelist & bans manager, and in-game server broadcast.</desc>
+      <components>
+        <comp location="src/app/players/page.tsx" type="server"/>
+        <comp location="src/components/PlayerManagerClient.tsx" type="client"/>
+      </components>
+      <impl location="src/lib/playerUtils.ts">
+        <dep type="builtin">node:sqlite</dep>
+        <database path="/opt/pz-server/data/db/servertest.db"/>
+        <route path="src/app/api/players/live/route.ts" method="GET" poll="swr-6000ms"/>
+        <features>Active players, whitelist CRUD, SteamID/IP bans, in-game server broadcast messages</features>
+      </impl>
     </feature>
   </features>
 
   <state_management>
     <strategy scope="mutations">Next.js Server Actions (React 19 hooks like useActionState)</strategy>
-    <strategy scope="realtime_metrics">SWR / React Query Polling via API Routes</strategy>
+    <strategy scope="realtime_metrics">SWR Polling via Route Handlers</strategy>
+    <strategy scope="realtime_logs">Server-Sent Events (SSE) via Web Streams</strategy>
   </state_management>
 </project_architecture>
