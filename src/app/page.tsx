@@ -2,7 +2,9 @@ import ServerStatusCard from '@/components/ServerStatusCard';
 import ServerMetricsCard from '@/components/ServerMetricsCard';
 import ServerLogsCard from '@/components/ServerLogsCard';
 import { getServerStatus } from '@/lib/serverUtils';
-
+ 
+export const dynamic = 'force-dynamic';
+ 
 export default async function DashboardPage() {
   const status = await getServerStatus();
 

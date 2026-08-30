@@ -6,6 +6,7 @@ services:
     image: pz-panel:latest
     container_name: pz-panel
     restart: unless-stopped
+    cpuset: "12-19"
     ports:
       - "${PANEL_PORT:-3000}:3000"
     env_file:

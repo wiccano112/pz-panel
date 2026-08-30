@@ -1,6 +1,8 @@
 import { readIniFile } from '@/lib/serverUtils';
 import ModManagerClient from '@/components/ModManagerClient';
-
+ 
+export const dynamic = 'force-dynamic';
+ 
 export default async function ModsPage() {
   const initialData = await readIniFile();
 
