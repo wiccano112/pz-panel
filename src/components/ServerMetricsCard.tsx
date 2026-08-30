@@ -13,16 +13,17 @@ interface ServerMetricsCardProps {
   status: string;
 }
 
-export default function ServerMetricsCard({ status }: ServerMetricsCardProps) {
-  const { data, error, isLoading } = useSWR(
-    status === 'RUNNING' ? '/api/stats' : null, 
-    fetcher, 
-    { refreshInterval: 3000 }
-  );
+export default function ServerMetricsCard({ status: initialStatus }: ServerMetricsCardProps) {
+  const { data, error, isLoading } = useSWR('/api/stats', fetcher, {
+    refreshInterval: 3000,
+  });
 
-  if (error) {
+  const currentStatus: string = data?.status || initialStatus;
+  const isOnlineLike = currentStatus === 'ONLINE' || currentStatus === 'STARTING' || currentStatus === 'RUNNING';
+
+  if (error && !data) {
     return (
-      <div className="p-6 bg-zinc-900 shadow rounded-lg border border-red-700">
+      <div className="p-6 bg-zinc-900 shadow rounded-lg border border-red-800">
         <h3 className="text-lg font-semibold text-red-400 mb-2">Metrics Error</h3>
         <p className="text-sm text-zinc-400">Failed to load server metrics.</p>
       </div>
@@ -36,57 +37,63 @@ export default function ServerMetricsCard({ status }: ServerMetricsCardProps) {
         <h3 className="text-lg font-semibold text-white">Server Metrics</h3>
       </div>
       
-      {isLoading && status === 'RUNNING' ? (
+      {isLoading && !data ? (
         <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-zinc-700 rounded w-3/4"></div>
-          <div className="h-4 bg-zinc-700 rounded w-1/2"></div>
-          <div className="h-4 bg-zinc-700 rounded w-5/6"></div>
-          <div className="h-4 bg-zinc-700 rounded w-2/3"></div>
-          <div className="h-4 bg-zinc-700 rounded w-1/3"></div>
+          <div className="h-10 bg-zinc-800 rounded-md"></div>
+          <div className="h-10 bg-zinc-800 rounded-md"></div>
+          <div className="h-10 bg-zinc-800 rounded-md"></div>
+          <div className="h-10 bg-zinc-800 rounded-md"></div>
+          <div className="h-10 bg-zinc-800 rounded-md"></div>
         </div>
       ) : (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-3 bg-zinc-800 rounded-md">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-2.5 bg-zinc-800/80 rounded-md border border-zinc-700/60">
             <div className="flex items-center space-x-2 text-zinc-300">
-              <Cpu className="w-4 h-4" />
+              <Cpu className="w-4 h-4 text-indigo-400" />
               <span className="text-sm font-medium">CPU Usage</span>
             </div>
-            <span className="text-sm font-semibold text-white">{status === 'RUNNING' ? (data?.cpu || '0%') : 'Offline'}</span>
+            <span className="text-sm font-semibold font-mono text-white">
+              {isOnlineLike ? (data?.cpu || '0%') : 'Offline'}
+            </span>
           </div>
           
-          <div className="flex items-center justify-between p-3 bg-zinc-800 rounded-md">
+          <div className="flex items-center justify-between p-2.5 bg-zinc-800/80 rounded-md border border-zinc-700/60">
             <div className="flex items-center space-x-2 text-zinc-300">
-              <HardDrive className="w-4 h-4" />
+              <HardDrive className="w-4 h-4 text-emerald-400" />
               <span className="text-sm font-medium">RAM Usage</span>
             </div>
-            <span className="text-sm font-semibold text-white">{status === 'RUNNING' ? (data?.ram || '0B') : 'Offline'}</span>
-          </div>
-
-          <div className="flex items-center justify-between p-3 bg-zinc-800 rounded-md">
-            <div className="flex items-center space-x-2 text-zinc-300">
-              <Network className="w-4 h-4" />
-              <span className="text-sm font-medium">Network I/O</span>
-            </div>
-            <span className="text-sm font-semibold text-white">{status === 'RUNNING' ? (data?.net || '0B / 0B') : 'Offline'}</span>
-          </div>
-
-          <div className="flex items-center justify-between p-3 bg-zinc-800 rounded-md">
-            <div className="flex items-center space-x-2 text-zinc-300">
-              <Clock className="w-4 h-4" />
-              <span className="text-sm font-medium">Uptime</span>
-            </div>
-            <span className="text-sm font-semibold text-white">
-              {status === 'RUNNING' ? (data?.uptime ?? '—') : 'Offline'}
+            <span className="text-sm font-semibold font-mono text-white">
+              {isOnlineLike ? (data?.ram || '0B') : 'Offline'}
             </span>
           </div>
 
-          <div className="flex items-center justify-between p-3 bg-zinc-800 rounded-md">
+          <div className="flex items-center justify-between p-2.5 bg-zinc-800/80 rounded-md border border-zinc-700/60">
             <div className="flex items-center space-x-2 text-zinc-300">
-              <Users className="w-4 h-4" />
+              <Network className="w-4 h-4 text-sky-400" />
+              <span className="text-sm font-medium">Network I/O</span>
+            </div>
+            <span className="text-sm font-semibold font-mono text-white">
+              {isOnlineLike ? (data?.net || '0B / 0B') : 'Offline'}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between p-2.5 bg-zinc-800/80 rounded-md border border-zinc-700/60">
+            <div className="flex items-center space-x-2 text-zinc-300">
+              <Clock className="w-4 h-4 text-amber-400" />
+              <span className="text-sm font-medium">Uptime</span>
+            </div>
+            <span className="text-sm font-semibold font-mono text-white">
+              {isOnlineLike ? (data?.uptime ?? '—') : 'Offline'}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between p-2.5 bg-zinc-800/80 rounded-md border border-zinc-700/60">
+            <div className="flex items-center space-x-2 text-zinc-300">
+              <Users className="w-4 h-4 text-violet-400" />
               <span className="text-sm font-medium">Players Online</span>
             </div>
-            <span className="text-sm font-semibold text-white">
-              {status === 'RUNNING' ? (data?.players ?? 0) : 'Offline'}
+            <span className="text-sm font-semibold font-mono text-white">
+              {isOnlineLike ? (data?.players ?? 0) : 'Offline'}
             </span>
           </div>
         </div>
