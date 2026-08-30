@@ -1,8 +1,11 @@
 "use server";
 
-import { executeServerAction } from '@/lib/serverUtils';
+import { executeServerAction, saveServerProperties } from '@/lib/serverUtils';
+
 import { revalidatePath } from 'next/cache';
 import { saveSandboxVars } from '@/lib/sandboxUtils';
+import { saveSpawnRegions } from '@/lib/spawnRegionUtils';
+import { z } from 'zod';
 import {
   addToWhitelist,
   removeFromWhitelist,
@@ -13,6 +16,7 @@ import {
   sendServerBroadcast,
 } from '@/lib/playerUtils';
 import { ActionResult } from '@/types/actions';
+
 
 export async function handleServerAction(
   prevState: unknown,
@@ -205,3 +209,74 @@ export async function handleBroadcastAction(
     return { success: false, message: `Failed to send broadcast: ${result.error}`, error: true };
   }
 }
+
+const serverPropertiesSchema = z.record(
+  z.string(),
+  z.union([z.string(), z.number(), z.boolean()])
+);
+
+export async function handleSaveServerPropertiesAction(
+  prevState: unknown,
+  formData: FormData
+): Promise<ActionResult> {
+  try {
+    const rawPayload = formData.get('properties') as string;
+    if (!rawPayload) {
+      return { success: false, message: 'Missing server properties payload', error: true };
+    }
+
+    const parsedJson = JSON.parse(rawPayload);
+    const parseResult = serverPropertiesSchema.safeParse(parsedJson);
+
+    if (!parseResult.success) {
+      return { success: false, message: `Invalid properties format: ${parseResult.error.message}`, error: true };
+    }
+
+    const result = await saveServerProperties(parseResult.data);
+    if (result.success) {
+      revalidatePath('/settings');
+      return { success: true, message: 'Server properties (.ini) saved successfully', error: false };
+    } else {
+      return { success: false, message: `Failed to save server properties: ${result.error}`, error: true };
+    }
+  } catch {
+    return { success: false, message: 'Failed to parse server properties payload', error: true };
+  }
+}
+
+const spawnRegionsSchema = z.array(
+  z.object({
+    name: z.string().min(1, 'Region name cannot be empty'),
+    file: z.string().min(1, 'Region file path cannot be empty'),
+  })
+);
+
+export async function handleSaveSpawnRegionsAction(
+  prevState: unknown,
+  formData: FormData
+): Promise<ActionResult> {
+  try {
+    const rawPayload = formData.get('spawnRegions') as string;
+    if (!rawPayload) {
+      return { success: false, message: 'Missing spawn regions payload', error: true };
+    }
+
+    const parsedJson = JSON.parse(rawPayload);
+    const parseResult = spawnRegionsSchema.safeParse(parsedJson);
+
+    if (!parseResult.success) {
+      return { success: false, message: `Invalid spawn regions format: ${parseResult.error.message}`, error: true };
+    }
+
+    const result = await saveSpawnRegions(parseResult.data);
+    if (result.success) {
+      revalidatePath('/settings');
+      return { success: true, message: 'Spawn regions (.lua) saved successfully', error: false };
+    } else {
+      return { success: false, message: `Failed to save spawn regions: ${result.error}`, error: true };
+    }
+  } catch {
+    return { success: false, message: 'Failed to parse spawn regions payload', error: true };
+  }
+}
+

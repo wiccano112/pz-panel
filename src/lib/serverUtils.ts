@@ -211,3 +211,64 @@ export async function saveIniFile(workshopItems: string[], mods: string[], maps:
     }
   });
 }
+
+export async function readServerProperties(): Promise<Record<string, string>> {
+  try {
+    const content = await fs.readFile(CONFIG.iniPath, 'utf-8');
+    const parsed = ini.parse(content) as Record<string, unknown>;
+    const properties: Record<string, string> = {};
+
+    for (const [key, value] of Object.entries(parsed)) {
+      if (typeof value === 'object' && value !== null) {
+        for (const [subKey, subVal] of Object.entries(value as Record<string, unknown>)) {
+          properties[`${key}.${subKey}`] = String(subVal ?? '');
+        }
+      } else {
+        properties[key] = String(value ?? '');
+      }
+    }
+
+    return properties;
+  } catch (error) {
+    console.error('Failed to read server properties from INI:', error);
+    return {};
+  }
+}
+
+export async function saveServerProperties(
+  updatedProps: Record<string, string | number | boolean>
+): Promise<{ success: boolean; error?: string }> {
+  return withLock('ini_config_file', async () => {
+    try {
+      let parsed: Record<string, unknown> = {};
+      try {
+        const content = await fs.readFile(CONFIG.iniPath, 'utf-8');
+        parsed = ini.parse(content) as Record<string, unknown>;
+      } catch {
+        parsed = {};
+      }
+
+      for (const [key, val] of Object.entries(updatedProps)) {
+        if (typeof val === 'boolean') {
+          parsed[key] = val ? 'true' : 'false';
+        } else {
+          parsed[key] = String(val);
+        }
+      }
+
+      const newContent = ini.stringify(parsed);
+
+      // Atomic write via temporary file
+      const tmpPath = `${CONFIG.iniPath}.tmp.${Date.now()}`;
+      await fs.writeFile(tmpPath, newContent, 'utf-8');
+      await fs.rename(tmpPath, CONFIG.iniPath);
+
+      invalidateCache();
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to save server properties:', error);
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  });
+}
+

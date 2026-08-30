@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, PackagePlus, Sliders, Users } from 'lucide-react';
+import { LayoutDashboard, PackagePlus, Sliders, Users, Settings } from 'lucide-react';
 
 export default function NavLinks() {
   const pathname = usePathname();
@@ -11,8 +11,10 @@ export default function NavLinks() {
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/mods', label: 'Mods Manager', icon: PackagePlus },
     { href: '/sandbox', label: 'Sandbox Settings', icon: Sliders },
+    { href: '/settings', label: 'Server Properties', icon: Settings },
     { href: '/players', label: 'Players & Moderation', icon: Users },
   ];
+
 
   return (
     <nav className="flex flex-col space-y-1.5">

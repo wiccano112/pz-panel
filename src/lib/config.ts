@@ -21,4 +21,9 @@ export const CONFIG = {
   get dbPath(): string {
     return path.join(this.serverDir, 'data', 'db', `${this.serverName}.db`);
   },
+
+  get spawnregionsPath(): string {
+    return path.join(this.serverDir, 'data', 'Server', `${this.serverName}_spawnregions.lua`);
+  },
 };
+
