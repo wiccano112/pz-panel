@@ -3,12 +3,22 @@
 import useSWR from 'swr';
 import { Activity, Cpu, HardDrive, Network } from 'lucide-react';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('API Error');
+  return res.json();
+};
 
-export default function ServerMetricsCard() {
-  const { data, error, isLoading } = useSWR('/api/stats', fetcher, {
-    refreshInterval: 3000, // Poll every 3 seconds
-  });
+interface ServerMetricsCardProps {
+  status: string;
+}
+
+export default function ServerMetricsCard({ status }: ServerMetricsCardProps) {
+  const { data, error, isLoading } = useSWR(
+    status === 'RUNNING' ? '/api/stats' : null, 
+    fetcher, 
+    { refreshInterval: 3000 }
+  );
 
   if (error) {
     return (
@@ -26,7 +36,7 @@ export default function ServerMetricsCard() {
         <h3 className="text-lg font-semibold text-slate-800">Server Metrics</h3>
       </div>
       
-      {isLoading ? (
+      {isLoading && status === 'RUNNING' ? (
         <div className="animate-pulse space-y-4">
           <div className="h-4 bg-slate-200 rounded w-3/4"></div>
           <div className="h-4 bg-slate-200 rounded w-1/2"></div>
@@ -39,7 +49,7 @@ export default function ServerMetricsCard() {
               <Cpu className="w-4 h-4" />
               <span className="text-sm font-medium">CPU Usage</span>
             </div>
-            <span className="text-sm font-semibold text-slate-900">{data?.cpu || '0%'}</span>
+            <span className="text-sm font-semibold text-slate-900">{status === 'RUNNING' ? (data?.cpu || '0%') : 'Offline'}</span>
           </div>
           
           <div className="flex items-center justify-between p-3 bg-slate-50 rounded-md">
@@ -47,7 +57,7 @@ export default function ServerMetricsCard() {
               <HardDrive className="w-4 h-4" />
               <span className="text-sm font-medium">RAM Usage</span>
             </div>
-            <span className="text-sm font-semibold text-slate-900">{data?.ram || '0B'}</span>
+            <span className="text-sm font-semibold text-slate-900">{status === 'RUNNING' ? (data?.ram || '0B') : 'Offline'}</span>
           </div>
 
           <div className="flex items-center justify-between p-3 bg-slate-50 rounded-md">
@@ -55,7 +65,7 @@ export default function ServerMetricsCard() {
               <Network className="w-4 h-4" />
               <span className="text-sm font-medium">Network I/O</span>
             </div>
-            <span className="text-sm font-semibold text-slate-900">{data?.net || '0B / 0B'}</span>
+            <span className="text-sm font-semibold text-slate-900">{status === 'RUNNING' ? (data?.net || '0B / 0B') : 'Offline'}</span>
           </div>
         </div>
       )}

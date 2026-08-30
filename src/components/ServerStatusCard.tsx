@@ -14,10 +14,15 @@ export default function ServerStatusCard({ initialStatus }: ServerStatusCardProp
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'RUNNING': return 'text-green-600 bg-green-100';
-      case 'OFFLINE': return 'text-red-600 bg-red-100';
-      default: return 'text-yellow-600 bg-yellow-100';
+      case 'OFFLINE': 
+      case 'EXITED': return 'text-red-600 bg-red-100';
+      case 'RESTARTING': return 'text-yellow-600 bg-yellow-100';
+      default: return 'text-slate-600 bg-slate-100';
     }
   };
+
+  const isOfflineLike = initialStatus === 'OFFLINE' || initialStatus === 'EXITED';
+  const isRunningLike = initialStatus === 'RUNNING' || initialStatus === 'RESTARTING';
 
   return (
     <div className="p-6 bg-white shadow rounded-lg border border-slate-200">
@@ -36,7 +41,7 @@ export default function ServerStatusCard({ initialStatus }: ServerStatusCardProp
           type="submit"
           name="actionType"
           value="start"
-          disabled={isPending || initialStatus === 'RUNNING'}
+          disabled={isPending || isRunningLike}
           className="flex items-center justify-center space-x-2 p-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <Play className="w-4 h-4" />
@@ -47,7 +52,7 @@ export default function ServerStatusCard({ initialStatus }: ServerStatusCardProp
           type="submit"
           name="actionType"
           value="restart"
-          disabled={isPending || initialStatus !== 'RUNNING'}
+          disabled={isPending || !isRunningLike}
           className="flex items-center justify-center space-x-2 p-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <RotateCw className={`w-4 h-4 ${isPending ? 'animate-spin' : ''}`} />
@@ -58,7 +63,7 @@ export default function ServerStatusCard({ initialStatus }: ServerStatusCardProp
           type="submit"
           name="actionType"
           value="stop"
-          disabled={isPending || initialStatus === 'OFFLINE'}
+          disabled={isPending || isOfflineLike}
           className="flex items-center justify-center space-x-2 p-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <Square className="w-4 h-4" />
