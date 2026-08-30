@@ -69,8 +69,19 @@ STEAM_API_KEY=tu_clave_de_steam_api_aqui
 
 ## 🛠️ Comandos de Desarrollo y Producción
 
-Este proyecto utiliza **pnpm** como gestor de paquetes:
+### Despliegue con Docker (Recomendado para Producción)
+```bash
+# Construir y levantar el contenedor en segundo plano
+docker compose up -d --build
 
+# Ver logs del contenedor
+docker compose logs -f
+
+# Detener el contenedor
+docker compose down
+```
+
+### Ejecución Local con Node.js / pnpm
 ```bash
 # Instalar dependencias
 pnpm install
@@ -90,6 +101,7 @@ pnpm run lint
 # Verificación estricta de tipos (TypeScript)
 pnpm tsc --noEmit
 ```
+
 
 ---
 

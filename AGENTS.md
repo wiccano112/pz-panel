@@ -2,8 +2,9 @@
 - **Framework:** Next.js 16 (App Router) + React 19
 - **Lenguaje:** TypeScript (Tipado estricto)
 - **Gestor de Paquetes:** pnpm
-- **Entorno:** Node.js 26
+- **Entorno:** Node.js 26 (`node:current-alpine`)
 - **Estilos:** Tailwind CSS (PostCSS)
+- **Despliegue & Contenedor:** Docker & Docker Compose (Multi-stage Standalone)
 
 # Estructura del Equipo de Agentes y Feedback Loop
 Al abordar nuevas características o refactorizaciones, el equipo de agentes debe seguir este flujo de delegación estricto:
@@ -15,14 +16,15 @@ Al abordar nuevas características o refactorizaciones, el equipo de agentes deb
 
 ### 2. Fase de Construcción y Revisión (Max 3 Iteraciones)
 - **Builder (Modelo: `sonnet`):** Escribe el código basándose en el plan aprobado. Ideal para iterar rápidamente (vibe coding) con el usuario.
-  - *Quality Check:* Antes de entregar el código al Reviewer, el Builder debe ejecutar empíricamente los siguientes comandos en la terminal para asegurar la calidad básica:
+  - *Quality Check:* Antes de entregar el código al Reviewer, el Builder debe ejecutar empíricamente los siguientes comandos en la terminal para asegurar la calidad básica y la integridad del contenedor:
     1. `pnpm run lint` (Validación de ESLint)
     2. `pnpm tsc --noEmit` (Verificación estricta de tipos en TypeScript)
+    3. `docker compose up -d --build` (Construcción y despliegue del contenedor Docker para asegurar que la imagen de producción compile y levante correctamente).
   - *(Nota: Las pruebas unitarias y la cobertura de código están explícitamente deshabilitadas para esta fase del proyecto).*
 
-- **Code Reviewer (Modelo: `pro`):** Supervisa el código generado y los resultados de los comandos de calidad.
+- **Code Reviewer (Modelo: `pro`):** Supervisa el código generado y los resultados de los comandos de calidad y el estado del contenedor.
   - *Formato de Feedback:* Emplea **Niveles de Criticidad**:
-    - `[P0 - BLOCKER]` Errores de linting/typecheck, fallos de seguridad o código que no compila.
+    - `[P0 - BLOCKER]` Errores de linting/typecheck, fallos en la compilación Docker, fallos de seguridad o código que no compila.
     - `[P1 - IMPORTANTE]` Deuda técnica, malas prácticas de React/Next.js, optimizaciones.
     - `[P2 - NITPICK]` Detalles menores, estilo, formato.
   - *Loop:* El Builder y el Code Reviewer iterarán un máximo de 3 veces antes de entregar la versión final al usuario.
@@ -41,4 +43,12 @@ Al abordar nuevas características o refactorizaciones, el equipo de agentes deb
   2. Todas las rutas del sistema de archivos (`PZ_SERVER_DIR`), nombres de servidor (`PZ_SERVER_NAME`), nombres de contenedor (`PZ_DOCKER_CONTAINER`) y puertos estén 100% parametrizados a través de variables de entorno (`.env.example`, `.env.local` y `src/lib/config.ts`) con valores de fallback neutros y genéricos (ej. `/opt/pz-server`, `servertest`, `pz-server`).
   3. Los archivos de entorno local (`.env.local`, `.env*.local`) estén estrictamente protegidos en `.gitignore`.
   4. Ningún dato sensible o personal de la máquina host (como rutas `/home/<user>/...` o identificadores locales específicos) se filtre en el código, plantillas de ejemplo o mensajes de error.
+
+### 6. Despliegue y Ciclo de Vida en Docker
+- En cada ciclo de vida, feature o actualización, es obligatorio compilar y levantar los contenedores con:
+  ```bash
+  docker compose up -d --build
+  ```
+  Esto garantiza que los cambios de código se trasladen directamente a la imagen de producción en ejecución.
+
 
