@@ -16,13 +16,9 @@ services:
     environment:
       - NODE_ENV=production
       - PZ_SERVER_DIR=/pz-server
-      - PZ_SERVER_NAME=${PZ_SERVER_NAME:-servertest}
-      - PZ_DOCKER_CONTAINER=${PZ_DOCKER_CONTAINER:-pz-server}
-      - STEAM_API_KEY=${STEAM_API_KEY:-}
     volumes:
+
       # Docker socket to allow managing the PZ server container
       - /var/run/docker.sock:/var/run/docker.sock
       # PZ server directory containing data/Server and data/db
       - ${PZ_HOST_SERVER_DIR:-/opt/pz-server}:/pz-server:rw
-
-
