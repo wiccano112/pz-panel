@@ -2,23 +2,18 @@
 
 import { useState, useActionState } from 'react';
 import { handleSaveIniAction } from '@/app/actions';
-import { Trash2, Lock, Plus, Save, PackagePlus } from 'lucide-react';
+import { Trash2, Lock, Plus, Save } from 'lucide-react';
+import ModCatalog from '@/components/ModCatalog';
 
-interface InitialData {
+export interface InitialData {
   workshopItems: string[];
   mods: string[];
   maps: string[];
 }
 
-interface ModManagerClientProps {
+export interface ModManagerClientProps {
   initialData: InitialData;
 }
-
-const POPULAR_MODS = [
-  { name: 'Mod Template', workshopId: '123456789', modId: 'ModTemplate', mapId: 'TemplateMap' },
-  { name: 'Arsenal(26) GunFighter', workshopId: '2297098490', modId: 'Arsenal(26)GunFighter', mapId: '' },
-  { name: 'Tsar\'s Common Library', workshopId: '2392709985', modId: 'tsarslib', mapId: '' },
-];
 
 export default function ModManagerClient({ initialData }: ModManagerClientProps) {
   const [workshopItems, setWorkshopItems] = useState(initialData.workshopItems);
@@ -37,7 +32,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
     }
   };
 
-  const addModFromCatalog = (modItem: typeof POPULAR_MODS[0]) => {
+  const addModFromCatalog = (modItem: { name: string; workshopId: string; modId: string; mapId?: string }) => {
     if (modItem.workshopId && !workshopItems.includes(modItem.workshopId)) {
       setWorkshopItems(prev => [...prev, modItem.workshopId]);
     }
@@ -45,7 +40,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
       setMods(prev => [...prev, modItem.modId]);
     }
     if (modItem.mapId && !maps.includes(modItem.mapId)) {
-      setMaps(prev => [modItem.mapId, ...prev.filter(m => m !== 'Muldraugh, KY'), 'Muldraugh, KY']);
+      setMaps(prev => [modItem.mapId!, ...prev.filter(m => m !== 'Muldraugh, KY'), 'Muldraugh, KY']);
     }
   };
 
@@ -73,30 +68,11 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
   return (
     <div className="space-y-6">
       
-      {/* Mod Catalog */}
-      <div className="bg-zinc-900 p-6 shadow rounded-lg border border-zinc-700">
-        <h3 className="text-lg font-semibold mb-4 flex items-center space-x-2 text-white">
-          <PackagePlus className="w-5 h-5 text-indigo-400" />
-          <span>Mod Catalog (Popular)</span>
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {POPULAR_MODS.map(mod => (
-            <div key={mod.modId} className="p-4 border border-zinc-700 rounded-md flex justify-between items-center bg-zinc-800">
-              <div>
-                <p className="font-semibold text-sm text-white">{mod.name}</p>
-                <p className="text-xs text-zinc-400">WS: {mod.workshopId}</p>
-              </div>
-              <button 
-                onClick={() => addModFromCatalog(mod)}
-                className="text-indigo-300 hover:text-white bg-indigo-600 hover:bg-indigo-500 p-2 rounded-md transition-colors"
-                title="Add to configuration"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* Steam Workshop Mod Catalog */}
+      <ModCatalog 
+        onAddMod={addModFromCatalog} 
+        installedWorkshopIds={workshopItems} 
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
@@ -104,7 +80,13 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
         <div className="bg-zinc-900 p-4 shadow rounded-lg border border-zinc-700 flex flex-col">
           <div className="flex justify-between items-center mb-4">
             <h3 className="font-semibold text-white">Workshop Items</h3>
-            <button onClick={() => addItemManual('workshop')} className="text-zinc-400 hover:text-indigo-400 transition-colors"><Plus className="w-5 h-5" /></button>
+            <button 
+              onClick={() => addItemManual('workshop')} 
+              className="text-zinc-400 hover:text-indigo-400 transition-colors p-1"
+              title="Add workshop item manually"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
           </div>
           <ul className="flex-1 overflow-y-auto max-h-96 space-y-2">
             {workshopItems.length === 0 && <li className="text-sm text-zinc-500 text-center py-4">No items</li>}
@@ -123,7 +105,13 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
         <div className="bg-zinc-900 p-4 shadow rounded-lg border border-zinc-700 flex flex-col">
           <div className="flex justify-between items-center mb-4">
             <h3 className="font-semibold text-white">Mod IDs</h3>
-            <button onClick={() => addItemManual('mod')} className="text-zinc-400 hover:text-indigo-400 transition-colors"><Plus className="w-5 h-5" /></button>
+            <button 
+              onClick={() => addItemManual('mod')} 
+              className="text-zinc-400 hover:text-indigo-400 transition-colors p-1"
+              title="Add Mod ID manually"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
           </div>
           <ul className="flex-1 overflow-y-auto max-h-96 space-y-2">
             {mods.length === 0 && <li className="text-sm text-zinc-500 text-center py-4">No mods</li>}
@@ -142,7 +130,13 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
         <div className="bg-zinc-900 p-4 shadow rounded-lg border border-zinc-700 flex flex-col">
           <div className="flex justify-between items-center mb-4">
             <h3 className="font-semibold text-white">Map IDs</h3>
-            <button onClick={() => addItemManual('map')} className="text-zinc-400 hover:text-indigo-400 transition-colors"><Plus className="w-5 h-5" /></button>
+            <button 
+              onClick={() => addItemManual('map')} 
+              className="text-zinc-400 hover:text-indigo-400 transition-colors p-1"
+              title="Add Map ID manually"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
           </div>
           <ul className="flex-1 overflow-y-auto max-h-96 space-y-2">
             {maps.length === 0 && <li className="text-sm text-zinc-500 text-center py-4">No maps</li>}
@@ -177,7 +171,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
           <button
             type="submit"
             disabled={isPending}
-            className="flex items-center space-x-2 px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-500 transition-colors disabled:opacity-50"
+            className="flex items-center space-x-2 px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-500 transition-colors disabled:opacity-50 cursor-pointer"
           >
             <Save className="w-5 h-5" />
             <span>{isPending ? 'Saving...' : 'Save Configuration'}</span>
