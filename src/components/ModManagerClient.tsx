@@ -52,9 +52,22 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
   const addItemManual = (type: 'workshop' | 'mod' | 'map') => {
     const val = prompt(`Enter ${type} ID:`);
     if (!val) return;
-    if (type === 'workshop') setWorkshopItems(prev => [...prev, val]);
-    if (type === 'mod') setMods(prev => [...prev, val]);
-    if (type === 'map') setMaps(prev => [val, ...prev.filter(m => m !== 'Muldraugh, KY'), 'Muldraugh, KY']);
+    
+    if (type === 'workshop') {
+      if (!workshopItems.includes(val)) setWorkshopItems(prev => [...prev, val]);
+    }
+    if (type === 'mod') {
+      if (!mods.includes(val)) setMods(prev => [...prev, val]);
+    }
+    if (type === 'map') {
+      if (val === 'Muldraugh, KY') {
+        alert('Muldraugh, KY is a core map and is always included by default.');
+        return;
+      }
+      if (!maps.includes(val)) {
+        setMaps(prev => [val, ...prev.filter(m => m !== 'Muldraugh, KY'), 'Muldraugh, KY']);
+      }
+    }
   };
 
   return (
