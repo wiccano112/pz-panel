@@ -71,14 +71,18 @@ interface FetchWorkshopOptions {
   query?: string;
   days?: number;
   tag?: string;
+  page?: number;
   numperpage?: number;
 }
 
 export async function fetchWorkshopMods(
   options: FetchWorkshopOptions = {}
-): Promise<{ mods: WorkshopModItem[]; source: 'steam' | 'fallback'; warning?: string }> {
+): Promise<{ mods: WorkshopModItem[]; total: number; source: 'steam' | 'fallback'; warning?: string }> {
   const apiKey = process.env.STEAM_API_KEY;
-  const { query = '', days = 30, tag = 'Build 42', numperpage = 20 } = options;
+  const { query = '', days = 30, tag = 'Build 42', page = 1, numperpage = 12 } = options;
+
+  const validPage = Math.max(1, page);
+  const validPerPage = Math.min(Math.max(1, numperpage), 50);
 
   if (!apiKey) {
     let filtered = FALLBACK_POPULAR_MODS;
@@ -91,8 +95,12 @@ export async function fetchWorkshopMods(
           (m.modId && m.modId.toLowerCase().includes(qLower))
       );
     }
+    const startIndex = (validPage - 1) * validPerPage;
+    const paginated = filtered.slice(startIndex, startIndex + validPerPage);
+
     return {
-      mods: filtered,
+      mods: paginated,
+      total: filtered.length,
       source: 'fallback',
       warning: 'STEAM_API_KEY is not configured in server environment. Showing curated fallback mods.',
     };
@@ -104,7 +112,8 @@ export async function fetchWorkshopMods(
   url.searchParams.set('key', apiKey);
   url.searchParams.set('appid', '108600');
   url.searchParams.set('query_type', query.trim() ? '0' : '1');
-  url.searchParams.set('numperpage', String(Math.min(Math.max(1, numperpage), 50)));
+  url.searchParams.set('page', String(validPage));
+  url.searchParams.set('numperpage', String(validPerPage));
   url.searchParams.set('return_short_description', 'true');
   url.searchParams.set('return_previews', 'true');
   url.searchParams.set('return_tags', 'true');
@@ -128,8 +137,10 @@ export async function fetchWorkshopMods(
 
     if (!res.ok) {
       console.warn(`Steam API error: ${res.status} ${res.statusText}`);
+      const startIndex = (validPage - 1) * validPerPage;
       return {
-        mods: FALLBACK_POPULAR_MODS,
+        mods: FALLBACK_POPULAR_MODS.slice(startIndex, startIndex + validPerPage),
+        total: FALLBACK_POPULAR_MODS.length,
         source: 'fallback',
         warning: `Steam API returned status ${res.status}. Displaying fallback mods.`,
       };
@@ -137,10 +148,12 @@ export async function fetchWorkshopMods(
 
     const data = (await res.json()) as SteamQueryFilesRawResponse;
     const items = data.response?.publishedfiledetails;
+    const totalCount = data.response?.total ?? (Array.isArray(items) ? items.length : 0);
 
     if (!Array.isArray(items)) {
       return {
         mods: [],
+        total: totalCount,
         source: 'steam',
       };
     }
@@ -163,12 +176,15 @@ export async function fetchWorkshopMods(
 
     return {
       mods: mappedMods,
+      total: totalCount,
       source: 'steam',
     };
   } catch (error) {
     console.error('Failed to query Steam Workshop API:', error);
+    const startIndex = (validPage - 1) * validPerPage;
     return {
-      mods: FALLBACK_POPULAR_MODS,
+      mods: FALLBACK_POPULAR_MODS.slice(startIndex, startIndex + validPerPage),
+      total: FALLBACK_POPULAR_MODS.length,
       source: 'fallback',
       warning: 'Network failure communicating with Steam API. Displaying fallback mods.',
     };

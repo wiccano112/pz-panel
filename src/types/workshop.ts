@@ -39,6 +39,9 @@ export interface WorkshopApiResponse {
   mods: WorkshopModItem[];
   source: 'steam' | 'fallback';
   total: number;
+  page: number;
+  totalPages: number;
+  pageSize: number;
   warning?: string;
 }
 

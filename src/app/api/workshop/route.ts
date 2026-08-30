@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
   const rawQuery = searchParams.get('q') || '';
   const rawDays = searchParams.get('days');
   const rawTag = searchParams.get('tag');
+  const rawPage = searchParams.get('page');
 
   // Input validation & sanitation
   const query = rawQuery.slice(0, 100).trim();
@@ -20,20 +21,35 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  let page = 1;
+  if (rawPage !== null) {
+    const parsedPage = parseInt(rawPage, 10);
+    if (!isNaN(parsedPage) && parsedPage >= 1) {
+      page = parsedPage;
+    }
+  }
+
+  const pageSize = 12;
   const tag = (rawTag ?? 'Build 42').slice(0, 50).trim();
 
   try {
-    const { mods, source, warning } = await fetchWorkshopMods({
+    const { mods, total, source, warning } = await fetchWorkshopMods({
       query,
       days,
       tag,
-      numperpage: 24,
+      page,
+      numperpage: pageSize,
     });
+
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
     const responseData: WorkshopApiResponse = {
       mods,
       source,
-      total: mods.length,
+      total,
+      page,
+      totalPages,
+      pageSize,
       warning,
     };
 
@@ -45,6 +61,9 @@ export async function GET(request: NextRequest) {
         mods: [],
         source: 'fallback',
         total: 0,
+        page: 1,
+        totalPages: 1,
+        pageSize,
         warning: 'Internal server error while retrieving workshop mods',
       } as WorkshopApiResponse,
       { status: 500 }

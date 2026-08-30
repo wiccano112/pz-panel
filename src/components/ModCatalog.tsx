@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import useSWR from 'swr';
-import { PackagePlus, Search, ExternalLink, Check, Plus, AlertTriangle, Users, Clock, X, Info } from 'lucide-react';
+import { PackagePlus, Search, ExternalLink, Check, Plus, AlertTriangle, Users, Clock, X, Info, ChevronLeft, ChevronRight } from 'lucide-react';
 import { WorkshopApiResponse, WorkshopModItem } from '@/types/workshop';
 
 export interface ModCatalogProps {
@@ -32,6 +32,7 @@ export default function ModCatalog({ onAddMod, installedWorkshopIds }: ModCatalo
   const [searchInput, setSearchInput] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [days, setDays] = useState('30');
+  const [page, setPage] = useState(1);
   
   // State for unknown modId modal resolution
   const [resolvingMod, setResolvingMod] = useState<WorkshopModItem | null>(null);
@@ -39,17 +40,23 @@ export default function ModCatalog({ onAddMod, installedWorkshopIds }: ModCatalo
   const [manualMapId, setManualMapId] = useState('');
   const [modalError, setModalError] = useState('');
 
-  // Debounce search input
+  // Debounce search input and reset page
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedQuery(searchInput.trim());
+      setPage(1);
     }, 400);
 
     return () => clearTimeout(handler);
   }, [searchInput]);
 
-  const apiUrl = `/api/workshop?q=${encodeURIComponent(debouncedQuery)}&days=${days}&tag=Build%2042`;
-  const { data, error, isLoading, mutate } = useSWR<WorkshopApiResponse>(apiUrl, fetcher, {
+  const handleDaysChange = (newDays: string) => {
+    setDays(newDays);
+    setPage(1);
+  };
+
+  const apiUrl = `/api/workshop?q=${encodeURIComponent(debouncedQuery)}&days=${days}&page=${page}&tag=Build%2042`;
+  const { data, error, isLoading, isValidating, mutate } = useSWR<WorkshopApiResponse>(apiUrl, fetcher, {
     revalidateOnFocus: false,
     dedupingInterval: 30000,
   });
@@ -88,6 +95,11 @@ export default function ModCatalog({ onAddMod, installedWorkshopIds }: ModCatalo
     }
   };
 
+  const totalPages = data?.totalPages ?? 1;
+  const totalItems = data?.total ?? 0;
+  const startItem = totalItems === 0 ? 0 : (page - 1) * 12 + 1;
+  const endItem = Math.min(page * 12, totalItems);
+
   return (
     <div className="bg-zinc-900 p-6 shadow rounded-lg border border-zinc-700 space-y-5">
       {/* Header & Controls */}
@@ -115,7 +127,7 @@ export default function ModCatalog({ onAddMod, installedWorkshopIds }: ModCatalo
             <Clock className="w-4 h-4 text-zinc-400 absolute left-2.5 pointer-events-none" />
             <select
               value={days}
-              onChange={(e) => setDays(e.target.value)}
+              onChange={(e) => handleDaysChange(e.target.value)}
               aria-label="Time period"
               className="pl-8 pr-7 py-1.5 bg-zinc-800 border border-zinc-700 rounded-md text-sm text-zinc-200 focus:outline-none focus:border-indigo-500 cursor-pointer transition-colors"
             >
@@ -145,7 +157,7 @@ export default function ModCatalog({ onAddMod, installedWorkshopIds }: ModCatalo
       {/* Loading State */}
       {isLoading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
+          {Array.from({ length: 12 }).map((_, i) => (
             <div key={i} className="p-4 border border-zinc-800 rounded-md bg-zinc-800/50 animate-pulse flex space-x-3">
               <div className="w-16 h-16 bg-zinc-700 rounded-md flex-shrink-0" />
               <div className="flex-1 space-y-2 py-1">
@@ -164,7 +176,7 @@ export default function ModCatalog({ onAddMod, installedWorkshopIds }: ModCatalo
           <p className="text-sm font-medium">Failed to load mods from workshop.</p>
           <button
             onClick={() => mutate()}
-            className="px-3 py-1 bg-red-800/40 hover:bg-red-700/60 text-xs rounded border border-red-700 transition-colors"
+            className="px-3 py-1 bg-red-800/40 hover:bg-red-700/60 text-xs rounded border border-red-700 transition-colors cursor-pointer"
           >
             Retry
           </button>
@@ -180,88 +192,131 @@ export default function ModCatalog({ onAddMod, installedWorkshopIds }: ModCatalo
 
       {/* Mod Cards Grid */}
       {!isLoading && !error && data?.mods && data.mods.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {data.mods.map((mod) => {
-            const isInstalled = installedWorkshopIds.includes(mod.workshopId);
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {data.mods.map((mod) => {
+              const isInstalled = installedWorkshopIds.includes(mod.workshopId);
 
-            return (
-              <div
-                key={mod.workshopId}
-                className="p-4 border border-zinc-700 rounded-md bg-zinc-800 flex flex-col justify-between hover:border-zinc-600 transition-colors"
-              >
-                <div className="flex space-x-3">
-                  {/* Thumbnail */}
-                  <div className="w-16 h-16 rounded overflow-hidden flex-shrink-0 bg-zinc-900 border border-zinc-700">
-                    {mod.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={mod.imageUrl}
-                        alt={mod.name}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-zinc-600">
-                        <PackagePlus className="w-6 h-6" />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-1">
-                      <h4 className="font-semibold text-sm text-white truncate" title={mod.name}>
-                        {mod.name}
-                      </h4>
-                      <a
-                        href={`https://steamcommunity.com/sharedfiles/filedetails/?id=${mod.workshopId}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-zinc-400 hover:text-zinc-200 transition-colors p-0.5"
-                        title="View on Steam Workshop"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
+              return (
+                <div
+                  key={mod.workshopId}
+                  className="p-4 border border-zinc-700 rounded-md bg-zinc-800 flex flex-col justify-between hover:border-zinc-600 transition-colors"
+                >
+                  <div className="flex space-x-3">
+                    {/* Thumbnail */}
+                    <div className="w-16 h-16 rounded overflow-hidden flex-shrink-0 bg-zinc-900 border border-zinc-700">
+                      {mod.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={mod.imageUrl}
+                          alt={mod.name}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                          <PackagePlus className="w-6 h-6" />
+                        </div>
+                      )}
                     </div>
 
-                    <p className="text-xs text-zinc-400 line-clamp-2 mt-1" title={mod.description}>
-                      {mod.description || 'No description provided.'}
-                    </p>
-                  </div>
-                </div>
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-1">
+                        <h4 className="font-semibold text-sm text-white truncate" title={mod.name}>
+                          {mod.name}
+                        </h4>
+                        <a
+                          href={`https://steamcommunity.com/sharedfiles/filedetails/?id=${mod.workshopId}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-zinc-400 hover:text-zinc-200 transition-colors p-0.5"
+                          title="View on Steam Workshop"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      </div>
 
-                {/* Footer details & Action */}
-                <div className="mt-3 pt-3 border-t border-zinc-700/60 flex items-center justify-between text-xs">
-                  <div className="flex items-center space-x-2 text-zinc-400">
-                    <span className="font-mono text-[11px]">ID: {mod.workshopId}</span>
-                    {mod.subscribers > 0 && (
-                      <span className="flex items-center space-x-1 text-zinc-400" title={`${mod.subscribers.toLocaleString()} subscribers`}>
-                        <Users className="w-3 h-3" />
-                        <span>{formatSubscribers(mod.subscribers)}</span>
+                      <p className="text-xs text-zinc-400 line-clamp-2 mt-1" title={mod.description}>
+                        {mod.description || 'No description provided.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Footer details & Action */}
+                  <div className="mt-3 pt-3 border-t border-zinc-700/60 flex items-center justify-between text-xs">
+                    <div className="flex items-center space-x-2 text-zinc-400">
+                      <span className="font-mono text-[11px]">ID: {mod.workshopId}</span>
+                      {mod.subscribers > 0 && (
+                        <span className="flex items-center space-x-1 text-zinc-400" title={`${mod.subscribers.toLocaleString()} subscribers`}>
+                          <Users className="w-3 h-3" />
+                          <span>{formatSubscribers(mod.subscribers)}</span>
+                        </span>
+                      )}
+                    </div>
+
+                    {isInstalled ? (
+                      <span className="flex items-center space-x-1 text-emerald-400 font-medium px-2 py-1 bg-emerald-950/40 rounded border border-emerald-800/40">
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Added</span>
                       </span>
+                    ) : (
+                      <button
+                        onClick={() => handleInstallClick(mod)}
+                        className="flex items-center space-x-1 px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium transition-colors cursor-pointer"
+                        title={mod.modId ? `Install ${mod.name}` : 'Configure and Install'}
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>{mod.modId ? 'Add' : 'Install'}</span>
+                      </button>
                     )}
                   </div>
-
-                  {isInstalled ? (
-                    <span className="flex items-center space-x-1 text-emerald-400 font-medium px-2 py-1 bg-emerald-950/40 rounded border border-emerald-800/40">
-                      <Check className="w-3.5 h-3.5" />
-                      <span>Added</span>
-                    </span>
-                  ) : (
-                    <button
-                      onClick={() => handleInstallClick(mod)}
-                      className="flex items-center space-x-1 px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium transition-colors cursor-pointer"
-                      title={mod.modId ? `Install ${mod.name}` : 'Configure and Install'}
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>{mod.modId ? 'Add' : 'Install'}</span>
-                    </button>
-                  )}
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+
+          {/* Pagination Controls */}
+          <div className="pt-4 border-t border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-zinc-400">
+            <div>
+              {totalItems > 0 ? (
+                <span>
+                  Showing <span className="text-zinc-200 font-medium">{startItem}</span> to{' '}
+                  <span className="text-zinc-200 font-medium">{endItem}</span> of{' '}
+                  <span className="text-zinc-200 font-medium">{totalItems}</span> mods
+                </span>
+              ) : (
+                <span>Page {page} of {totalPages}</span>
+              )}
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                disabled={page <= 1 || isValidating}
+                className="flex items-center space-x-1 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded border border-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span>Previous</span>
+              </button>
+
+              <span className="px-3 py-1.5 bg-zinc-950 border border-zinc-800 rounded text-zinc-200 font-mono">
+                {page} / {totalPages}
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={page >= totalPages || isValidating}
+                className="flex items-center space-x-1 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded border border-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              >
+                <span>Next</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Unknown Mod ID Modal */}
