@@ -6,10 +6,45 @@ import ini from 'ini';
 const execFileAsync = promisify(execFile);
 const INI_PATH = '/opt/pz-server/data/Server/servertest.ini';
 
-export async function getServerStatus() {
+export async function getServerStatus(): Promise<'ONLINE' | 'STARTING' | 'OFFLINE'> {
   try {
-    const { stdout } = await execFileAsync('docker', ['inspect', '-f', '{{.State.Status}}', 'pz-server']);
-    return stdout.trim().toUpperCase();
+    const { stdout } = await execFileAsync('docker', [
+      'inspect',
+      '-f',
+      '{{.State.Status}}|{{.State.StartedAt}}',
+      'pz-server',
+    ]);
+    const [statusRaw, startedAtRaw] = stdout.trim().split('|');
+    const status = statusRaw?.toUpperCase();
+
+    if (status !== 'RUNNING') {
+      return 'OFFLINE';
+    }
+
+    if (!startedAtRaw || startedAtRaw === '0001-01-01T00:00:00Z') {
+      return 'STARTING';
+    }
+
+    const startTimestampSec = Math.floor(new Date(startedAtRaw).getTime() / 1000);
+    if (isNaN(startTimestampSec) || startTimestampSec <= 0) {
+      return 'STARTING';
+    }
+
+    try {
+      const { stdout: logs } = await execFileAsync('docker', [
+        'logs',
+        '--since',
+        String(startTimestampSec),
+        'pz-server',
+      ]);
+
+      if (logs.includes('*** SERVER STARTED ****') || logs.includes('Server is open for connection')) {
+        return 'ONLINE';
+      }
+      return 'STARTING';
+    } catch {
+      return 'STARTING';
+    }
   } catch {
     return 'OFFLINE';
   }
