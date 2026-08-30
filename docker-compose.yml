@@ -8,6 +8,11 @@ services:
     restart: unless-stopped
     ports:
       - "${PANEL_PORT:-3000}:3000"
+    env_file:
+      - path: .env
+        required: false
+      - path: .env.local
+        required: false
     environment:
       - NODE_ENV=production
       - PZ_SERVER_DIR=/pz-server
@@ -19,4 +24,5 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       # PZ server directory containing data/Server and data/db
       - ${PZ_HOST_SERVER_DIR:-/opt/pz-server}:/pz-server:rw
+
 

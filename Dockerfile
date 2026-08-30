@@ -35,6 +35,12 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
+# Default server container environment variables (can be overridden by compose env_file)
+ENV PZ_SERVER_DIR=/pz-server
+ENV PZ_SERVER_NAME=servertest
+ENV PZ_DOCKER_CONTAINER=pz-server
+
+
 # Copy standalone output and static assets
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
