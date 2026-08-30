@@ -1,0 +1,50 @@
+<project_architecture name="pz-panel" version="1.0">
+  <!-- 
+    NOTE TO AGENTS: 
+    This file uses dense XML/tags to minimize token usage while maintaining structural context.
+    Update this file whenever a new feature, route, or core component is added.
+  -->
+  <tech_stack>
+    <layer name="frontend" framework="nextjs-16-app-router" ui="tailwind+shadcn"/>
+    <layer name="backend" framework="nextjs-server-actions" tooling="child_process+fs"/>
+  </tech_stack>
+  
+  <features>
+    <feature id="f1_docker_control" status="backend_implemented" priority="high">
+      <desc>Execute docker compose commands to control server state.</desc>
+      <impl location="src/lib/serverUtils.ts" method="executeServerAction">
+        <dep type="cli">docker compose</dep>
+        <sec>No sudo required (docker group). Uses execFile to prevent shell injection.</sec>
+      </impl>
+    </feature>
+    
+    <feature id="f2_system_metrics" status="backend_implemented" priority="high">
+      <desc>Fetch real-time CPU/RAM/NetIO via docker stats.</desc>
+      <impl location="src/lib/serverUtils.ts" method="getServerStats">
+        <dep type="cli">docker stats --format json</dep>
+        <arch>Should be consumed via Route Handler + SWR in UI for polling.</arch>
+      </impl>
+    </feature>
+    
+    <feature id="f3_ini_parser" status="backend_implemented" priority="critical">
+      <desc>Read and mutate servertest.ini safely.</desc>
+      <impl location="src/lib/serverUtils.ts" methods="readIniFile,saveIniFile">
+        <dep type="npm">ini</dep>
+        <constraint type="business_logic">Always append 'Muldraugh, KY' to Maps array to prevent map corruption.</constraint>
+      </impl>
+    </feature>
+    
+    <feature id="f4_ui_dashboard" status="pending">
+      <desc>Main visual dashboard for metrics and power controls.</desc>
+    </feature>
+
+    <feature id="f5_ui_mod_manager" status="pending">
+      <desc>Visual interface for dragging/dropping/enabling mods and maps.</desc>
+    </feature>
+  </features>
+
+  <state_management>
+    <strategy scope="mutations">Next.js Server Actions (React 19 hooks like useActionState)</strategy>
+    <strategy scope="realtime_metrics">SWR / React Query Polling via API Routes</strategy>
+  </state_management>
+</project_architecture>
