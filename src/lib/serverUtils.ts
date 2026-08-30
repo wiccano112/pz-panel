@@ -8,43 +8,48 @@ const INI_PATH = '/opt/pz-server/data/Server/servertest.ini';
 
 export async function getServerStatus(): Promise<'ONLINE' | 'STARTING' | 'OFFLINE'> {
   try {
-    const { stdout } = await execFileAsync('docker', [
+    const { stdout: statusRaw } = await execFileAsync('docker', [
       'inspect',
       '-f',
-      '{{.State.Status}}|{{.State.StartedAt}}',
+      '{{.State.Status}}',
       'pz-server',
     ]);
-    const [statusRaw, startedAtRaw] = stdout.trim().split('|');
-    const status = statusRaw?.toUpperCase();
+    const status = statusRaw.trim().toUpperCase();
 
     if (status !== 'RUNNING') {
       return 'OFFLINE';
     }
 
-    if (!startedAtRaw || startedAtRaw === '0001-01-01T00:00:00Z') {
-      return 'STARTING';
-    }
-
-    const startTimestampSec = Math.floor(new Date(startedAtRaw).getTime() / 1000);
-    if (isNaN(startTimestampSec) || startTimestampSec <= 0) {
-      return 'STARTING';
-    }
-
+    // 1. Direct Kernel UDP Check: Port 16261 is 0x3F85 in /proc/net/udp
     try {
-      const { stdout: logs } = await execFileAsync('docker', [
-        'logs',
-        '--since',
-        String(startTimestampSec),
+      const { stdout: udpNet } = await execFileAsync('docker', [
+        'exec',
         'pz-server',
+        'cat',
+        '/proc/net/udp',
       ]);
 
-      if (logs.includes('*** SERVER STARTED ****') || logs.includes('Server is open for connection')) {
+      if (udpNet.includes(':3F85 ')) {
         return 'ONLINE';
       }
-      return 'STARTING';
-    } catch {
-      return 'STARTING';
-    }
+    } catch {}
+
+    // 2. Fallback check: Inspect recent tail logs
+    try {
+      const { stdout: logs, stderr } = await execFileAsync('docker', [
+        'logs',
+        '--tail',
+        '300',
+        'pz-server',
+      ]);
+      const fullLog = `${logs} ${stderr}`;
+
+      if (fullLog.includes('*** SERVER STARTED ****') || fullLog.includes('Server is open for connection')) {
+        return 'ONLINE';
+      }
+    } catch {}
+
+    return 'STARTING';
   } catch {
     return 'OFFLINE';
   }
@@ -96,31 +101,43 @@ export async function getServerUptime(): Promise<string | null> {
 
 export async function getConnectedPlayers(): Promise<number> {
   try {
-    // docker logs doesn't support execFile with shell redirection, so we pipe through sh
     const { stdout } = await execFileAsync('sh', [
       '-c',
-      'docker logs pz-server --since 30m 2>&1',
+      'docker logs pz-server --since 60m 2>&1',
     ]);
+
     const lines = stdout.split('\n');
-    const connected = lines.filter(l => l.includes('PlayerConnected')).length;
-    const disconnected = lines.filter(l => l.includes('PlayerDisconnected')).length;
-    return Math.max(0, connected - disconnected);
+    let count = 0;
+
+    for (const line of lines) {
+      if (line.includes('PlayerConnected')) {
+        count++;
+      } else if (line.includes('PlayerDisconnected')) {
+        count = Math.max(0, count - 1);
+      }
+    }
+
+    return count;
   } catch {
     return 0;
   }
 }
 
 export async function executeServerAction(action: 'start' | 'stop' | 'restart') {
-  const cwd = '/opt/pz-server';
   try {
+    let command = [];
     if (action === 'start') {
-      await execFileAsync('docker', ['compose', 'up', '-d'], { cwd });
+      command = ['compose', '-f', '/opt/pz-server/docker-compose.yml', 'up', '-d'];
     } else if (action === 'stop') {
-      await execFileAsync('docker', ['compose', 'down'], { cwd });
+      command = ['compose', '-f', '/opt/pz-server/docker-compose.yml', 'stop'];
     } else if (action === 'restart') {
-      await execFileAsync('docker', ['compose', 'restart'], { cwd });
+      command = ['compose', '-f', '/opt/pz-server/docker-compose.yml', 'restart'];
+    } else {
+      throw new Error('Invalid action');
     }
-    return { success: true };
+
+    await execFileAsync('docker', command);
+    return { success: true, message: `Server ${action}ed successfully` };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
@@ -130,39 +147,37 @@ export async function readIniFile() {
   try {
     const content = await fs.readFile(INI_PATH, 'utf-8');
     const parsed = ini.parse(content);
-    
-    // Convert semicolon-separated strings to arrays
+
     const workshopItems = parsed.WorkshopItems ? String(parsed.WorkshopItems).split(';').filter(Boolean) : [];
     const mods = parsed.Mods ? String(parsed.Mods).split(';').filter(Boolean) : [];
-    const maps = parsed.Map ? String(parsed.Map).split(';').filter(Boolean) : [];
+    const rawMaps = parsed.Map ? String(parsed.Map).split(';').filter(Boolean) : [];
+    
+    // Ensure 'Muldraugh, KY' is in the array and strictly last
+    const nonCoreMaps = rawMaps.filter(m => m !== 'Muldraugh, KY');
+    const maps = [...nonCoreMaps, 'Muldraugh, KY'];
 
     return { workshopItems, mods, maps };
-  } catch (error) {
-    console.error('Error reading INI:', error);
-    return { workshopItems: [], mods: [], maps: [] };
+  } catch {
+    return { workshopItems: [], mods: [], maps: ['Muldraugh, KY'] };
   }
 }
 
-export async function saveIniFile(newWorkshopItems: string[], newMods: string[], newMaps: string[]) {
+export async function saveIniFile(workshopItems: string[], mods: string[], maps: string[]) {
   try {
     const content = await fs.readFile(INI_PATH, 'utf-8');
     const parsed = ini.parse(content);
 
-    // Ensure Muldraugh, KY is always at the end
-    const filteredMaps = newMaps.filter(m => m !== 'Muldraugh, KY');
-    filteredMaps.push('Muldraugh, KY');
-
-    parsed.Mods = newMods.join(';');
-    parsed.Map = filteredMaps.join(';');
-    parsed.WorkshopItems = newWorkshopItems.join(';');
-
-    // Encode back to INI format (removing sections since PZ INI doesn't use them)
-    const newContent = ini.stringify(parsed, { whitespace: true });
+    parsed.WorkshopItems = workshopItems.filter(Boolean).join(';');
+    parsed.Mods = mods.filter(Boolean).join(';');
     
+    // Ensure 'Muldraugh, KY' is saved and strictly at the end
+    const nonCoreMaps = maps.filter(m => m && m !== 'Muldraugh, KY');
+    parsed.Map = [...nonCoreMaps, 'Muldraugh, KY'].join(';');
+
+    const newContent = ini.stringify(parsed);
     await fs.writeFile(INI_PATH, newContent, 'utf-8');
     return true;
-  } catch (error) {
-    console.error('Error saving INI:', error);
+  } catch {
     return false;
   }
 }
