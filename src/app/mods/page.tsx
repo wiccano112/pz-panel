@@ -1,11 +1,13 @@
-export default function ModsPage() {
+import { readIniFile } from '@/lib/serverUtils';
+import ModManagerClient from '@/components/ModManagerClient';
+
+export default async function ModsPage() {
+  const initialData = await readIniFile();
+
   return (
     <div>
       <h2 className="text-2xl font-bold mb-4">Mods Manager</h2>
-      <div className="bg-white shadow rounded-lg border border-slate-200 p-4">
-        {/* Placeholder for ModManagerClient */}
-        <p className="text-slate-600">Mods manager interface loading...</p>
-      </div>
+      <ModManagerClient initialData={initialData} />
     </div>
   );
 }
