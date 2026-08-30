@@ -34,3 +34,11 @@ Al abordar nuevas características o refactorizaciones, el equipo de agentes deb
 
 ### 4. Control de Versiones (Obligatorio)
 - Es imperativo realizar un commit (`git add . && git commit -m "..."`) al finalizar cada característica o avance estable. El trabajo no se considera terminado hasta que los cambios estén asegurados en el historial de Git local.
+
+### 5. Auditoría de Seguridad y Parametrización Obligatoria (Pre-Push)
+- **Zero-Secrets & Zero-Hardcoded-Paths:** Antes de realizar cualquier push a un repositorio remoto, el equipo de agentes debe auditar exhaustivamente que:
+  1. No existan secretos, contraseñas, tokens o API keys (como `STEAM_API_KEY`) quemados en el código fuente.
+  2. Todas las rutas del sistema de archivos (`PZ_SERVER_DIR`), nombres de servidor (`PZ_SERVER_NAME`), nombres de contenedor (`PZ_DOCKER_CONTAINER`) y puertos estén 100% parametrizados a través de variables de entorno (`.env.example`, `.env.local` y `src/lib/config.ts`) con valores de fallback neutros y genéricos (ej. `/opt/pz-server`, `servertest`, `pz-server`).
+  3. Los archivos de entorno local (`.env.local`, `.env*.local`) estén estrictamente protegidos en `.gitignore`.
+  4. Ningún dato sensible o personal de la máquina host (como rutas `/home/<user>/...` o identificadores locales específicos) se filtre en el código, plantillas de ejemplo o mensajes de error.
+
