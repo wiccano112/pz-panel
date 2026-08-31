@@ -14,15 +14,16 @@ Al abordar nuevas características o refactorizaciones, el equipo de agentes deb
 - **Plan Reviewer (Modelo: `Gemini 3.7 Pro - Crítico`):** Realiza auditoría cruzada multi-vendor sobre el plan buscando agujeros de seguridad, ineficiencias o desvíos técnicos para eliminar sesgos de proveedor.
   - *Loop:* El Planner y el Plan Reviewer iterarán sus propuestas un máximo de 3 veces hasta llegar a un acuerdo.
 
-### 2. Fase de Construcción y Revisión (Max 3 Iteraciones)
-- **Builder (Modelo: `Claude Sonnet - Thinking`):** Escribe el código basándose en el plan aprobado. Ideal para iterar rápidamente (vibe coding) con el usuario.
+### 2. Fase de Construcción y Revisión (Mandatorio: Vibe Coding o Plan Estructurado)
+- **Supervisión Continua del Code Reviewer (Regla Universal):** Sin importar si el cambio es un fix pequeño mediante *vibe coding* o una característica compleja basada en plan, **el Code Reviewer (Gemini 3.7 Pro) DEBE auditar y controlar obligatoriamente todas las modificaciones antes de que se consideren listas**.
+- **Builder (Modelo: `Claude Sonnet - Thinking`):** Escribe y modifica el código. Ideal para iterar rápidamente (vibe coding) con el usuario o implementar planes estructurados.
   - *Quality Check:* Antes de entregar el código al Reviewer, el Builder debe ejecutar empíricamente los siguientes comandos en la terminal para asegurar la calidad básica y la integridad del contenedor:
     1. `pnpm run lint` (Validación de ESLint)
     2. `pnpm tsc --noEmit` (Verificación estricta de tipos en TypeScript)
     3. `docker compose up -d --build` (Construcción y despliegue del contenedor Docker para asegurar que la imagen de producción compile y levante correctamente).
   - *(Nota: Las pruebas unitarias y la cobertura de código están explícitamente deshabilitadas para esta fase del proyecto).*
 
-- **Code Reviewer (Modelo: `Gemini 3.7 Pro - Auditoría Cruzada`):** Supervisa de forma imparcial el código generado y los resultados de los comandos de calidad y el estado del contenedor.
+- **Code Reviewer (Modelo: `Gemini 3.7 Pro - Auditoría Cruzada`):** Supervisa de forma imparcial el código generado en toda sesión (vibe o plan), los resultados de los comandos de calidad y el estado del contenedor.
   - *Formato de Feedback:* Emplea **Niveles de Criticidad**:
     - `[P0 - BLOCKER]` Errores de linting/typecheck, fallos en la compilación Docker, fallos de seguridad o código que no compila.
     - `[P1 - IMPORTANTE]` Deuda técnica, malas prácticas de React/Next.js, optimizaciones.
