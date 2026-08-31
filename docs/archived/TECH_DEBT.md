@@ -17,12 +17,12 @@ Documento exhaustivo de deuda técnica, vulnerabilidades potenciales, ineficienc
 
 ## 🔴 P0 - Blocker & Critical Reliability
 
-### 1. Rutas Absolutas Hardcodeadas (`/opt/pz-server/...`)
+### 1. Rutas Absolutas Hardcodeadas (`/opt/pz-server/...` / Host Paths)
 - **Ubicación:** 
-  - [`src/lib/serverUtils.ts`](src/lib/serverUtils.ts) (`INI_PATH = '/opt/pz-server/...'`)
-  - [`src/lib/sandboxUtils.ts`](src/lib/sandboxUtils.ts) (`SANDBOX_LUA_PATH = '/opt/pz-server/...'`)
-  - [`src/lib/playerUtils.ts`](src/lib/playerUtils.ts) (`PZ_DB_PATH = '/opt/pz-server/...'`)
-- **Problema:** El código asume que el servidor corre bajo el usuario `admin` y con el nombre de servidor `servertest`. En cualquier otro entorno o máquina, el panel fallará instantáneamente.
+  - `src/lib/serverUtils.ts` (`INI_PATH = '/opt/pz-server/...'`)
+  - `src/lib/sandboxUtils.ts` (`SANDBOX_LUA_PATH = '/opt/pz-server/...'`)
+  - `src/lib/playerUtils.ts` (`PZ_DB_PATH = '/opt/pz-server/...'`)
+- **Problema:** El código asumía rutas y nombres de servidor fijos del host. En cualquier otro entorno o máquina, el panel fallaría instantáneamente.
 - **Impacto:** Cero portabilidad e imposibilidad de desplegar en contenedores o servidores de otros administradores.
 - **Solución Recomendada:**
   - Definir variables de entorno en `.env.example` y `.env.local`:
@@ -46,7 +46,7 @@ Documento exhaustivo de deuda técnica, vulnerabilidades potenciales, ineficienc
 ---
 
 ### 2. Invocación de `sh -c` y Riesgo de Inyección en Anuncios In-Game
-- **Ubicación:** [`src/lib/playerUtils.ts:271`](src/lib/playerUtils.ts) (`sendServerBroadcast`) y `getLiveConnectedPlayers`.
+- **Ubicación:** `src/lib/playerUtils.ts` (`sendServerBroadcast`) y `getLiveConnectedPlayers`.
 - **Problema:** `sendServerBroadcast` usa `execFileAsync('docker', ['exec', 'pz-server', 'sh', '-c', 'echo ...'])`. Aunque se filtran comillas y signos `$`, un salto de línea (`\n`) o caracteres especiales pueden corromper el comando o el archivo de consola. Además, `getLiveConnectedPlayers` invoca `sh -c 'docker logs ... 2>&1'` de forma innecesaria.
 - **Impacto:** Posible ejecución fallida o desbordamiento de comandos en el contenedor.
 - **Solución Recomendada:**
@@ -56,7 +56,7 @@ Documento exhaustivo de deuda técnica, vulnerabilidades potenciales, ineficienc
 ---
 
 ### 3. Condiciones de Carrera en Escritura de Archivos (Read-Modify-Write)
-- **Ubicación:** [`src/lib/serverUtils.ts:saveIniFile`](src/lib/serverUtils.ts) y [`src/lib/sandboxUtils.ts:saveSandboxVars`](src/lib/sandboxUtils.ts).
+- **Ubicación:** `src/lib/serverUtils.ts:saveIniFile` y `src/lib/sandboxUtils.ts:saveSandboxVars`.
 - **Problema:** Ambas funciones leen el archivo en memoria, aplican cambios y lo escriben. Si dos administradores o dos peticiones concurrentes guardan al mismo tiempo, una de las escrituras sobrescribirá silenciosamente a la otra (*lost update*).
 - **Impacto:** Pérdida accidental de configuraciones de mods o sandbox.
 - **Solución Recomendada:**
@@ -67,7 +67,7 @@ Documento exhaustivo de deuda técnica, vulnerabilidades potenciales, ineficienc
 ## 🟠 P1 - Important / Performance & Architecture
 
 ### 4. Sobrecarga de Spawning de Procesos Docker por Polling
-- **Ubicación:** [`src/app/api/stats/route.ts`](src/app/api/stats/route.ts) y [`src/app/api/players/live/route.ts`](src/app/api/players/live/route.ts).
+- **Ubicación:** `src/app/api/stats/route.ts` y `src/app/api/players/live/route.ts`.
 - **Problema:** Con clientes abiertos en el navegador, `/api/stats` se consulta cada 3 segundos y `/api/players/live` cada 6 segundos. Cada petición ejecuta 4 subprocesos del sistema (`docker stats`, `docker inspect`, `docker exec cat /proc/net/udp`, `docker logs --since 60m`).
 - **Impacto:** Desperdicio de CPU y lentitud si múltiples pestañas o usuarios acceden al panel simultáneamente.
 - **Solución Recomendada:**
@@ -76,7 +76,7 @@ Documento exhaustivo de deuda técnica, vulnerabilidades potenciales, ineficienc
 ---
 
 ### 5. Parser y Serializador Lua basado en Expresiones Regulares
-- **Ubicación:** [`src/lib/sandboxUtils.ts`](src/lib/sandboxUtils.ts) (`readSandboxVars`).
+- **Ubicación:** `src/lib/sandboxUtils.ts` (`readSandboxVars`).
 - **Problema:** El parseo línea por línea mediante RegExp asume un formato rígido (`Key = Value,`). Si un mod o actualización de PZ incluye tablas anidadas más profundas (nivel 3+), arrays o strings multilínea, el parser omitirá o deformará los datos.
 - **Impacto:** Posible descarte de variables no estándar añadidas por mods.
 - **Solución Recomendada:**
@@ -85,7 +85,7 @@ Documento exhaustivo de deuda técnica, vulnerabilidades potenciales, ineficienc
 ---
 
 ### 6. Gestión del Ciclo de Vida de Conexiones SQLite
-- **Ubicación:** [`src/lib/playerUtils.ts`](src/lib/playerUtils.ts).
+- **Ubicación:** `src/lib/playerUtils.ts`.
 - **Problema:** `DatabaseSync` abre y cierra el archivo de base de datos en cada invocación de función (`getPlayersOverview`, `addToWhitelist`, `banSteamId`, etc.).
 - **Impacto:** Bloqueo síncrono innecesario de I/O en cada transacción.
 - **Solución Recomendada:**
@@ -96,7 +96,7 @@ Documento exhaustivo de deuda técnica, vulnerabilidades potenciales, ineficienc
 ## 🟡 P2 - Moderate / Tech Debt & Maintainability
 
 ### 7. Duplicación de Bloques de Transacción en DB
-- **Ubicación:** [`src/lib/playerUtils.ts`](src/lib/playerUtils.ts) (métodos `addToWhitelist`, `removeFromWhitelist`, `banSteamId`, `unbanSteamId`, `banIp`, `unbanIp`).
+- **Ubicación:** `src/lib/playerUtils.ts` (métodos `addToWhitelist`, `removeFromWhitelist`, `banSteamId`, `unbanSteamId`, `banIp`, `unbanIp`).
 - **Problema:** El patrón `const db = getDbInstance(); try { stmt.run(); return { success: true }; } catch (e) ...` está repetido 6 veces con la misma estructura.
 - **Solución:** Crear un helper genérico de ejecución de sentencias preparadas:
   ```typescript
@@ -115,7 +115,7 @@ Documento exhaustivo de deuda técnica, vulnerabilidades potenciales, ineficienc
 ---
 
 ### 9. Tipado Unificado para Respuestas de Server Actions
-- **Ubicación:** [`src/app/actions.ts`](src/app/actions.ts).
+- **Ubicación:** `src/app/actions.ts`.
 - **Problema:** Cada Server Action devuelve `{ message: string; error: boolean }` de forma anónima.
 - **Solución:** Definir una interfaz estándar genérica:
   ```typescript
@@ -131,14 +131,14 @@ Documento exhaustivo de deuda técnica, vulnerabilidades potenciales, ineficienc
 ## 🟢 P3 - Nitpick & DX
 
 ### 10. Límite de Buffer y Resiliencia en SSE (`/api/logs`)
-- **Ubicación:** [`src/app/api/logs/route.ts`](src/app/api/logs/route.ts).
+- **Ubicación:** `src/app/api/logs/route.ts`.
 - **Problema:** Si el stream de Docker emite una ráfaga masiva sin saltos de línea, el buffer acumulativo puede crecer indefinidamente.
 - **Solución:** Establecer un límite máximo de buffer (ej. 64KB) antes de forzar el flush o descarte.
 
 ---
 
 ### 11. Accesibilidad (A11y) en Botones de Iconos
-- **Ubicación:** [`src/components/ModManagerClient.tsx`](src/components/ModManagerClient.tsx), [`src/components/PlayerManagerClient.tsx`](src/components/PlayerManagerClient.tsx).
+- **Ubicación:** `src/components/ModManagerClient.tsx`, `src/components/PlayerManagerClient.tsx`.
 - **Problema:** Varios botones interactivos usan `title` pero carecen de `aria-label` explícito para lectores de pantalla.
 - **Solución:** Añadir `aria-label` descriptivos a todos los botones que solo contienen iconos Lucide.
 
