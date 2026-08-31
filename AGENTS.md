@@ -51,4 +51,16 @@ Al abordar nuevas características o refactorizaciones, el equipo de agentes deb
   ```
   Esto garantiza que los cambios de código se trasladen directamente a la imagen de producción en ejecución.
 
+### 7. Estructura de Datos del Servidor (`data/`) y Consulta de Estado
+El servidor de Project Zomboid desplegado se encuentra en la ruta parametrizada por `PZ_SERVER_DIR` (por defecto `../pz-server` en el host, montado en `/pz-server` dentro del contenedor). Cualquier agente que necesite inspeccionar, auditar o diagnosticar el estado del servidor debe consultar la subcarpeta `data/`:
+
+- **`data/Server/<SERVER_NAME>.ini`:** Configuración principal del servidor (mods activos, orden de carga, workshop items, mapas, puertos, PVP, contraseñas).
+- **`data/Server/<SERVER_NAME>_SandboxVars.lua`:** Configuración detallada de sandbox (multiplicadores de XP, población zombi, cortes de nivel de desarmado `LevelForDismantleXPCutoff`, clima, botín).
+- **`data/Server/<SERVER_NAME>_spawnregions.lua`:** Regiones de reaparición y puntos de inicio.
+- **`data/db/<SERVER_NAME>.db`:** Base de datos SQLite del servidor (tabla de whitelist, roles/permisos de usuarios, baneos por SteamID/IP).
+- **`data/server-console.txt` & `data/Logs/`:** Salida en tiempo real de la consola del juego, logs de conexión de jugadores, comandos de administración y registro de errores de Lua/Java.
+- **`data/Saves/`:** Partidas guardadas, estado del mapa, vehículos y chunks del mundo.
+- **`data/backups/`:** Copias de seguridad automáticas y snapshots del servidor.
+- **`data/options.ini`:** Parámetros de renderizado, audio y rendimiento del motor dedicado.
+
 

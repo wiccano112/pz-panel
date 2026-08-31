@@ -105,6 +105,30 @@ pnpm tsc --noEmit
 
 ---
 
+## 🗄️ Estructura del Servidor Desplegado (`data/`)
+
+El panel interactúa directamente con los archivos del servidor de Project Zomboid alojados en `${PZ_SERVER_DIR}/data` (montados en `/pz-server/data` dentro del contenedor Docker o en `../pz-server/data` en local):
+
+```text
+pz-server/
+└── data/
+    ├── Server/
+    │   ├── <SERVER_NAME>.ini              # Mods activos, Workshop Items, orden de mapas, PVP, puertos
+    │   ├── <SERVER_NAME>_SandboxVars.lua  # Reglas de Sandbox (XP, población zombi, cortes de desarmado, etc.)
+    │   ├── <SERVER_NAME>_spawnregions.lua # Puntos y regiones de aparición de supervivientes
+    │   └── <SERVER_NAME>_spawnpoints.lua  # Coordenadas exactas de spawn
+    ├── db/
+    │   └── <SERVER_NAME>.db               # Base de datos SQLite (whitelist, roles, baneos por SteamID/IP)
+    ├── Logs/                              # Historial de logs de juego, conexiones y chat
+    ├── Saves/                             # Datos de mundos guardados, chunks y vehículos
+    ├── backups/                           # Copias de seguridad automáticas (.zip)
+    ├── options.ini                        # Opciones gráficas, audio y configuración del motor PZ
+    └── server-console.txt                 # Salida directa y activa de la consola del servidor
+```
+
+---
+
 ## 🤖 Información de Arquitectura para Agentes IA
-- Las reglas de desarrollo y flujos de trabajo autónomos se encuentran en [`AGENTS.md`](AGENTS.md) y en [`.agents/rules/`](.agents/rules/).
+- Las reglas de desarrollo, flujos de trabajo autónomos y guías de inspección de estado se encuentran en [`AGENTS.md`](AGENTS.md) y en [`.agents/rules/`](.agents/rules/).
 - La especificación de componentes y rutas se encuentra documentada en formato denso en [`docs/ai_architecture.xml`](docs/ai_architecture.xml) y [`docs/frontend_plan.md`](docs/frontend_plan.md).
+- Los agentes pueden auditar y verificar el estado del servidor inspeccionando los archivos de `data/` listados arriba.
