@@ -193,6 +193,20 @@ export const SERVER_PROPERTIES_SCHEMA: PropertyMeta[] = [
     category: 'gameplay',
     defaultValue: true,
   },
+  {
+    key: 'MapRemotePlayerVisibility',
+    label: 'Remote Players Map Visibility',
+    description: 'Controls display and visibility of other players on the in-game world map.',
+    type: 'select',
+    category: 'gameplay',
+    defaultValue: 1,
+    options: [
+      { value: 1, label: '1 - Hidden (Default)' },
+      { value: 2, label: '2 - Friends Only' },
+      { value: 3, label: '3 - Friends and Nearby Players' },
+      { value: 4, label: '4 - Everyone (All Players Visible)' },
+    ],
+  },
 
   // 4. Network & Voice
   {

@@ -99,6 +99,13 @@ export default function ServerSettingsClient({
         } else if (meta.type === 'number') {
           const num = Number(rawVal);
           initial[meta.key] = isNaN(num) ? meta.defaultValue : num;
+        } else if (meta.type === 'select') {
+          if (typeof meta.defaultValue === 'number') {
+            const num = Number(rawVal);
+            initial[meta.key] = isNaN(num) ? meta.defaultValue : num;
+          } else {
+            initial[meta.key] = rawVal;
+          }
         } else {
           initial[meta.key] = rawVal;
         }
@@ -471,6 +478,22 @@ export default function ServerSettingsClient({
                             {currentVal ? 'Enabled' : 'Disabled'}
                           </span>
                         </div>
+                      ) : meta.type === 'select' && meta.options ? (
+                        <select
+                          value={typeof currentVal === 'number' ? currentVal : String(currentVal)}
+                          onChange={(e) => {
+                            const targetOption = meta.options?.find((opt) => String(opt.value) === e.target.value);
+                            const val = targetOption ? targetOption.value : e.target.value;
+                            handlePropertyChange(meta.key, val);
+                          }}
+                          className="w-full px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded text-xs text-white focus:outline-none focus:border-indigo-500 cursor-pointer"
+                        >
+                          {meta.options.map((opt) => (
+                            <option key={String(opt.value)} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
                       ) : meta.type === 'number' ? (
                         <div className="flex items-center space-x-2">
                           <input
