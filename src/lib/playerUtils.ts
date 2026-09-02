@@ -1,4 +1,5 @@
 import fs from 'fs';
+import path from 'path';
 import { DatabaseSync } from 'node:sqlite';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
@@ -53,38 +54,137 @@ function withDb<T>(operation: (db: DatabaseSync) => T): { success: boolean; data
 
 export async function getLiveConnectedPlayers(): Promise<ConnectedPlayer[]> {
   return getOrSetCache('live_connected_players', CACHE_TTL_MS, async () => {
-    try {
-      const { stdout } = await execFileAsync('docker', [
-        'logs',
-        CONFIG.containerName,
-        '--since',
-        '60m',
-      ]);
+    const activeUserMap = new Map<string, ConnectedPlayer>();
+    const logsDir = path.join(CONFIG.serverDir, 'data', 'Logs');
 
-      const lines = stdout.split('\n');
-      const activeUserMap = new Map<string, ConnectedPlayer>();
+    // 1. Primary Strategy: Parse PZ session log files in data/Logs/
+    if (fs.existsSync(logsDir)) {
+      try {
+        const allFiles = await fs.promises.readdir(logsDir);
+        const userFiles = allFiles.filter((f) => f.endsWith('_user.txt')).sort().reverse();
+        const connFiles = allFiles.filter((f) => f.endsWith('_connections.txt')).sort().reverse();
 
-      for (const line of lines) {
-        if (line.includes('PlayerConnected')) {
-          const match = line.match(/PlayerConnected\s+([A-Za-z0-9_-]+)/);
-          const username = match ? match[1] : 'Survivor';
-          activeUserMap.set(username, {
-            username,
-            connectedSince: 'Recently',
-            role: 'Player',
-          });
-        } else if (line.includes('PlayerDisconnected')) {
-          const match = line.match(/PlayerDisconnected\s+([A-Za-z0-9_-]+)/);
-          if (match) {
-            activeUserMap.delete(match[1]);
+        // Parse latest user.txt for connection/disconnection lifecycles
+        if (userFiles.length > 0) {
+          const latestUserFile = path.join(logsDir, userFiles[0]);
+          const content = await fs.promises.readFile(latestUserFile, 'utf-8');
+          const lines = content.split(/\r?\n/);
+
+          for (const line of lines) {
+            // e.g. [02-09-26 04:29:21.534] 76561198044212417 "wiccano112" fully connected (8117,12232,0).
+            const connectMatch = line.match(/\[(.*?)\]\s+(\d+)\s+"(.*?)"\s+fully connected/);
+            if (connectMatch) {
+              const [, timestamp, steamid, username] = connectMatch;
+              activeUserMap.set(username, {
+                username,
+                steamid,
+                connectedSince: timestamp,
+                role: 'Player',
+              });
+              continue;
+            }
+
+            // e.g. [31-08-26 05:37:06.416] 76561198044212417 "wiccano112" disconnected player
+            const disconnectMatch = line.match(/\[(.*?)\]\s+(\d+)\s+"(.*?)"\s+disconnected/);
+            if (disconnectMatch) {
+              const [, , , username] = disconnectMatch;
+              activeUserMap.delete(username);
+              continue;
+            }
           }
         }
-      }
 
-      return Array.from(activeUserMap.values());
-    } catch {
-      return [];
+        // Parse latest connections.txt for richer network metadata (IP, role)
+        if (connFiles.length > 0) {
+          const latestConnFile = path.join(logsDir, connFiles[0]);
+          const content = await fs.promises.readFile(latestConnFile, 'utf-8');
+          const lines = content.split(/\r?\n/);
+
+          for (const line of lines) {
+            if (line.includes('fully-connected') || line.includes('player-connect')) {
+              const userMatch = line.match(/username="([^"]+)"/);
+              const ipMatch = line.match(/ip="([^"]+)"/);
+              const steamMatch = line.match(/steam-id="([^"]+)"/);
+              const roleMatch = line.match(/role="([^"]+)"/);
+              const timeMatch = line.match(/\[(.*?)\]/);
+
+              if (userMatch && userMatch[1] && userMatch[1] !== 'null') {
+                const username = userMatch[1];
+                const existing = activeUserMap.get(username) || { username };
+                activeUserMap.set(username, {
+                  ...existing,
+                  username,
+                  steamid: steamMatch && steamMatch[1] !== '0' ? steamMatch[1] : existing.steamid,
+                  ip: ipMatch && ipMatch[1] !== 'null' ? ipMatch[1] : existing.ip,
+                  role: roleMatch && roleMatch[1] ? roleMatch[1] : existing.role || 'Player',
+                  connectedSince: existing.connectedSince || timeMatch?.[1] || 'Recently',
+                });
+              }
+            } else if (line.includes('event="disconnected"') || line.includes('connection-closed')) {
+              const userMatch = line.match(/username="([^"]+)"/);
+              if (userMatch && userMatch[1]) {
+                activeUserMap.delete(userMatch[1]);
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error reading PZ log files for active players:', err);
+      }
     }
+
+    // 2. Fallback: Parse docker logs if no log files were found
+    if (activeUserMap.size === 0) {
+      try {
+        const { stdout } = await execFileAsync('docker', [
+          'logs',
+          CONFIG.containerName,
+          '--since',
+          '60m',
+        ]);
+
+        const lines = stdout.split('\n');
+        for (const line of lines) {
+          const connectMatch = line.match(/Steam client (\d+) is initiating a connection/i);
+          if (connectMatch) {
+            const steamid = connectMatch[1];
+            activeUserMap.set(`Steam_${steamid.slice(-4)}`, {
+              username: `Steam_${steamid.slice(-4)}`,
+              steamid,
+              connectedSince: 'Recently',
+              role: 'Player',
+            });
+          }
+        }
+      } catch {
+        // Fallback error ignored
+      }
+    }
+
+    // 3. Cross-reference with Whitelist table to enrich roles
+    withDb((db) => {
+      const users = db.prepare('SELECT username, role, steamid FROM whitelist').all() as Array<{
+        username: string;
+        role: number;
+        steamid: string | null;
+      }>;
+
+      for (const [username, player] of activeUserMap.entries()) {
+        const matched = users.find(
+          (u) =>
+            u.username.toLowerCase() === username.toLowerCase() ||
+            (u.steamid && player.steamid && u.steamid === player.steamid)
+        );
+        if (matched) {
+          activeUserMap.set(username, {
+            ...player,
+            role: ROLE_MAP[matched.role] || player.role || 'Player',
+          });
+        }
+      }
+    });
+
+    return Array.from(activeUserMap.values());
   });
 }
 
