@@ -32,6 +32,7 @@ const CATEGORY_ICONS: Record<string, typeof Skull> = {
   vehicles: Car,
   character: UserCheck,
   advanced: Wrench,
+  mods: Sliders,
 };
 
 export default function SandboxManagerClient({ initialVars }: SandboxManagerClientProps) {
