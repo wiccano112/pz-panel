@@ -17,6 +17,7 @@ services:
     environment:
       - NODE_ENV=production
       - PZ_SERVER_DIR=/pz-server
+      - PZ_HOST_SERVER_DIR=${PZ_HOST_SERVER_DIR:-/home/perro/pz-server}
     volumes:
 
       # Docker socket to allow managing the PZ server container

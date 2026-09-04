@@ -149,11 +149,11 @@ export async function executeServerAction(action: 'start' | 'stop' | 'restart') 
   try {
     let command: string[] = [];
     if (action === 'start') {
-      command = ['compose', '-f', CONFIG.composeFile, 'up', '-d'];
+      command = ['compose', '--project-directory', CONFIG.hostServerDir, '-f', CONFIG.composeFile, 'up', '-d'];
     } else if (action === 'stop') {
-      command = ['compose', '-f', CONFIG.composeFile, 'stop'];
+      command = ['compose', '--project-directory', CONFIG.hostServerDir, '-f', CONFIG.composeFile, 'stop'];
     } else if (action === 'restart') {
-      command = ['compose', '-f', CONFIG.composeFile, 'restart'];
+      command = ['compose', '--project-directory', CONFIG.hostServerDir, '-f', CONFIG.composeFile, 'restart'];
     } else {
       throw new Error('Invalid action');
     }
