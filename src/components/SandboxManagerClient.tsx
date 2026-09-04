@@ -298,6 +298,15 @@ export default function SandboxManagerClient({ initialVars }: SandboxManagerClie
             />
           )}
 
+          {field.type === 'string' && (
+            <input
+              type="text"
+              value={String(val ?? '')}
+              onChange={(e) => handleFieldChange(field.key, field.subTable, e.target.value)}
+              className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-md text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 font-mono transition-colors"
+            />
+          )}
+
           {field.type === 'boolean' && (
             <label className="flex items-center space-x-3 cursor-pointer">
               <input
