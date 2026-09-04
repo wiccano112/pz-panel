@@ -64,4 +64,20 @@ El servidor de Project Zomboid desplegado se encuentra en la ruta parametrizada 
 - **`data/backups/`:** Copias de seguridad automáticas y snapshots del servidor.
 - **`data/options.ini`:** Parámetros de renderizado, audio y rendimiento del motor dedicado.
 
+### 8. Versionamiento Semántico (SemVer) y Releases
+- **Archivos de Versionamiento:** La versión de la aplicación se gestiona de forma sincronizada entre `package.json` y `src/version.json`.
+- **Scripts de Versionamiento (pnpm):**
+  - `pnpm run version:patch` (para corrección de errores / bug fixes, ej. `1.0.0` -> `1.0.1`).
+  - `pnpm run version:minor` (para nuevas funcionalidades compatibles, ej. `1.0.1` -> `1.1.0`).
+  - `pnpm run version:major` (para cambios mayores o incompatibles, ej. `1.1.0` -> `2.0.0`).
+- **Marca de Agua en UI:** La barra lateral (`src/components/Sidebar.tsx`) consume directamente `src/version.json` para mostrar en tiempo real la versión activa, canal, fecha de release y enlace dinámico a los releases de GitHub (`${repoUrl}/releases/tag/v${version}`).
+- **Flujo Obligatorio de Release:**
+  1. Ejecutar el comando de bump adecuado (`pnpm run version:patch`, etc.).
+  2. Compilar y verificar (`pnpm run lint`, `pnpm tsc --noEmit`, `docker compose up -d --build`).
+  3. Confirmar cambios en git (`git add . && git commit -m "chore(release): bump version to vX.Y.Z"`).
+  4. Crear tag git anotado (`git tag -a vX.Y.Z -m "Release vX.Y.Z"`).
+  5. Publicar ramas y tags (`git push origin main && git push origin vX.Y.Z`).
+  6. Crear release en GitHub mediante GitHub CLI (`gh release create vX.Y.Z --title "vX.Y.Z" --generate-notes`).
+
+
 
