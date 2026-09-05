@@ -8,6 +8,7 @@ import { CONFIG } from '@/lib/config';
 import { CORE_MAP_NAME, CACHE_TTL_MS } from '@/constants/game';
 import { withLock } from '@/lib/mutex';
 import { getOrSetCache, invalidateCache } from '@/lib/cache';
+import { getLiveConnectedPlayers } from '@/lib/playerUtils';
 
 const execFileAsync = promisify(execFile);
 
@@ -118,31 +119,12 @@ export async function getServerUptime(): Promise<string | null> {
 }
 
 export async function getConnectedPlayers(): Promise<number> {
-  return getOrSetCache('connected_players_count', CACHE_TTL_MS, async () => {
-    try {
-      const { stdout } = await execFileAsync('docker', [
-        'logs',
-        CONFIG.containerName,
-        '--since',
-        '60m',
-      ]);
-
-      const lines = stdout.split('\n');
-      let count = 0;
-
-      for (const line of lines) {
-        if (line.includes('PlayerConnected')) {
-          count++;
-        } else if (line.includes('PlayerDisconnected')) {
-          count = Math.max(0, count - 1);
-        }
-      }
-
-      return count;
-    } catch {
-      return 0;
-    }
-  });
+  try {
+    const players = await getLiveConnectedPlayers();
+    return players.length;
+  } catch {
+    return 0;
+  }
 }
 
 export async function executeServerAction(action: 'start' | 'stop' | 'restart') {

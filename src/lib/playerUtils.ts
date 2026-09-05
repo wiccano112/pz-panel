@@ -56,13 +56,17 @@ export async function getLiveConnectedPlayers(): Promise<ConnectedPlayer[]> {
   return getOrSetCache('live_connected_players', CACHE_TTL_MS, async () => {
     const activeUserMap = new Map<string, ConnectedPlayer>();
     const logsDir = path.join(CONFIG.serverDir, 'data', 'Logs');
-
+    let logFilesFound = false;
     // 1. Primary Strategy: Parse PZ session log files in data/Logs/
     if (fs.existsSync(logsDir)) {
       try {
         const allFiles = await fs.promises.readdir(logsDir);
         const userFiles = allFiles.filter((f) => f.endsWith('_user.txt')).sort().reverse();
         const connFiles = allFiles.filter((f) => f.endsWith('_connections.txt')).sort().reverse();
+
+        if (userFiles.length > 0 || connFiles.length > 0) {
+          logFilesFound = true;
+        }
 
         // Parse latest user.txt for connection/disconnection lifecycles
         if (userFiles.length > 0) {
@@ -94,37 +98,24 @@ export async function getLiveConnectedPlayers(): Promise<ConnectedPlayer[]> {
           }
         }
 
-        // Parse latest connections.txt for richer network metadata (IP, role)
-        if (connFiles.length > 0) {
+        // Parse latest connections.txt for richer network metadata (IP, role) for currently active users
+        if (connFiles.length > 0 && activeUserMap.size > 0) {
           const latestConnFile = path.join(logsDir, connFiles[0]);
           const content = await fs.promises.readFile(latestConnFile, 'utf-8');
           const lines = content.split(/\r?\n/);
 
           for (const line of lines) {
-            if (line.includes('fully-connected') || line.includes('player-connect')) {
-              const userMatch = line.match(/username="([^"]+)"/);
+            const userMatch = line.match(/username="([^"]+)"/);
+            if (userMatch && userMatch[1] && activeUserMap.has(userMatch[1])) {
+              const username = userMatch[1];
               const ipMatch = line.match(/ip="([^"]+)"/);
               const steamMatch = line.match(/steam-id="([^"]+)"/);
               const roleMatch = line.match(/role="([^"]+)"/);
-              const timeMatch = line.match(/\[(.*?)\]/);
+              const existing = activeUserMap.get(username)!;
 
-              if (userMatch && userMatch[1] && userMatch[1] !== 'null') {
-                const username = userMatch[1];
-                const existing = activeUserMap.get(username) || { username };
-                activeUserMap.set(username, {
-                  ...existing,
-                  username,
-                  steamid: steamMatch && steamMatch[1] !== '0' ? steamMatch[1] : existing.steamid,
-                  ip: ipMatch && ipMatch[1] !== 'null' ? ipMatch[1] : existing.ip,
-                  role: roleMatch && roleMatch[1] ? roleMatch[1] : existing.role || 'Player',
-                  connectedSince: existing.connectedSince || timeMatch?.[1] || 'Recently',
-                });
-              }
-            } else if (line.includes('event="disconnected"') || line.includes('connection-closed')) {
-              const userMatch = line.match(/username="([^"]+)"/);
-              if (userMatch && userMatch[1]) {
-                activeUserMap.delete(userMatch[1]);
-              }
+              if (ipMatch && ipMatch[1] && ipMatch[1] !== 'null') existing.ip = ipMatch[1];
+              if (steamMatch && steamMatch[1] && steamMatch[1] !== '0') existing.steamid = steamMatch[1];
+              if (roleMatch && roleMatch[1]) existing.role = roleMatch[1];
             }
           }
         }
@@ -133,8 +124,8 @@ export async function getLiveConnectedPlayers(): Promise<ConnectedPlayer[]> {
       }
     }
 
-    // 2. Fallback: Parse docker logs if no log files were found
-    if (activeUserMap.size === 0) {
+    // 2. Fallback: Parse docker logs only if no log files were found
+    if (!logFilesFound && activeUserMap.size === 0) {
       try {
         const { stdout } = await execFileAsync('docker', [
           'logs',
