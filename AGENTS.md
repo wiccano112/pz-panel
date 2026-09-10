@@ -4,6 +4,7 @@
 - **Gestor de Paquetes:** pnpm
 - **Entorno:** Node.js 26 (`node:current-alpine`)
 - **Estilos:** Tailwind CSS (PostCSS)
+- **Testing:** Vitest (Ejecución concurrente optimizada para 4 cores)
 - **Despliegue & Contenedor:** Docker & Docker Compose (Multi-stage Standalone)
 
 # Estructura del Equipo de Agentes y Feedback Loop
@@ -20,12 +21,14 @@ Al abordar nuevas características o refactorizaciones, el equipo de agentes deb
   - *Quality Check:* Antes de entregar el código al Reviewer, el Builder debe ejecutar empíricamente los siguientes comandos en la terminal para asegurar la calidad básica y la integridad del contenedor:
     1. `pnpm run lint` (Validación de ESLint)
     2. `pnpm tsc --noEmit` (Verificación estricta de tipos en TypeScript)
-    3. `docker compose up -d --build` (Construcción y despliegue del contenedor Docker para asegurar que la imagen de producción compile y levante correctamente).
-  - *(Nota: Las pruebas unitarias y la cobertura de código están explícitamente deshabilitadas para esta fase del proyecto).*
+    3. `pnpm test` (Ejecución de la suite completa de pruebas unitarias e integración en Vitest)
+    4. `pnpm run validate` (Pipeline integral que corre lint, typecheck y tests en un solo paso)
+    5. `docker compose up -d --build` (Construcción y despliegue del contenedor Docker para asegurar que la imagen de producción compile y levante correctamente).
+  - *(Nota: Las suites de pruebas en `tests/` cubren parsers Lua/INI, Server Actions con Zod, concurrencia de locks Mutex, utilidades de hardware, caché y Steam API).*
 
 - **Code Reviewer (Modelo: `Gemini 3.7 Pro - Auditoría Cruzada`):** Supervisa de forma imparcial el código generado en toda sesión (vibe o plan), los resultados de los comandos de calidad y el estado del contenedor.
   - *Formato de Feedback:* Emplea **Niveles de Criticidad**:
-    - `[P0 - BLOCKER]` Errores de linting/typecheck, fallos en la compilación Docker, fallos de seguridad o código que no compila.
+    - `[P0 - BLOCKER]` Errores de linting/typecheck, fallos en la suite de tests (`pnpm test`), fallos en la compilación Docker, fallos de seguridad o código que no compila.
     - `[P1 - IMPORTANTE]` Deuda técnica, malas prácticas de React/Next.js, optimizaciones.
     - `[P2 - NITPICK]` Detalles menores, estilo, formato.
   - *Loop:* El Builder y el Code Reviewer iterarán un máximo de 3 veces antes de entregar la versión final al usuario.
@@ -38,7 +41,12 @@ Al abordar nuevas características o refactorizaciones, el equipo de agentes deb
 ### 4. Control de Versiones (Obligatorio)
 - Es imperativo realizar un commit (`git add . && git commit -m "..."`) al finalizar cada característica o avance estable. El trabajo no se considera terminado hasta que los cambios estén asegurados en el historial de Git local.
 
-### 5. Auditoría de Seguridad y Parametrización Obligatoria (Pre-Push)
+### 5. Auditoría de Seguridad, Validaciones y Git Hook (Pre-Push)
+- **Git Hook Pre-Push (`.git/hooks/pre-push`):** Se encuentra activo y configurado para ejecutar automáticamente el pipeline de validación (`pnpm run validate`) antes de permitir cualquier subida remota.
+- **Pipeline Integral `pnpm run validate`:** Ejecuta en paralelo y secuencia:
+  1. `pnpm run lint` (ESLint con 0 errores y 0 warnings)
+  2. `pnpm tsc --noEmit` (Verificación estricta de TypeScript)
+  3. `pnpm test` (Suite rápida de pruebas unitarias/integración con Vitest en 4 cores)
 - **Zero-Secrets & Zero-Hardcoded-Paths:** Antes de realizar cualquier push a un repositorio remoto, el equipo de agentes debe auditar exhaustivamente que:
   1. No existan secretos, contraseñas, tokens o API keys (como `STEAM_API_KEY`) quemados en el código fuente.
   2. Todas las rutas del sistema de archivos (`PZ_SERVER_DIR`), nombres de servidor (`PZ_SERVER_NAME`), nombres de contenedor (`PZ_DOCKER_CONTAINER`) y puertos estén 100% parametrizados a través de variables de entorno (`.env.example`, `.env.local` y `src/lib/config.ts`) con valores de fallback neutros y genéricos (ej. `/opt/pz-server`, `servertest`, `pz-server`).
@@ -80,10 +88,9 @@ El servidor de Project Zomboid desplegado se encuentra en la ruta parametrizada 
    ```bash
    pnpm run version:patch   # o version:minor / version:major
    ```
-2. **Control de Calidad y Verificación de Contenedor:**
+2. **Control de Calidad, Validación Completa y Verificación de Contenedor:**
    ```bash
-   pnpm run lint
-   pnpm tsc --noEmit
+   pnpm run validate        # Ejecuta lint, typecheck y tests (Vitest)
    docker compose up -d --build
    ```
 3. **Auditoría Pre-Push de Seguridad:**
