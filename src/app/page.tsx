@@ -1,5 +1,6 @@
 import ServerStatusCard from '@/components/ServerStatusCard';
 import ServerMetricsCard from '@/components/ServerMetricsCard';
+import CpuCoresCard from '@/components/CpuCoresCard';
 import ServerLogsCard from '@/components/ServerLogsCard';
 import { getServerStatus } from '@/lib/serverUtils';
  
@@ -18,8 +19,12 @@ export default async function DashboardPage() {
         <ServerMetricsCard status={status} />
       </div>
 
+      {/* Host CPU & Cores Monitor (HTOP style) */}
+      <CpuCoresCard />
+
       {/* Live Server Logs Stream */}
       <ServerLogsCard />
     </div>
   );
 }
+
