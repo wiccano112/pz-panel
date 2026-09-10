@@ -18,6 +18,6 @@ export const ROLE_OPTIONS = [
 
 export const CATALOG_PAGE_SIZE = 12;
 
-export const METRICS_POLL_INTERVAL_MS = 3000;
+export const METRICS_POLL_INTERVAL_MS = 10000;
 export const PLAYERS_POLL_INTERVAL_MS = 6000;
 export const CACHE_TTL_MS = 2500;

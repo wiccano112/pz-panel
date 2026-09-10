@@ -1,7 +1,7 @@
 "use client";
 
 import useSWR from 'swr';
-import { Activity, Clock, Cpu, HardDrive, Network, Users } from 'lucide-react';
+import { Activity, Clock, Cpu, HardDrive, Network, Users, RotateCw } from 'lucide-react';
 import { METRICS_POLL_INTERVAL_MS } from '@/constants/game';
 
 const fetcher = async (url: string) => {
@@ -15,7 +15,7 @@ interface ServerMetricsCardProps {
 }
 
 export default function ServerMetricsCard({ status: initialStatus }: ServerMetricsCardProps) {
-  const { data, error, isLoading } = useSWR('/api/stats', fetcher, {
+  const { data, error, isLoading, isValidating, mutate } = useSWR('/api/stats', fetcher, {
     refreshInterval: METRICS_POLL_INTERVAL_MS,
   });
 
@@ -33,9 +33,22 @@ export default function ServerMetricsCard({ status: initialStatus }: ServerMetri
 
   return (
     <div className="p-6 bg-zinc-900 shadow rounded-lg border border-zinc-700">
-      <div className="flex items-center space-x-2 mb-4">
-        <Activity className="w-5 h-5 text-indigo-400" />
-        <h3 className="text-lg font-semibold text-white">Server Metrics</h3>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-2">
+          <Activity className="w-5 h-5 text-indigo-400" />
+          <h3 className="text-lg font-semibold text-white">Server Metrics</h3>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => mutate()}
+          disabled={isValidating}
+          className="flex items-center space-x-1.5 px-2.5 py-1 text-xs font-medium rounded border border-zinc-700 bg-zinc-800/80 text-zinc-300 hover:text-white hover:bg-zinc-700 hover:border-zinc-600 disabled:opacity-50 transition-colors cursor-pointer"
+          title="Reload server metrics (Auto-refreshes every 10s)"
+        >
+          <RotateCw className={`w-3.5 h-3.5 ${isValidating ? 'animate-spin text-indigo-400' : 'text-zinc-400'}`} />
+          <span className="hidden sm:inline">Refresh</span>
+        </button>
       </div>
       
       {isLoading && !data ? (
