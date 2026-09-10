@@ -1,5 +1,6 @@
 import fs from 'fs';
 import os from 'os';
+import { CONFIG } from '@/lib/config';
 import { HardwareCpuStats, CpuCoreMetric } from '@/types/hardware';
 
 interface ProcStatSnapshot {
@@ -9,6 +10,27 @@ interface ProcStatSnapshot {
 }
 
 let lastSnapshot: ProcStatSnapshot | null = null;
+
+export function parseCpuRange(rangeStr: string): number[] {
+  const result = new Set<number>();
+  const parts = rangeStr.split(',').map((p) => p.trim());
+  for (const part of parts) {
+    if (part.includes('-')) {
+      const [startStr, endStr] = part.split('-');
+      const start = parseInt(startStr, 10);
+      const end = parseInt(endStr, 10);
+      if (!isNaN(start) && !isNaN(end)) {
+        for (let i = Math.min(start, end); i <= Math.max(start, end); i++) {
+          result.add(i);
+        }
+      }
+    } else {
+      const num = parseInt(part, 10);
+      if (!isNaN(num)) result.add(num);
+    }
+  }
+  return Array.from(result).sort((a, b) => a - b);
+}
 
 function getHwmonPath(): string | null {
   const candidates = ['/sys/class/hwmon', '/host/sys/class/hwmon'];
@@ -138,7 +160,6 @@ function getCpuTemps(): { package: number | null; cores: Record<number, number> 
                 }
               }
             } else {
-              // Check temp1_input directly
               if (files.includes('temp1_input')) {
                 try {
                   const rawVal = fs.readFileSync(`${dirPath}/temp1_input`, 'utf8').trim();
@@ -199,7 +220,6 @@ export async function getHardwareCpuStats(): Promise<HardwareCpuStats> {
     ...parseProcStat(),
   };
 
-  // If cold start or snapshot is older than 30s, take a small 80ms sleep sample
   if (!lastSnapshot || currentSnapshot.timestamp - lastSnapshot.timestamp > 30000 || currentSnapshot.cores.length === 0) {
     const prev = currentSnapshot;
     await new Promise((resolve) => setTimeout(resolve, 80));
@@ -228,7 +248,12 @@ export async function getHardwareCpuStats(): Promise<HardwareCpuStats> {
   // 3. Temperatures
   const { package: packageTempC, cores: coreTemps } = getCpuTemps();
 
-  // 4. Map per-core metrics
+  // 4. Assigned Cores resolution
+  const assignedRangeString = CONFIG.serverCpus;
+  const assignedCpus = parseCpuRange(assignedRangeString);
+  const assignedSet = new Set(assignedCpus);
+
+  // 5. Map per-core metrics
   const cores: CpuCoreMetric[] = [];
   const knownCoreTempIndices = Object.keys(coreTemps).map(Number).sort((a, b) => a - b);
 
@@ -246,12 +271,10 @@ export async function getHardwareCpuStats(): Promise<HardwareCpuStats> {
 
     const freq = frequencies[i] !== undefined ? Math.round(frequencies[i]) : (cpus[i]?.speed || 0);
 
-    // Resolve core temp: direct match -> closest indexed physical core -> package temp
     let coreTemp: number | null = null;
     if (coreTemps[i] !== undefined) {
       coreTemp = coreTemps[i];
     } else if (knownCoreTempIndices.length > 0) {
-      // Find closest key <= i
       const candidateKey = [...knownCoreTempIndices].reverse().find((k) => k <= i) ?? knownCoreTempIndices[0];
       coreTemp = coreTemps[candidateKey] ?? packageTempC;
     } else {
@@ -260,11 +283,37 @@ export async function getHardwareCpuStats(): Promise<HardwareCpuStats> {
 
     cores.push({
       id: i,
-      label: `Core ${(i + 1).toString().padStart(2, '0')}`,
+      label: `Core ${i.toString().padStart(2, '0')}`,
       usagePercent: usage,
       frequencyMhz: freq,
       temperatureC: coreTemp,
+      isAssignedToServer: assignedSet.has(i),
     });
+  }
+
+  // 6. Assigned cores summary stats
+  const assignedCoreMetrics = cores.filter((c) => assignedSet.has(c.id));
+  let assignedUsagePercent = 0;
+  let assignedAvgFrequencyMhz = 0;
+  let assignedMaxTempC: number | null = null;
+
+  if (assignedCoreMetrics.length > 0) {
+    assignedUsagePercent =
+      Math.round(
+        (assignedCoreMetrics.reduce((sum, c) => sum + c.usagePercent, 0) / assignedCoreMetrics.length) * 10
+      ) / 10;
+    assignedAvgFrequencyMhz = Math.round(
+      assignedCoreMetrics.reduce((sum, c) => sum + c.frequencyMhz, 0) / assignedCoreMetrics.length
+    );
+
+    const temps = assignedCoreMetrics
+      .map((c) => c.temperatureC)
+      .filter((t): t is number => t !== null);
+    if (temps.length > 0) {
+      assignedMaxTempC = Math.max(...temps);
+    } else {
+      assignedMaxTempC = packageTempC;
+    }
   }
 
   return {
@@ -274,6 +323,11 @@ export async function getHardwareCpuStats(): Promise<HardwareCpuStats> {
     overallUsagePercent,
     averageFrequencyMhz: avgFrequency,
     packageTempC,
+    assignedCpus,
+    assignedRangeString,
+    assignedUsagePercent,
+    assignedAvgFrequencyMhz,
+    assignedMaxTempC,
     cores,
     timestamp: currentSnapshot.timestamp,
   };

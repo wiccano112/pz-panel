@@ -4,6 +4,7 @@ export interface CpuCoreMetric {
   usagePercent: number;
   frequencyMhz: number;
   temperatureC: number | null;
+  isAssignedToServer?: boolean;
 }
 
 export interface HardwareCpuStats {
@@ -13,6 +14,11 @@ export interface HardwareCpuStats {
   overallUsagePercent: number;
   averageFrequencyMhz: number;
   packageTempC: number | null;
+  assignedCpus: number[];
+  assignedRangeString: string;
+  assignedUsagePercent: number;
+  assignedAvgFrequencyMhz: number;
+  assignedMaxTempC: number | null;
   cores: CpuCoreMetric[];
   timestamp: number;
 }
