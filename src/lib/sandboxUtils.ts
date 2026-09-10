@@ -196,9 +196,16 @@ class LuaTableParser {
     return false;
   }
 
-  public parse(): Record<string, unknown> {
-    // If starts with "SandboxVars = {" or similar assignment, skip identifier and equals
+  public parse(): Record<string, unknown> | unknown[] {
+    // If starts with "return {" skip return
     if (
+      this.cursor < this.tokens.length - 1 &&
+      this.tokens[this.cursor].type === 'IDENTIFIER' &&
+      this.tokens[this.cursor].value === 'return' &&
+      this.tokens[this.cursor + 1].type === 'LBRACE'
+    ) {
+      this.cursor += 1;
+    } else if (
       this.cursor < this.tokens.length - 2 &&
       this.tokens[this.cursor].type === 'IDENTIFIER' &&
       this.tokens[this.cursor + 1].type === 'EQUALS' &&
@@ -209,7 +216,7 @@ class LuaTableParser {
 
     if (this.peek()?.type === 'LBRACE') {
       const parsed = this.parseTable();
-      return typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, unknown>) : {};
+      return typeof parsed === 'object' && parsed !== null ? parsed : {};
     }
 
     // Top-level key = value pairs without enclosing brace
@@ -323,7 +330,7 @@ class LuaTableParser {
   }
 }
 
-export function parseLuaTable(luaSource: string): Record<string, unknown> {
+export function parseLuaTable(luaSource: string): Record<string, unknown> | unknown[] {
   const tokens = tokenizeLua(luaSource);
   const parser = new LuaTableParser(tokens);
   return parser.parse();
