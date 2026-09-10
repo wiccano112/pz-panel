@@ -6,7 +6,7 @@ services:
     image: pz-panel:latest
     container_name: pz-panel
     restart: unless-stopped
-    cpuset: "12-19"
+    cpuset: "${PANEL_CPUSET:-12-19}"
     ports:
       - "${PANEL_PORT:-3000}:3000"
     env_file:
@@ -17,7 +17,7 @@ services:
     environment:
       - NODE_ENV=production
       - PZ_SERVER_DIR=/pz-server
-      - PZ_HOST_SERVER_DIR=${PZ_HOST_SERVER_DIR:-/home/perro/pz-server}
+      - PZ_HOST_SERVER_DIR=${PZ_HOST_SERVER_DIR:-/opt/pz-server}
     volumes:
 
       # Docker socket to allow managing the PZ server container
