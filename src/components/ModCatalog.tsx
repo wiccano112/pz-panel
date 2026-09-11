@@ -31,7 +31,7 @@ function formatSubscribers(count: number): string {
 export default function ModCatalog({ onAddMod, installedWorkshopIds }: ModCatalogProps) {
   const [searchInput, setSearchInput] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [days, setDays] = useState('30');
+  const [days, setDays] = useState('0');
   const [page, setPage] = useState(1);
   
   // State for unknown modId modal resolution
@@ -131,11 +131,11 @@ export default function ModCatalog({ onAddMod, installedWorkshopIds }: ModCatalo
               aria-label="Time period"
               className="pl-8 pr-7 py-1.5 bg-zinc-800 border border-zinc-700 rounded-md text-sm text-zinc-200 focus:outline-none focus:border-indigo-500 cursor-pointer transition-colors"
             >
-              <option value="7">Last 7 days</option>
+              <option value="0">All Time (Most Downloaded)</option>
               <option value="30">Last 30 days</option>
               <option value="90">Last 90 days</option>
               <option value="365">Last 1 year</option>
-              <option value="0">All Time</option>
+              <option value="7">Last 7 days</option>
             </select>
           </div>
         </div>

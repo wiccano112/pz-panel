@@ -3,24 +3,31 @@ import { CONFIG } from '@/lib/config';
 import { CATALOG_PAGE_SIZE } from '@/constants/game';
 
 export const KNOWN_MOD_LOOKUP: Record<string, KnownModEntry> = {
-  '2196102849': { modId: 'RavenCreek', mapId: 'RavenCreek', name: 'Raven Creek' },
-  '2392709985': { modId: 'tsarslib', name: "Tsar's Common Library v2.0" },
   '2297098490': { modId: 'Arsenal(26)GunFighter', name: 'Arsenal(26) GunFighter' },
+  '2392709985': { modId: 'tsarslib', name: "Tsar's Common Library v2.0" },
   '514427485': { modId: 'Brita_ArmorPack', name: "Brita's Armor Pack" },
-  '2590017394': { modId: 'HydrocraftModpack', name: 'Hydrocraft' },
   '2038907269': { modId: 'FilibuRhymesUsedCars', name: "Filibuster Rhymes' Used Cars!" },
+  '2590017394': { modId: 'HydrocraftModpack', name: 'Hydrocraft' },
+  '2196102849': { modId: 'RavenCreek', mapId: 'RavenCreek', name: 'Raven Creek' },
+  '2688809268': { modId: 'CommonSense', name: 'Common Sense' },
+  '2828434458': { modId: 'ShowExactLevel', name: 'Show Exact Level' },
+  '2987277607': { modId: 'ProximityInventory', name: 'Proximity Inventory' },
+  '2769706949': { modId: 'AutoMechanics', name: 'AutoMechanics' },
+  '2613892078': { modId: 'MinimalDisplayBars', name: 'Minimal Display Bars' },
+  '2799152995': { modId: 'ManageContainers', name: 'Manage Containers' },
+  '2857548524': { modId: 'HasBeenRead', name: 'Has Been Read' },
+  '2335368829': { modId: 'AuthenticZ', name: 'Authentic Z' },
 };
 
 export const FALLBACK_POPULAR_MODS: WorkshopModItem[] = [
   {
-    workshopId: '2196102849',
-    name: 'Raven Creek',
-    description: 'Raven Creek is a large and dense urban map mod for Project Zomboid.',
-    imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=500&auto=format&fit=crop&q=60',
-    subscribers: 280000,
-    modId: 'RavenCreek',
-    mapId: 'RavenCreek',
-    tags: ['Build 42', 'Map'],
+    workshopId: '2297098490',
+    name: 'Arsenal(26) GunFighter',
+    description: 'Advanced weapon framework adding extensive customization, attachments and mechanics.',
+    imageUrl: 'https://images.unsplash.com/photo-1595590424283-b8f17842773f?w=500&auto=format&fit=crop&q=60',
+    subscribers: 520000,
+    modId: 'Arsenal(26)GunFighter',
+    tags: ['Build 42', 'Weapons'],
   },
   {
     workshopId: '2392709985',
@@ -32,15 +39,6 @@ export const FALLBACK_POPULAR_MODS: WorkshopModItem[] = [
     tags: ['Build 42', 'Framework'],
   },
   {
-    workshopId: '2297098490',
-    name: 'Arsenal(26) GunFighter',
-    description: 'Advanced weapon framework adding extensive customization, attachments and mechanics.',
-    imageUrl: 'https://images.unsplash.com/photo-1595590424283-b8f17842773f?w=500&auto=format&fit=crop&q=60',
-    subscribers: 520000,
-    modId: 'Arsenal(26)GunFighter',
-    tags: ['Build 42', 'Weapons'],
-  },
-  {
     workshopId: '514427485',
     name: "Brita's Armor Pack",
     description: 'Adds an immense collection of military, tactical, and civilian armor pieces and clothing.',
@@ -48,6 +46,15 @@ export const FALLBACK_POPULAR_MODS: WorkshopModItem[] = [
     subscribers: 390000,
     modId: 'Brita_ArmorPack',
     tags: ['Build 42', 'Clothing'],
+  },
+  {
+    workshopId: '2038907269',
+    name: "Filibuster Rhymes' Used Cars!",
+    description: 'Lore-friendly vehicles from the late 80s and early 90s complete with custom sounds.',
+    imageUrl: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=500&auto=format&fit=crop&q=60',
+    subscribers: 360000,
+    modId: 'FilibuRhymesUsedCars',
+    tags: ['Build 42', 'Vehicles'],
   },
   {
     workshopId: '2590017394',
@@ -59,38 +66,47 @@ export const FALLBACK_POPULAR_MODS: WorkshopModItem[] = [
     tags: ['Build 42', 'Crafting'],
   },
   {
-    workshopId: '2038907269',
-    name: "Filibuster Rhymes' Used Cars!",
-    description: 'Lore-friendly vehicles from the late 80s and early 90s complete with custom sounds.',
-    imageUrl: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=500&auto=format&fit=crop&q=60',
-    subscribers: 360000,
-    modId: 'FilibuRhymesUsedCars',
-    tags: ['Build 42', 'Vehicles'],
+    workshopId: '2196102849',
+    name: 'Raven Creek',
+    description: 'Raven Creek is a large and dense urban map mod for Project Zomboid.',
+    imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=500&auto=format&fit=crop&q=60',
+    subscribers: 280000,
+    modId: 'RavenCreek',
+    mapId: 'RavenCreek',
+    tags: ['Build 42', 'Map'],
   },
 ];
 
-interface FetchWorkshopOptions {
+export interface FetchWorkshopOptions {
   query?: string;
   days?: number;
   tag?: string;
   page?: number;
   numperpage?: number;
+  queryType?: number;
 }
 
 export async function fetchWorkshopMods(
   options: FetchWorkshopOptions = {}
 ): Promise<{ mods: WorkshopModItem[]; total: number; source: 'steam' | 'fallback'; warning?: string }> {
   const apiKey = CONFIG.steamApiKey;
-  const { query = '', days = 30, tag = 'Build 42', page = 1, numperpage = CATALOG_PAGE_SIZE } = options;
+  const {
+    query = '',
+    days = 0,
+    tag = 'Build 42',
+    page = 1,
+    numperpage = CATALOG_PAGE_SIZE,
+    queryType = 12, // 12 = k_PublishedFileQueryType_RankedByTotalUniqueSubscriptions (Most Downloaded / Subscribed)
+  } = options;
 
   const validPage = Math.max(1, page);
   const validPerPage = Math.min(Math.max(1, numperpage), 50);
 
   if (!apiKey) {
-    let filtered = FALLBACK_POPULAR_MODS;
+    let filtered = [...FALLBACK_POPULAR_MODS].sort((a, b) => b.subscribers - a.subscribers);
     if (query.trim()) {
       const qLower = query.toLowerCase().trim();
-      filtered = FALLBACK_POPULAR_MODS.filter(
+      filtered = filtered.filter(
         (m) =>
           m.name.toLowerCase().includes(qLower) ||
           m.description.toLowerCase().includes(qLower) ||
@@ -111,18 +127,22 @@ export async function fetchWorkshopMods(
   const endpoint = 'https://api.steampowered.com/IPublishedFileService/QueryFiles/v1/';
   const url = new URL(endpoint);
 
+  // Steam Workshop query parameters for most downloaded mods
   url.searchParams.set('key', apiKey);
   url.searchParams.set('appid', '108600');
-  url.searchParams.set('query_type', query.trim() ? '0' : '1');
+  url.searchParams.set('query_type', String(queryType));
   url.searchParams.set('page', String(validPage));
   url.searchParams.set('numperpage', String(validPerPage));
   url.searchParams.set('return_short_description', 'true');
   url.searchParams.set('return_previews', 'true');
   url.searchParams.set('return_tags', 'true');
+  url.searchParams.set('return_vote_data', 'true');
+  url.searchParams.set('return_details', 'true');
   url.searchParams.set('days', String(Math.max(0, days)));
   
   if (tag.trim()) {
     url.searchParams.set('requiredtags[0]', tag.trim());
+    url.searchParams.set('match_all_tags', 'true');
   }
   if (query.trim()) {
     url.searchParams.set('search_text', query.trim());
@@ -139,10 +159,11 @@ export async function fetchWorkshopMods(
 
     if (!res.ok) {
       console.warn(`Steam API error: ${res.status} ${res.statusText}`);
+      const sortedFallback = [...FALLBACK_POPULAR_MODS].sort((a, b) => b.subscribers - a.subscribers);
       const startIndex = (validPage - 1) * validPerPage;
       return {
-        mods: FALLBACK_POPULAR_MODS.slice(startIndex, startIndex + validPerPage),
-        total: FALLBACK_POPULAR_MODS.length,
+        mods: sortedFallback.slice(startIndex, startIndex + validPerPage),
+        total: sortedFallback.length,
         source: 'fallback',
         warning: `Steam API returned status ${res.status}. Displaying fallback mods.`,
       };
@@ -183,10 +204,11 @@ export async function fetchWorkshopMods(
     };
   } catch (error) {
     console.error('Failed to query Steam Workshop API:', error);
+    const sortedFallback = [...FALLBACK_POPULAR_MODS].sort((a, b) => b.subscribers - a.subscribers);
     const startIndex = (validPage - 1) * validPerPage;
     return {
-      mods: FALLBACK_POPULAR_MODS.slice(startIndex, startIndex + validPerPage),
-      total: FALLBACK_POPULAR_MODS.length,
+      mods: sortedFallback.slice(startIndex, startIndex + validPerPage),
+      total: sortedFallback.length,
       source: 'fallback',
       warning: 'Network failure communicating with Steam API. Displaying fallback mods.',
     };

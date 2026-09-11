@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   // Input validation & sanitation
   const query = rawQuery.slice(0, 100).trim();
   
-  let days = 30;
+  let days = 0;
   if (rawDays !== null) {
     const parsed = parseInt(rawDays, 10);
     if (!isNaN(parsed) && parsed >= 0 && parsed <= 365) {
