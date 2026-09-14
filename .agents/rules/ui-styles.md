@@ -117,3 +117,27 @@ export default function MyClientComponent() {
   `bg-zinc-800 text-zinc-300 border border-zinc-700`
 - **Info / Logs / Historial:**
   `bg-sky-950/70 text-sky-300 border border-sky-800`
+
+---
+
+## 5. Código de Colores Semánticos para Iconos de Pestañas
+
+Los iconos de las pestañas deben incorporar un color temático y semántico acorde a su función:
+
+| Módulo / Pestaña | Icono | Clase de Color | Significado Semántico |
+|---|---|---|---|
+| **Players: Live** | `Radio` | `text-emerald-400 animate-pulse` | Conectados en vivo / En línea |
+| **Players: History** | `History` | `text-sky-400` | Registro cronológico / Logs |
+| **Players: Whitelist** | `ShieldCheck` | `text-indigo-400` | Seguridad / Acceso permitido |
+| **Players: Bans** | `Ban` | `text-rose-400` | Moderación punitiva / Bloqueos |
+| **Players: Broadcast** | `Megaphone` | `text-amber-400` | Anuncios / Difusión global |
+| **Settings: Properties** | `Sliders` | `text-cyan-400` | Configuración del motor .ini |
+| **Settings: Spawns** | `MapPin` | `text-emerald-400` | Puntos de aparición en el mapa |
+| **Sandbox: Zombies** | `Skull` | `text-rose-400` | Amenaza zombi / Mortalidad |
+| **Sandbox: Loot** | `Package` | `text-amber-400` | Cajas / Suministros / Botín |
+| **Sandbox: World** | `Sun` | `text-sky-400` | Clima / Tiempo / Naturaleza |
+| **Sandbox: Vehicles** | `Car` | `text-blue-400` | Vehículos / Motores / Gasolina |
+| **Sandbox: Character** | `UserCheck` | `text-emerald-400` | Sobreviviente / Habilidades / Salud |
+| **Sandbox: Advanced** | `Wrench` | `text-purple-400` | Ajustes técnicos / Mecánicas |
+| **Sandbox: Mods** | `Sliders` | `text-teal-400` | Opciones de extensiones y mods |
+

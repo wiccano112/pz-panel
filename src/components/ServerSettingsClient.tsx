@@ -359,7 +359,7 @@ export default function ServerSettingsClient({
           }`}
           aria-label="Server Properties Tab"
         >
-          <Sliders className="w-4 h-4" />
+          <Sliders className="w-4 h-4 text-cyan-400" />
           <span>Server Properties (.ini)</span>
         </button>
 
@@ -372,7 +372,7 @@ export default function ServerSettingsClient({
           }`}
           aria-label="Spawn Regions Tab"
         >
-          <MapPin className="w-4 h-4" />
+          <MapPin className="w-4 h-4 text-emerald-400" />
           <span>Spawn Regions (.lua)</span>
           <span className="px-1.5 py-0.2 text-[10px] bg-zinc-800 text-zinc-300 rounded-full border border-zinc-700">
             {spawnRegions.length}

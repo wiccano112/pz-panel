@@ -26,14 +26,14 @@ export interface SandboxManagerClientProps {
   initialVars: SandboxVarsData;
 }
 
-const CATEGORY_ICONS: Record<string, typeof Skull> = {
-  zombies: Skull,
-  loot: Package,
-  world: Sun,
-  vehicles: Car,
-  character: UserCheck,
-  advanced: Wrench,
-  mods: Sliders,
+const CATEGORY_CONFIG: Record<string, { icon: typeof Skull; color: string }> = {
+  zombies: { icon: Skull, color: 'text-rose-400' },
+  loot: { icon: Package, color: 'text-amber-400' },
+  world: { icon: Sun, color: 'text-sky-400' },
+  vehicles: { icon: Car, color: 'text-blue-400' },
+  character: { icon: UserCheck, color: 'text-emerald-400' },
+  advanced: { icon: Wrench, color: 'text-purple-400' },
+  mods: { icon: Sliders, color: 'text-teal-400' },
 };
 
 const VALID_SANDBOX_CATEGORIES = SANDBOX_CATEGORIES.map((c) => c.id);
@@ -189,7 +189,8 @@ export default function SandboxManagerClient({ initialVars }: SandboxManagerClie
       {!searchQuery.trim() && (
         <div className="flex overflow-x-auto border-b border-zinc-800 bg-zinc-900/60 rounded-t-lg px-4 gap-2">
           {SANDBOX_CATEGORIES.map((cat) => {
-            const Icon = CATEGORY_ICONS[cat.id] || Sliders;
+            const cfg = CATEGORY_CONFIG[cat.id] || { icon: Sliders, color: 'text-zinc-400' };
+            const Icon = cfg.icon;
             const isActive = activeCategory === cat.id;
             return (
               <button
@@ -201,7 +202,7 @@ export default function SandboxManagerClient({ initialVars }: SandboxManagerClie
                     : 'border-transparent text-zinc-400 hover:text-zinc-200'
                 }`}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className={`w-4 h-4 ${cfg.color}`} />
                 <span>{cat.name}</span>
               </button>
             );

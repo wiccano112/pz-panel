@@ -166,7 +166,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
           }`}
           aria-label="View whitelist management tab"
         >
-          <ShieldCheck className="w-4 h-4" />
+          <ShieldCheck className="w-4 h-4 text-indigo-400" />
           <span>Whitelist</span>
           <span className="px-1.5 py-0.2 text-[10px] bg-zinc-800 text-zinc-300 rounded-full">
             {overview.whitelist.length}
@@ -182,7 +182,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
           }`}
           aria-label="View ban moderation tab"
         >
-          <Ban className="w-4 h-4" />
+          <Ban className="w-4 h-4 text-rose-400" />
           <span>Bans</span>
           <span className="px-1.5 py-0.2 text-[10px] bg-rose-950 text-rose-300 border border-rose-800 rounded-full">
             {overview.bannedSteamIds.length + overview.bannedIps.length}
