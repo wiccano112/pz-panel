@@ -320,6 +320,32 @@ export const SANDBOX_CATEGORIES: SandboxCategoryGroup[] = [
         ],
       },
       {
+        key: 'NightLength',
+        label: 'Night Length',
+        description: 'Relative duration of night time from dusk to dawn.',
+        type: 'select',
+        defaultValue: 2,
+        options: [
+          { value: 1, label: '1 - Short (Shorter Nights)' },
+          { value: 2, label: '2 - Normal (Standard)' },
+          { value: 3, label: '3 - Long (Longer Nights)' },
+          { value: 4, label: '4 - Always Night' },
+        ],
+      },
+      {
+        key: 'NightDarkness',
+        label: 'Night Darkness Level',
+        description: 'Ambient illumination level during nighttime hours.',
+        type: 'select',
+        defaultValue: 3,
+        options: [
+          { value: 1, label: '1 - Pitch Black' },
+          { value: 2, label: '2 - Dark' },
+          { value: 3, label: '3 - Normal' },
+          { value: 4, label: '4 - Bright (Daylight Clarity)' },
+        ],
+      },
+      {
         key: 'WaterShut',
         label: 'Water Shutoff Schedule',
         description: 'Time range after which city water services shut off.',

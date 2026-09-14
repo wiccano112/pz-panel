@@ -223,6 +223,32 @@ export const SERVER_PROPERTIES_SCHEMA: PropertyMeta[] = [
       { value: 4, label: '4 - Everyone (All Players Visible)' },
     ],
   },
+  {
+    key: 'SleepAllowed',
+    label: 'Allow Player Sleeping',
+    description: 'Permit players to sleep in beds and furniture to rest or pass time.',
+    type: 'boolean',
+    category: 'gameplay',
+    defaultValue: true,
+  },
+  {
+    key: 'SleepNeeded',
+    label: 'Sleep Needed (Fatigue)',
+    description: 'Survivors gradually become tired and must sleep to recover endurance.',
+    type: 'boolean',
+    category: 'gameplay',
+    defaultValue: false,
+  },
+  {
+    key: 'FastForwardMultiplier',
+    label: 'Sleep Fast-Forward Multiplier',
+    description: 'Time acceleration multiplier when all connected players are sleeping.',
+    type: 'number',
+    category: 'gameplay',
+    defaultValue: 40.0,
+    min: 1.0,
+    max: 100.0,
+  },
 
   // 4. Network & Voice
   {
