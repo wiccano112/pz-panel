@@ -15,6 +15,7 @@ export async function GET() {
         whitelist: [],
         bannedSteamIds: [],
         bannedIps: [],
+        connectionHistory: [],
         error: 'Failed to retrieve player overview',
       },
       { status: 500 }

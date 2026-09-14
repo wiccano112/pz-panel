@@ -28,9 +28,20 @@ export interface ConnectedPlayer {
   role?: string;
 }
 
+export interface PlayerConnectionEvent {
+  id: string;
+  timestamp: string;
+  username: string;
+  steamid?: string;
+  ip?: string;
+  type: 'CONNECTED' | 'DISCONNECTED';
+  coordinates?: string;
+}
+
 export interface PlayersOverviewData {
   connectedPlayers: ConnectedPlayer[];
   whitelist: WhitelistUser[];
   bannedSteamIds: BannedSteamId[];
   bannedIps: BannedIp[];
+  connectionHistory: PlayerConnectionEvent[];
 }

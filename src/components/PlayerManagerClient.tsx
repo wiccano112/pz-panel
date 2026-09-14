@@ -13,6 +13,11 @@ import {
   Radio,
   UserX,
   RefreshCw,
+  History,
+  Search,
+  LogIn,
+  LogOut,
+  MapPin,
 } from 'lucide-react';
 import { PlayersOverviewData, WhitelistUser, BannedSteamId, BannedIp } from '@/types/players';
 import {
@@ -35,7 +40,9 @@ const fetcher = async (url: string): Promise<PlayersOverviewData> => {
 };
 
 export default function PlayerManagerClient({ initialData }: PlayerManagerClientProps) {
-  const [activeTab, setActiveTab] = useState<'live' | 'whitelist' | 'bans' | 'broadcast'>('live');
+  const [activeTab, setActiveTab] = useState<'live' | 'history' | 'whitelist' | 'bans' | 'broadcast'>('live');
+  const [historySearch, setHistorySearch] = useState('');
+  const [historyFilter, setHistoryFilter] = useState<'ALL' | 'CONNECTED' | 'DISCONNECTED'>('ALL');
 
   // Real-time polling via SWR
   const { data, mutate, isValidating } = useSWR<PlayersOverviewData>(
@@ -48,6 +55,20 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
   );
 
   const overview = data || initialData;
+
+  // Filtered history list
+  const filteredHistory = (overview.connectionHistory || []).filter((event) => {
+    if (historyFilter !== 'ALL' && event.type !== historyFilter) return false;
+    if (!historySearch.trim()) return true;
+    const q = historySearch.toLowerCase().trim();
+    return (
+      event.username.toLowerCase().includes(q) ||
+      (event.steamid && event.steamid.includes(q)) ||
+      (event.ip && event.ip.includes(q)) ||
+      (event.timestamp && event.timestamp.toLowerCase().includes(q)) ||
+      (event.coordinates && event.coordinates.includes(q))
+    );
+  });
 
   // Server Actions states
   const [addWhitelistState, addWhitelistAction, addWhitelistPending] = useActionState(handleAddWhitelistAction, null);
@@ -68,7 +89,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
             <span>Players & Moderation</span>
           </h3>
           <p className="text-xs text-zinc-400 mt-1">
-            Monitor active survivors, manage the server whitelist, enforce bans, and broadcast server messages.
+            Monitor active survivors, track connection history, manage whitelist, enforce bans, and broadcast messages.
           </p>
         </div>
 
@@ -101,6 +122,22 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
           <span>Connected Players</span>
           <span className="px-1.5 py-0.2 text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800 rounded-full">
             {overview.connectedPlayers.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('history')}
+          className={`flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+            activeTab === 'history'
+              ? 'border-indigo-500 text-indigo-400'
+              : 'border-transparent text-zinc-400 hover:text-zinc-200'
+          }`}
+          aria-label="View connection history tab"
+        >
+          <History className="w-4 h-4 text-sky-400" />
+          <span>Connection History</span>
+          <span className="px-1.5 py-0.2 text-[10px] bg-sky-950 text-sky-300 border border-sky-800 rounded-full">
+            {overview.connectionHistory?.length || 0}
           </span>
         </button>
 
@@ -204,6 +241,171 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
                             Kick / Ban
                           </button>
                         </form>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab: Connection History */}
+      {activeTab === 'history' && (
+        <div className="bg-zinc-900 border border-zinc-700 rounded-b-lg p-6 shadow-xl space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h4 className="text-base font-semibold text-white flex items-center space-x-2">
+                <History className="w-5 h-5 text-sky-400" />
+                <span>Connection & Session Logs</span>
+              </h4>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Audit trail extracted from server session logs (data/Logs/*_user.txt).
+              </p>
+            </div>
+
+            {/* Filter and Search Bar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                <input
+                  type="text"
+                  value={historySearch}
+                  onChange={(e) => setHistorySearch(e.target.value)}
+                  placeholder="Filter player, Steam ID, IP..."
+                  className="pl-9 pr-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-sky-500 w-full sm:w-64"
+                />
+              </div>
+
+              <div className="flex rounded border border-zinc-700 bg-zinc-800 p-0.5 text-xs">
+                <button
+                  onClick={() => setHistoryFilter('ALL')}
+                  className={`px-2.5 py-1 rounded transition-colors cursor-pointer ${
+                    historyFilter === 'ALL'
+                      ? 'bg-zinc-700 text-white font-medium'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setHistoryFilter('CONNECTED')}
+                  className={`px-2.5 py-1 rounded transition-colors cursor-pointer ${
+                    historyFilter === 'CONNECTED'
+                      ? 'bg-emerald-950 text-emerald-300 border border-emerald-800 font-medium'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  Connected
+                </button>
+                <button
+                  onClick={() => setHistoryFilter('DISCONNECTED')}
+                  className={`px-2.5 py-1 rounded transition-colors cursor-pointer ${
+                    historyFilter === 'DISCONNECTED'
+                      ? 'bg-rose-950 text-rose-300 border border-rose-800 font-medium'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  Disconnected
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {filteredHistory.length === 0 ? (
+            <div className="p-12 text-center border border-zinc-800 rounded-lg text-zinc-500 space-y-2">
+              <History className="w-8 h-8 mx-auto text-zinc-600" />
+              <p className="text-sm font-medium">No connection events found.</p>
+              <p className="text-xs text-zinc-500">
+                {historySearch ? 'Try adjusting your search criteria.' : 'Player joins and leaves will be logged automatically.'}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto border border-zinc-800 rounded-lg">
+              <table className="w-full text-left text-sm text-zinc-300">
+                <thead className="bg-zinc-950 text-xs uppercase text-zinc-400 border-b border-zinc-800">
+                  <tr>
+                    <th className="px-4 py-3">Event</th>
+                    <th className="px-4 py-3">Timestamp</th>
+                    <th className="px-4 py-3">Player</th>
+                    <th className="px-4 py-3">Steam ID</th>
+                    <th className="px-4 py-3">IP Address</th>
+                    <th className="px-4 py-3">Coordinates</th>
+                    <th className="px-4 py-3 text-right">Moderation</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800">
+                  {filteredHistory.map((event) => (
+                    <tr key={event.id} className="hover:bg-zinc-800/40 transition-colors">
+                      <td className="px-4 py-3">
+                        {event.type === 'CONNECTED' ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-950/70 text-emerald-300 border border-emerald-800">
+                            <LogIn className="w-3 h-3 mr-1 text-emerald-400" />
+                            Connected
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-zinc-800/80 text-zinc-400 border border-zinc-700">
+                            <LogOut className="w-3 h-3 mr-1 text-zinc-500" />
+                            Disconnected
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-zinc-400">
+                        {event.timestamp}
+                      </td>
+                      <td className="px-4 py-3 font-semibold text-white">
+                        {event.username}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-zinc-400">
+                        {event.steamid || '—'}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-zinc-400">
+                        {event.ip || '—'}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-zinc-400">
+                        {event.coordinates ? (
+                          <span className="inline-flex items-center text-amber-300/90 font-mono text-[11px]">
+                            <MapPin className="w-3 h-3 mr-1 text-amber-400 shrink-0" />
+                            {event.coordinates}
+                          </span>
+                        ) : (
+                          <span className="text-zinc-600">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right space-x-2">
+                        {event.steamid && (
+                          <form action={banAction} className="inline-block">
+                            <input type="hidden" name="banType" value="steam" />
+                            <input type="hidden" name="target" value={event.steamid} />
+                            <input type="hidden" name="reason" value="Banned via History log" />
+                            <button
+                              type="submit"
+                              disabled={banPending}
+                              className="px-2 py-0.5 bg-rose-950/60 hover:bg-rose-900/60 text-rose-300 border border-rose-800 text-xs rounded transition-colors disabled:opacity-50 cursor-pointer"
+                              title={`Ban Steam ID ${event.steamid}`}
+                              aria-label={`Ban Steam ID ${event.steamid}`}
+                            >
+                              Ban Steam
+                            </button>
+                          </form>
+                        )}
+                        {event.ip && (
+                          <form action={banAction} className="inline-block">
+                            <input type="hidden" name="banType" value="ip" />
+                            <input type="hidden" name="target" value={event.ip} />
+                            <input type="hidden" name="reason" value="Banned via History log" />
+                            <button
+                              type="submit"
+                              disabled={banPending}
+                              className="px-2 py-0.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 text-xs rounded transition-colors disabled:opacity-50 cursor-pointer"
+                              title={`Ban IP ${event.ip}`}
+                              aria-label={`Ban IP ${event.ip}`}
+                            >
+                              Ban IP
+                            </button>
+                          </form>
+                        )}
                       </td>
                     </tr>
                   ))}

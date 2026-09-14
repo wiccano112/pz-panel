@@ -6,7 +6,7 @@ import { promisify } from 'util';
 import { CONFIG } from '@/lib/config';
 import { ROLE_MAP, CACHE_TTL_MS } from '@/constants/game';
 import { getOrSetCache } from '@/lib/cache';
-import { BannedIp, BannedSteamId, ConnectedPlayer, PlayersOverviewData, WhitelistUser } from '@/types/players';
+import { BannedIp, BannedSteamId, ConnectedPlayer, PlayersOverviewData, WhitelistUser, PlayerConnectionEvent } from '@/types/players';
 
 const execFileAsync = promisify(execFile);
 
@@ -179,8 +179,109 @@ export async function getLiveConnectedPlayers(): Promise<ConnectedPlayer[]> {
   });
 }
 
+export async function getPlayerConnectionHistory(limit = 100): Promise<PlayerConnectionEvent[]> {
+  return getOrSetCache('player_connection_history', CACHE_TTL_MS, async () => {
+    const logsDir = path.join(CONFIG.serverDir, 'data', 'Logs');
+    const events: PlayerConnectionEvent[] = [];
+    const ipMap = new Map<string, string>();
+    const steamMap = new Map<string, string>();
+
+    if (!fs.existsSync(logsDir)) {
+      return [];
+    }
+
+    try {
+      const allFiles = await fs.promises.readdir(logsDir);
+      const userFiles = allFiles.filter((f) => f.endsWith('_user.txt')).sort().reverse();
+      const connFiles = allFiles.filter((f) => f.endsWith('_connections.txt')).sort().reverse();
+
+      // 1. Build IP & Steam mapping from connections.txt
+      for (const file of connFiles.slice(0, 10)) {
+        try {
+          const content = await fs.promises.readFile(path.join(logsDir, file), 'utf-8');
+          const lines = content.split(/\r?\n/);
+          for (const line of lines) {
+            const userMatch = line.match(/username="([^"]+)"/);
+            const ipMatch = line.match(/ip="([^"]+)"/);
+            const steamMatch = line.match(/steam-id="([^"]+)"/);
+            if (userMatch && userMatch[1]) {
+              const u = userMatch[1];
+              if (ipMatch && ipMatch[1] && ipMatch[1] !== 'null' && !ipMap.has(u)) {
+                ipMap.set(u, ipMatch[1]);
+              }
+              if (steamMatch && steamMatch[1] && steamMatch[1] !== '0' && !steamMap.has(u)) {
+                steamMap.set(u, steamMatch[1]);
+              }
+            }
+          }
+        } catch {
+          // ignore error reading single file
+        }
+      }
+
+      // 2. Parse user.txt files (from newest file to oldest, lines in reverse order)
+      for (const file of userFiles.slice(0, 10)) {
+        try {
+          const content = await fs.promises.readFile(path.join(logsDir, file), 'utf-8');
+          const lines = content.split(/\r?\n/);
+
+          for (let i = lines.length - 1; i >= 0; i--) {
+            const line = lines[i].trim();
+            if (!line) continue;
+
+            // Connection pattern
+            const connectMatch = line.match(/\[(.*?)\]\s+(?:(\d+)\s+)?"(.*?)"\s+fully connected(?:\s+\((.*?)\))?/);
+            if (connectMatch) {
+              const [, timestamp, steamid, username, coordinates] = connectMatch;
+              events.push({
+                id: `${timestamp}-${username}-CONNECT-${events.length}`,
+                timestamp,
+                username,
+                steamid: steamid || steamMap.get(username) || undefined,
+                ip: ipMap.get(username),
+                type: 'CONNECTED',
+                coordinates: coordinates ? coordinates.replace(/,/g, ', ') : undefined,
+              });
+              if (events.length >= limit) break;
+              continue;
+            }
+
+            // Disconnection pattern
+            const disconnectMatch = line.match(/\[(.*?)\]\s+(?:(\d+)\s+)?"(.*?)"\s+disconnected(?:\s+player(?:\s+"(?:.*?)")?(?:\s+\((.*?)\))?)?/);
+            if (disconnectMatch) {
+              const [, timestamp, steamid, username, coordinates] = disconnectMatch;
+              events.push({
+                id: `${timestamp}-${username}-DISCONNECT-${events.length}`,
+                timestamp,
+                username,
+                steamid: steamid || steamMap.get(username) || undefined,
+                ip: ipMap.get(username),
+                type: 'DISCONNECTED',
+                coordinates: coordinates ? coordinates.replace(/,/g, ', ') : undefined,
+              });
+              if (events.length >= limit) break;
+              continue;
+            }
+          }
+
+          if (events.length >= limit) break;
+        } catch {
+          // ignore error reading single file
+        }
+      }
+    } catch (err) {
+      console.error('Error reading PZ log files for connection history:', err);
+    }
+
+    return events.slice(0, limit);
+  });
+}
+
 export async function getPlayersOverview(): Promise<PlayersOverviewData> {
-  const connectedPlayers = await getLiveConnectedPlayers();
+  const [connectedPlayers, connectionHistory] = await Promise.all([
+    getLiveConnectedPlayers(),
+    getPlayerConnectionHistory(),
+  ]);
 
   const dbRes = withDb((db) => {
     // 1. Whitelist
@@ -234,6 +335,7 @@ export async function getPlayersOverview(): Promise<PlayersOverviewData> {
     whitelist: dbRes.data?.whitelist || [],
     bannedSteamIds: dbRes.data?.bannedSteamIds || [],
     bannedIps: dbRes.data?.bannedIps || [],
+    connectionHistory,
   };
 }
 
