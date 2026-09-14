@@ -1,33 +1,14 @@
 # Project Zomboid Dedicated Server Management Panel (PZ-Panel)
-## 📋 ToDo List - Próxima Sesión
+## 📋 ToDo List - Backlog y Próximas Sesiones
 
-### 🎯 Objetivo Principal
-Estandarizar la barra flotante de guardado (`Sticky Bottom Action Bar`) en todas las vistas de configuración del panel, replicando el patrón visual e interactivo de **Server Properties & Settings** (`ServerSettingsClient.tsx`).
+### 🎯 Objetivo Próxima Sesión
+Investigación, arquitectura e implementación de la **Vista Mobile y Experiencia Responsive** del panel (Drawer/Sidebar colapsable, adaptación táctil en vistas de configuración, moderación y tablas de logs).
 
 ---
 
-### 📌 Tareas Pendientes (Backlog)
+### 📌 Estado del Backlog
 
-- [x] **1. Sandbox World Settings (`SandboxManagerClient.tsx`)**
-  - [x] Convertir el contenedor de guardado actual (footer estático) en una barra flotante (`sticky bottom-4 bg-zinc-900 border border-zinc-700 rounded-lg p-4 shadow-2xl flex items-center justify-between z-20`).
-  - [x] Agregar la leyenda informativa izquierda con icono `HelpCircle`:
-    > *"Saving updates the `ServerName_SandboxVars.lua` configuration directly."*
-  - [x] Alinear a la derecha el feedback de estado (`state.message`) con colores condicionales (`emerald-400` / `rose-400`) y el botón `Save Sandbox Configuration` con spinner (`isPending` / `RefreshCw`).
-  - [x] Asegurar que el scroll vertical de la lista de opciones no quede tapado por la barra flotante (padding inferior adecuado en el contenedor principal `pb-12`).
-
-- [x] **2. Mods & Workshop Manager (`ModManagerClient.tsx`)**
-  - [x] Reemplazar el contenedor estático inferior por la barra flotante estandarizada (`sticky bottom-4 bg-zinc-900 border border-zinc-700 rounded-lg p-4 shadow-2xl flex items-center justify-between z-20`).
-  - [x] Agregar la leyenda informativa izquierda con icono `HelpCircle`:
-    > *"Saving writes directly to `ServerName.ini` (Mods, WorkshopItems, and Map order)."*
-  - [x] Alinear a la derecha el estado del Server Action (`state.message`) y el botón `Save Configuration` con feedback interactivo de guardado.
-  - [x] Mantener la ventana modal post-guardado de advertencia de reinicio del servidor intacta.
-
-- [x] **3. Tarjeta de Versión Flotante (`Sidebar.tsx` / Layout)**
-  - [x] Convertir la tarjeta de versión y release (`vX.Y.Z`, estado, fecha y enlace a GitHub) en un elemento **flotante fijo** posicionado siempre abajo a la izquierda (`fixed bottom-4 left-4 z-40 w-56` o `sticky bottom-4`).
-  - [x] Asegurar que no se oculte al scrollear la barra lateral ni se superponga con los elementos de navegación.
-  - [x] Mantener el diseño compacto y estilizado (`bg-zinc-950/80 backdrop-blur border border-zinc-800 shadow-xl rounded-lg p-2.5`).
-
-- [ ] **4. Investigación y Estrategia de Vista Mobile / Responsive**
+- [ ] **1. Investigación y Estrategia de Vista Mobile / Responsive**
   - [ ] **Arquitectura de Navegación Mobile:**
     - [ ] Evaluar Drawer / Menú lateral colapsable (Hamburger menu con backdrop) vs. Bottom Navigation Bar para dispositivos móviles.
     - [ ] Adaptabilidad de la barra de versión flotante en pantallas pequeñas.
@@ -40,10 +21,21 @@ Estandarizar la barra flotante de guardado (`Sticky Bottom Action Bar`) en todas
     - [ ] Tablas de Moderación y Logs con scroll horizontal o tarjetas expandibles estilo accordion para móviles.
     - [ ] Drag & Drop de Mods y Workshop adaptado a interacción touch (botones arriba/abajo como alternativa al drag).
 
-- [x] **5. Control de Calidad y Pruebas**
-  - [x] Ejecutar `pnpm run validate` (ESLint 0 warnings, TypeScript estricto, Vitest suite completa).
-  - [x] Reconstruir y levantar el contenedor con `docker compose up -d --build`.
-  - [x] Verificar visualmente el comportamiento responsivo en móviles (emulación Chrome DevTools 375px/414px) y pantallas grandes.
+---
+
+### ✅ Características Completadas (v1.0.7)
+
+- [x] **Estandarización de Sticky Bottom Action Bar (`ServerSettingsClient.tsx`, `SandboxManagerClient.tsx`, `ModManagerClient.tsx`)**
+  - [x] Barras flotantes fijas (`sticky bottom-4 z-20`) con fondo `zinc-900`, borde `zinc-700` y sombras `shadow-2xl`.
+  - [x] Leyendas informativas contextuales con icono `HelpCircle` indicando los archivos de destino (`ServerName.ini`, `ServerName_SandboxVars.lua`).
+  - [x] Feedback de estado interactivo (`state.message`) y spinner de guardado (`RefreshCw` en `isPending`).
+  - [x] Padding inferior optimizado (`pb-12`) en contenedores para evitar solapamiento con el scroll.
+- [x] **Tarjeta de Versión y Layout Pinned (`Sidebar.tsx`)**
+  - [x] Barra lateral anclada con `sticky top-0 h-screen shrink-0` y scroll independiente para navegación (`overflow-y-auto`).
+  - [x] Tarjeta flotante/fija al pie con acabado translúcido (`backdrop-blur`).
+- [x] **Pipeline de Calidad y Validación**
+  - [x] Validación completa (`pnpm run validate` con 0 errores de ESLint, TypeScript estricto y 54/54 tests en Vitest).
+  - [x] Compilación y verificación del contenedor Docker en producción (`docker compose up -d --build`).
 
 ---
 
