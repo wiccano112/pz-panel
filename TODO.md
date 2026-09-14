@@ -22,7 +22,12 @@ Estandarizar la barra flotante de guardado (`Sticky Bottom Action Bar`) en todas
   - [ ] Alinear a la derecha el estado del Server Action (`state.message`) y el botón `Save Configuration` con feedback interactivo de guardado.
   - [ ] Mantener la ventana modal post-guardado de advertencia de reinicio del servidor intacta.
 
-- [ ] **3. Control de Calidad y Pruebas**
+- [ ] **3. Tarjeta de Versión Flotante (`Sidebar.tsx` / Layout)**
+  - [ ] Convertir la tarjeta de versión y release (`vX.Y.Z`, estado, fecha y enlace a GitHub) en un elemento **flotante fijo** posicionado siempre abajo a la izquierda (`fixed bottom-4 left-4 z-40 w-56` o `sticky bottom-4`).
+  - [ ] Asegurar que no se oculte al scrollear la barra lateral ni se superponga con los elementos de navegación.
+  - [ ] Mantener el diseño compacto y estilizado (`bg-zinc-950/80 backdrop-blur border border-zinc-800 shadow-xl rounded-lg p-2.5`).
+
+- [ ] **4. Control de Calidad y Pruebas**
   - [ ] Ejecutar `pnpm run validate` (ESLint 0 warnings, TypeScript estricto, Vitest suite completa).
   - [ ] Reconstruir y levantar el contenedor con `docker compose up -d --build`.
   - [ ] Verificar visualmente el comportamiento responsivo en móviles y pantallas grandes.
