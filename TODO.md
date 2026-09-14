@@ -27,10 +27,23 @@ Estandarizar la barra flotante de guardado (`Sticky Bottom Action Bar`) en todas
   - [ ] Asegurar que no se oculte al scrollear la barra lateral ni se superponga con los elementos de navegación.
   - [ ] Mantener el diseño compacto y estilizado (`bg-zinc-950/80 backdrop-blur border border-zinc-800 shadow-xl rounded-lg p-2.5`).
 
-- [ ] **4. Control de Calidad y Pruebas**
+- [ ] **4. Investigación y Estrategia de Vista Mobile / Responsive**
+  - [ ] **Arquitectura de Navegación Mobile:**
+    - [ ] Evaluar Drawer / Menú lateral colapsable (Hamburger menu con backdrop) vs. Bottom Navigation Bar para dispositivos móviles.
+    - [ ] Adaptabilidad de la barra de versión flotante en pantallas pequeñas.
+  - [ ] **Evaluación de Frameworks de UI / Librerías de Componentes:**
+    - [ ] Analizar mantener el stack puro actual (**Tailwind CSS v4 + Lucide React**) optimizando breakpoints nativos (`sm:`, `md:`, `lg:`).
+    - [ ] Evaluar librerías headless / estilizadas complementarias compatibles con React 19 (ej. Radix UI / shadcn/ui primitives vs. MUI / Mantine).
+    - [ ] Considerar el impacto en el bundle size, performance del contenedor Docker y compatibilidad con Turbopack / Next.js 16.
+  - [ ] **Adaptabilidad de Vistas Complejas:**
+    - [ ] Grillas de Sandbox y Server Properties en una sola columna con espaciados táctiles cómodos (touch targets >= 44px).
+    - [ ] Tablas de Moderación y Logs con scroll horizontal o tarjetas expandibles estilo accordion para móviles.
+    - [ ] Drag & Drop de Mods y Workshop adaptado a interacción touch (botones arriba/abajo como alternativa al drag).
+
+- [ ] **5. Control de Calidad y Pruebas**
   - [ ] Ejecutar `pnpm run validate` (ESLint 0 warnings, TypeScript estricto, Vitest suite completa).
   - [ ] Reconstruir y levantar el contenedor con `docker compose up -d --build`.
-  - [ ] Verificar visualmente el comportamiento responsivo en móviles y pantallas grandes.
+  - [ ] Verificar visualmente el comportamiento responsivo en móviles (emulación Chrome DevTools 375px/414px) y pantallas grandes.
 
 ---
 
