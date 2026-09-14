@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import fs from 'fs/promises';
-import { readIniFile, saveIniFile, readServerProperties, saveServerProperties, getServerUptime } from '@/lib/serverUtils';
+import { readIniFile, saveIniFile, readServerProperties, saveServerProperties, getServerUptime, executeServerAction } from '@/lib/serverUtils';
 import { CORE_MAP_NAME } from '@/constants/game';
 import { invalidateCache } from '@/lib/cache';
+import { CONFIG } from '@/lib/config';
 
 const mockCustomPromisify = vi.fn();
 
@@ -124,6 +125,79 @@ PublicName=My PZ Server
 
       const uptime = await getServerUptime();
       expect(uptime).toContain('2h 30m');
+    });
+  });
+
+  describe('executeServerAction', () => {
+    it('should run docker start when container exists', async () => {
+      mockCustomPromisify.mockImplementation((cmd, args) => {
+        if (args[0] === 'inspect') return Promise.resolve({ stdout: '{}', stderr: '' });
+        if (args[0] === 'start') return Promise.resolve({ stdout: 'pz-server', stderr: '' });
+        return Promise.resolve({ stdout: '', stderr: '' });
+      });
+
+      const result = await executeServerAction('start');
+      expect(result.success).toBe(true);
+      expect(mockCustomPromisify).toHaveBeenCalledWith('docker', ['inspect', CONFIG.containerName]);
+      expect(mockCustomPromisify).toHaveBeenCalledWith('docker', ['start', CONFIG.containerName]);
+    });
+
+    it('should fallback to docker compose up -d when container does not exist but compose file is found', async () => {
+      mockCustomPromisify.mockImplementation((cmd, args) => {
+        if (args[0] === 'inspect') return Promise.reject(new Error('No such container'));
+        if (args[0] === 'compose') return Promise.resolve({ stdout: 'Started', stderr: '' });
+        return Promise.resolve({ stdout: '', stderr: '' });
+      });
+
+      vi.mocked(fs.stat).mockResolvedValue({} as never);
+
+      const result = await executeServerAction('start');
+      expect(result.success).toBe(true);
+      expect(mockCustomPromisify).toHaveBeenCalledWith('docker', [
+        'compose',
+        '--project-directory',
+        CONFIG.hostServerDir,
+        '-f',
+        expect.stringContaining('docker-compose.yml'),
+        'up',
+        '-d',
+      ]);
+    });
+
+    it('should return error if container does not exist and no compose file is found', async () => {
+      mockCustomPromisify.mockImplementation((cmd, args) => {
+        if (args[0] === 'inspect') return Promise.reject(new Error('No such container'));
+        return Promise.resolve({ stdout: '', stderr: '' });
+      });
+
+      vi.mocked(fs.stat).mockRejectedValue(new Error('ENOENT'));
+
+      const result = await executeServerAction('start');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('does not exist and no docker-compose file was found');
+    });
+
+    it('should gracefully handle stop when container is not present', async () => {
+      mockCustomPromisify.mockImplementation((cmd, args) => {
+        if (args[0] === 'inspect') return Promise.reject(new Error('No such container'));
+        return Promise.resolve({ stdout: '', stderr: '' });
+      });
+
+      const result = await executeServerAction('stop');
+      expect(result.success).toBe(true);
+      expect(result.message).toContain('already stopped');
+    });
+
+    it('should run docker restart when container is present', async () => {
+      mockCustomPromisify.mockImplementation((cmd, args) => {
+        if (args[0] === 'inspect') return Promise.resolve({ stdout: '{}', stderr: '' });
+        if (args[0] === 'restart') return Promise.resolve({ stdout: 'pz-server', stderr: '' });
+        return Promise.resolve({ stdout: '', stderr: '' });
+      });
+
+      const result = await executeServerAction('restart');
+      expect(result.success).toBe(true);
+      expect(mockCustomPromisify).toHaveBeenCalledWith('docker', ['restart', CONFIG.containerName]);
     });
   });
 });

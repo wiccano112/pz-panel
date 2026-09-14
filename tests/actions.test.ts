@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
+  handleServerAction,
   handleAddWhitelistAction,
   handleRemoveWhitelistAction,
   handleBanAction,
@@ -35,6 +36,38 @@ vi.mock('@/lib/spawnRegionUtils', () => ({
 describe('Server Actions - Validation & Execution Contracts', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe('handleServerAction', () => {
+    it('should reject missing or empty actionType', async () => {
+      const formData = new FormData();
+      const result = await handleServerAction(null, formData);
+      expect(result.success).toBe(false);
+      expect(result.message).toBe('Invalid action');
+    });
+
+    it('should delegate valid actionType to executeServerAction and return success', async () => {
+      vi.mocked(serverUtils.executeServerAction).mockResolvedValue({ success: true, message: 'Server started successfully' });
+
+      const formData = new FormData();
+      formData.append('actionType', 'start');
+
+      const result = await handleServerAction(null, formData);
+      expect(result.success).toBe(true);
+      expect(result.message).toContain('Successfully executed start');
+      expect(serverUtils.executeServerAction).toHaveBeenCalledWith('start');
+    });
+
+    it('should handle executeServerAction failure gracefully', async () => {
+      vi.mocked(serverUtils.executeServerAction).mockResolvedValue({ success: false, error: 'Container missing' });
+
+      const formData = new FormData();
+      formData.append('actionType', 'start');
+
+      const result = await handleServerAction(null, formData);
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('Failed to start: Container missing');
+    });
   });
 
   describe('handleAddWhitelistAction', () => {

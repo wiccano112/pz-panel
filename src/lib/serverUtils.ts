@@ -127,20 +127,80 @@ export async function getConnectedPlayers(): Promise<number> {
   }
 }
 
+async function findComposeFile(): Promise<string | null> {
+  const candidates = ['docker-compose.yml', 'docker-compose.yaml', 'compose.yml', 'compose.yaml'];
+  for (const candidate of candidates) {
+    const filePath = path.join(CONFIG.serverDir, candidate);
+    try {
+      await fs.stat(filePath);
+      return filePath;
+    } catch {
+      // Continue searching
+    }
+  }
+  return null;
+}
+
+async function isContainerPresent(containerName: string): Promise<boolean> {
+  try {
+    await execFileAsync('docker', ['inspect', containerName]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function executeServerAction(action: 'start' | 'stop' | 'restart') {
   try {
-    let command: string[] = [];
+    const exists = await isContainerPresent(CONFIG.containerName);
+    const composeFile = await findComposeFile();
+
     if (action === 'start') {
-      command = ['start', CONFIG.containerName];
+      if (exists) {
+        await execFileAsync('docker', ['start', CONFIG.containerName]);
+      } else if (composeFile) {
+        await execFileAsync('docker', [
+          'compose',
+          '--project-directory',
+          CONFIG.hostServerDir,
+          '-f',
+          composeFile,
+          'up',
+          '-d',
+        ]);
+      } else {
+        throw new Error(
+          `Container "${CONFIG.containerName}" does not exist and no docker-compose file was found in ${CONFIG.serverDir}`
+        );
+      }
     } else if (action === 'stop') {
-      command = ['stop', CONFIG.containerName];
+      if (exists) {
+        await execFileAsync('docker', ['stop', CONFIG.containerName]);
+      } else {
+        return { success: true, message: 'Server is already stopped (no active container)' };
+      }
     } else if (action === 'restart') {
-      command = ['restart', CONFIG.containerName];
+      if (exists) {
+        await execFileAsync('docker', ['restart', CONFIG.containerName]);
+      } else if (composeFile) {
+        await execFileAsync('docker', [
+          'compose',
+          '--project-directory',
+          CONFIG.hostServerDir,
+          '-f',
+          composeFile,
+          'up',
+          '-d',
+        ]);
+      } else {
+        throw new Error(
+          `Container "${CONFIG.containerName}" does not exist and no docker-compose file was found in ${CONFIG.serverDir}`
+        );
+      }
     } else {
       throw new Error('Invalid action');
     }
 
-    await execFileAsync('docker', command);
     invalidateCache();
     return { success: true, message: `Server ${action}ed successfully` };
   } catch (error) {
