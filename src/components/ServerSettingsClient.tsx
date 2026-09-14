@@ -349,10 +349,10 @@ export default function ServerSettingsClient({
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex border-b border-zinc-700 space-x-4">
+      <div className="flex overflow-x-auto border-b border-zinc-800 bg-zinc-900/60 rounded-t-lg px-4 gap-2">
         <button
           onClick={() => handleTabChange('properties')}
-          className={`flex items-center space-x-2 pb-3 px-2 text-sm font-semibold border-b-2 transition-colors cursor-pointer ${
+          className={`flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
             activeTab === 'properties'
               ? 'border-indigo-500 text-indigo-400'
               : 'border-transparent text-zinc-400 hover:text-zinc-200'
@@ -365,7 +365,7 @@ export default function ServerSettingsClient({
 
         <button
           onClick={() => handleTabChange('spawns')}
-          className={`flex items-center space-x-2 pb-3 px-2 text-sm font-semibold border-b-2 transition-colors cursor-pointer ${
+          className={`flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
             activeTab === 'spawns'
               ? 'border-indigo-500 text-indigo-400'
               : 'border-transparent text-zinc-400 hover:text-zinc-200'
@@ -374,7 +374,7 @@ export default function ServerSettingsClient({
         >
           <MapPin className="w-4 h-4" />
           <span>Spawn Regions (.lua)</span>
-          <span className="ml-1.5 px-2 py-0.5 text-xs bg-zinc-800 text-zinc-300 rounded-full border border-zinc-700">
+          <span className="px-1.5 py-0.2 text-[10px] bg-zinc-800 text-zinc-300 rounded-full border border-zinc-700">
             {spawnRegions.length}
           </span>
         </button>

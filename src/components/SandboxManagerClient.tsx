@@ -161,56 +161,56 @@ export default function SandboxManagerClient({ initialVars }: SandboxManagerClie
         </div>
       )}
 
-      {/* Main Settings Panel */}
-      <div className="bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl overflow-hidden">
-        {/* Header with Search */}
-        <div className="p-6 border-b border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-xl font-bold text-white flex items-center space-x-2">
-              <Sliders className="w-6 h-6 text-indigo-400" />
-              <span>Sandbox World Settings</span>
-            </h3>
-            <p className="text-xs text-zinc-400 mt-1">
-              Configure game difficulty, zombie lore, loot abundance, climate, and vehicle mechanics.
-            </p>
-          </div>
-
-          <div className="relative w-full md:w-72">
-            <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search sandbox options..."
-              className="w-full pl-9 pr-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-sm text-zinc-100 placeholder-zinc-400 focus:outline-none focus:border-indigo-500 transition-colors"
-            />
-          </div>
+      {/* Header Card */}
+      <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-xl font-bold text-white flex items-center space-x-2">
+            <Sliders className="w-6 h-6 text-indigo-400" />
+            <span>Sandbox World Settings</span>
+          </h3>
+          <p className="text-xs text-zinc-400 mt-1">
+            Configure game difficulty, zombie lore, loot abundance, climate, and vehicle mechanics.
+          </p>
         </div>
 
-        {/* Category Tabs */}
-        {!searchQuery.trim() && (
-          <div className="flex overflow-x-auto border-b border-zinc-800 bg-zinc-950/40 scrollbar-thin">
-            {SANDBOX_CATEGORIES.map((cat) => {
-              const Icon = CATEGORY_ICONS[cat.id] || Sliders;
-              const isActive = activeCategory === cat.id;
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => handleCategoryChange(cat.id)}
-                  className={`flex items-center space-x-2 px-5 py-3.5 text-sm font-medium border-b-2 whitespace-nowrap transition-colors cursor-pointer ${
-                    isActive
-                      ? 'border-indigo-500 text-indigo-400 bg-zinc-800/50'
-                      : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/30'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{cat.name}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
+        <div className="relative w-full md:w-72">
+          <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search sandbox options..."
+            className="w-full pl-9 pr-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded-md text-xs text-zinc-100 placeholder-zinc-400 focus:outline-none focus:border-indigo-500 transition-colors"
+          />
+        </div>
+      </div>
 
+      {/* Category Tabs */}
+      {!searchQuery.trim() && (
+        <div className="flex overflow-x-auto border-b border-zinc-800 bg-zinc-900/60 rounded-t-lg px-4 gap-2">
+          {SANDBOX_CATEGORIES.map((cat) => {
+            const Icon = CATEGORY_ICONS[cat.id] || Sliders;
+            const isActive = activeCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => handleCategoryChange(cat.id)}
+                className={`flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors cursor-pointer ${
+                  isActive
+                    ? 'border-indigo-500 text-indigo-400'
+                    : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                <span>{cat.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Main Content Card */}
+      <div className={`bg-zinc-900 border border-zinc-700 shadow-xl overflow-hidden ${!searchQuery.trim() ? 'rounded-b-lg' : 'rounded-lg'}`}>
         {/* Category Fields Content */}
         <div className="p-6">
           {searchQuery.trim() ? (
