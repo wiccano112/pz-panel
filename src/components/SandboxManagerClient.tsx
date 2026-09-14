@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useActionState, useMemo } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { handleSaveSandboxAction } from '@/app/actions';
 import { SANDBOX_CATEGORIES } from '@/constants/sandbox';
 import { SandboxVarsData } from '@/types/sandbox';
@@ -35,11 +36,26 @@ const CATEGORY_ICONS: Record<string, typeof Skull> = {
   mods: Sliders,
 };
 
+const VALID_SANDBOX_CATEGORIES = SANDBOX_CATEGORIES.map((c) => c.id);
+
 export default function SandboxManagerClient({ initialVars }: SandboxManagerClientProps) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const tabParam = searchParams.get('tab') || searchParams.get('category');
+  const activeCategory = tabParam && VALID_SANDBOX_CATEGORIES.includes(tabParam) ? tabParam : 'zombies';
+
   const [vars, setVars] = useState<SandboxVarsData>(initialVars);
-  const [activeCategory, setActiveCategory] = useState<string>('zombies');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [dismissedState, setDismissedState] = useState<unknown>(null);
+
+  const handleCategoryChange = (catId: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', catId);
+    params.delete('category');
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
 
   const [state, formAction, isPending] = useActionState(handleSaveSandboxAction, null);
 
@@ -180,7 +196,7 @@ export default function SandboxManagerClient({ initialVars }: SandboxManagerClie
               return (
                 <button
                   key={cat.id}
-                  onClick={() => setActiveCategory(cat.id)}
+                  onClick={() => handleCategoryChange(cat.id)}
                   className={`flex items-center space-x-2 px-5 py-3.5 text-sm font-medium border-b-2 whitespace-nowrap transition-colors cursor-pointer ${
                     isActive
                       ? 'border-indigo-500 text-indigo-400 bg-zinc-800/50'

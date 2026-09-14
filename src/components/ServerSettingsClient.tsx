@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useActionState, useMemo } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useFormStatus } from 'react-dom';
 import {
   Sliders,
@@ -80,13 +81,28 @@ function RestartButton() {
   );
 }
 
+const VALID_SETTINGS_TABS = ['properties', 'spawns'] as const;
+type SettingsTab = typeof VALID_SETTINGS_TABS[number];
+
 export default function ServerSettingsClient({
   initialProperties,
   initialSpawnRegions,
 }: ServerSettingsClientProps) {
-  const [activeTab, setActiveTab] = useState<'properties' | 'spawns'>('properties');
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const tabParam = searchParams.get('tab') as SettingsTab | null;
+  const activeTab: SettingsTab = tabParam && VALID_SETTINGS_TABS.includes(tabParam) ? tabParam : 'properties';
+
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('all');
+
+  const handleTabChange = (tab: SettingsTab) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', tab);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
 
   // Form states for Properties
   const [properties, setProperties] = useState<Record<string, string | number | boolean>>(() => {
@@ -335,7 +351,7 @@ export default function ServerSettingsClient({
       {/* Navigation Tabs */}
       <div className="flex border-b border-zinc-700 space-x-4">
         <button
-          onClick={() => setActiveTab('properties')}
+          onClick={() => handleTabChange('properties')}
           className={`flex items-center space-x-2 pb-3 px-2 text-sm font-semibold border-b-2 transition-colors cursor-pointer ${
             activeTab === 'properties'
               ? 'border-indigo-500 text-indigo-400'
@@ -348,7 +364,7 @@ export default function ServerSettingsClient({
         </button>
 
         <button
-          onClick={() => setActiveTab('spawns')}
+          onClick={() => handleTabChange('spawns')}
           className={`flex items-center space-x-2 pb-3 px-2 text-sm font-semibold border-b-2 transition-colors cursor-pointer ${
             activeTab === 'spawns'
               ? 'border-indigo-500 text-indigo-400'

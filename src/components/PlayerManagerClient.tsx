@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useActionState } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import useSWR from 'swr';
 import {
   Users,
@@ -33,6 +34,9 @@ export interface PlayerManagerClientProps {
   initialData: PlayersOverviewData;
 }
 
+const VALID_TABS = ['live', 'history', 'whitelist', 'bans', 'broadcast'] as const;
+type PlayerTab = typeof VALID_TABS[number];
+
 const fetcher = async (url: string): Promise<PlayersOverviewData> => {
   const res = await fetch(url);
   if (!res.ok) throw new Error('Failed to fetch player data');
@@ -40,9 +44,21 @@ const fetcher = async (url: string): Promise<PlayersOverviewData> => {
 };
 
 export default function PlayerManagerClient({ initialData }: PlayerManagerClientProps) {
-  const [activeTab, setActiveTab] = useState<'live' | 'history' | 'whitelist' | 'bans' | 'broadcast'>('live');
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const tabParam = searchParams.get('tab') as PlayerTab | null;
+  const activeTab: PlayerTab = tabParam && VALID_TABS.includes(tabParam) ? tabParam : 'live';
+
   const [historySearch, setHistorySearch] = useState('');
   const [historyFilter, setHistoryFilter] = useState<'ALL' | 'CONNECTED' | 'DISCONNECTED'>('ALL');
+
+  const handleTabChange = (tab: PlayerTab) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', tab);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
 
   // Real-time polling via SWR
   const { data, mutate, isValidating } = useSWR<PlayersOverviewData>(
@@ -110,7 +126,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
       {/* Tabs Bar */}
       <div className="flex overflow-x-auto border-b border-zinc-800 bg-zinc-900/60 rounded-t-lg px-4 gap-2">
         <button
-          onClick={() => setActiveTab('live')}
+          onClick={() => handleTabChange('live')}
           className={`flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
             activeTab === 'live'
               ? 'border-indigo-500 text-indigo-400'
@@ -126,7 +142,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
         </button>
 
         <button
-          onClick={() => setActiveTab('history')}
+          onClick={() => handleTabChange('history')}
           className={`flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
             activeTab === 'history'
               ? 'border-indigo-500 text-indigo-400'
@@ -142,7 +158,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
         </button>
 
         <button
-          onClick={() => setActiveTab('whitelist')}
+          onClick={() => handleTabChange('whitelist')}
           className={`flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
             activeTab === 'whitelist'
               ? 'border-indigo-500 text-indigo-400'
@@ -158,7 +174,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
         </button>
 
         <button
-          onClick={() => setActiveTab('bans')}
+          onClick={() => handleTabChange('bans')}
           className={`flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
             activeTab === 'bans'
               ? 'border-indigo-500 text-indigo-400'
@@ -174,7 +190,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
         </button>
 
         <button
-          onClick={() => setActiveTab('broadcast')}
+          onClick={() => handleTabChange('broadcast')}
           className={`flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
             activeTab === 'broadcast'
               ? 'border-indigo-500 text-indigo-400'
