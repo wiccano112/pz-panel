@@ -141,3 +141,48 @@ Los iconos de las pestañas deben incorporar un color temático y semántico aco
 | **Sandbox: Advanced** | `Wrench` | `text-purple-400` | Ajustes técnicos / Mecánicas |
 | **Sandbox: Mods** | `Sliders` | `text-teal-400` | Opciones de extensiones y mods |
 
+---
+
+## 6. Barra Flotante Inferior de Guardado (Sticky Bottom Action Bar)
+
+Para formularios largos o paneles de configuración con múltiples parámetros (como *Server Properties*, *Sandbox World Settings* o *Mods & Workshop*), el botón de guardado debe implementarse como una barra flotante fija al inferior de la vista con leyenda informativa:
+
+```tsx
+<div className="sticky bottom-4 bg-zinc-900 border border-zinc-700 rounded-lg p-4 shadow-2xl flex items-center justify-between z-20">
+  {/* Leyenda izquierda con archivo de destino */}
+  <div className="flex items-center space-x-2">
+    <HelpCircle className="w-4 h-4 text-zinc-400 shrink-0" />
+    <span className="text-xs text-zinc-400">
+      Saving updates the <code className="text-zinc-300 font-mono font-semibold">ServerName.ini</code> configuration directly.
+    </span>
+  </div>
+
+  {/* Estado de guardado y botón de acción */}
+  <div className="flex items-center space-x-4">
+    {state?.message && (
+      <span className={`text-xs font-medium ${state.error ? 'text-rose-400' : 'text-emerald-400'}`}>
+        {state.message}
+      </span>
+    )}
+    <button
+      type="submit"
+      disabled={isPending}
+      className="inline-flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-medium rounded-md shadow-sm transition-colors cursor-pointer"
+    >
+      {isPending ? (
+        <>
+          <RefreshCw className="w-4 h-4 animate-spin" />
+          <span>Saving...</span>
+        </>
+      ) : (
+        <>
+          <Save className="w-4 h-4" />
+          <span>Save Configuration</span>
+        </>
+      )}
+    </button>
+  </div>
+</div>
+```
+
+
