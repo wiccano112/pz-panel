@@ -14,6 +14,7 @@ import {
   GripVertical,
   ChevronUp,
   ChevronDown,
+  HelpCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 import ModCatalog from '@/components/ModCatalog';
@@ -141,7 +142,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       
       {/* Restart Required Modal */}
       {showRestartModal && (
@@ -484,29 +485,51 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
         </div>
       </div>
 
-      {/* Save Button & Status */}
-      <div className="bg-zinc-900 p-4 shadow rounded-lg border border-zinc-700 flex items-center justify-between">
-        <form action={formAction}>
-          <input type="hidden" name="workshopItems" value={JSON.stringify(workshopItems)} />
-          <input type="hidden" name="mods" value={JSON.stringify(mods)} />
-          <input type="hidden" name="maps" value={JSON.stringify(maps)} />
-          
-          <button
-            type="submit"
-            disabled={isPending}
-            className="flex items-center space-x-2 px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-500 transition-colors disabled:opacity-50 cursor-pointer font-medium"
-          >
-            <Save className="w-5 h-5" />
-            <span>{isPending ? 'Saving...' : 'Save Configuration'}</span>
-          </button>
-        </form>
+      {/* Sticky Bottom Bar */}
+      <form action={formAction}>
+        <input type="hidden" name="workshopItems" value={JSON.stringify(workshopItems)} />
+        <input type="hidden" name="mods" value={JSON.stringify(mods)} />
+        <input type="hidden" name="maps" value={JSON.stringify(maps)} />
 
-        {state?.message && (
-          <span className={`text-sm font-medium ${state.error ? 'text-red-400' : 'text-green-400'}`}>
-            {state.message}
-          </span>
-        )}
-      </div>
+        <div className="sticky bottom-4 bg-zinc-900 border border-zinc-700 rounded-lg p-4 shadow-2xl flex items-center justify-between z-20">
+          <div className="flex items-center space-x-2">
+            <HelpCircle className="w-4 h-4 text-zinc-400 shrink-0" />
+            <span className="text-xs text-zinc-400">
+              Saving writes directly to <code className="text-zinc-300 font-mono font-semibold">ServerName.ini</code> (Mods, WorkshopItems, and Map order).
+            </span>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            {state?.message && (
+              <span
+                className={`text-xs font-medium ${
+                  state.error ? 'text-rose-400' : 'text-emerald-400'
+                }`}
+              >
+                {state.message}
+              </span>
+            )}
+            <button
+              type="submit"
+              disabled={isPending}
+              className="inline-flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-medium rounded-md shadow-sm transition-colors cursor-pointer"
+              aria-label="Save Configuration"
+            >
+              {isPending ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>Save Configuration</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </form>
 
     </div>
   );

@@ -4,9 +4,9 @@ import { Calendar, ExternalLink } from 'lucide-react';
 
 export default function Sidebar() {
   return (
-    <aside className="w-64 bg-zinc-900 text-white p-4 flex flex-col border-r border-zinc-800 min-h-screen">
+    <aside className="w-64 bg-zinc-900 text-white p-4 flex flex-col border-r border-zinc-800 h-screen sticky top-0 shrink-0 select-none">
       {/* Header */}
-      <div className="mb-6 px-1 flex items-center justify-between">
+      <div className="mb-6 px-1 flex items-center justify-between shrink-0">
         <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
           <span>PZ-Panel</span>
         </h1>
@@ -16,13 +16,13 @@ export default function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <div className="flex-1">
+      <div className="flex-1 overflow-y-auto pr-1">
         <NavLinks />
       </div>
 
       {/* Footer / Version Watermark */}
-      <div className="mt-auto pt-4 border-t border-zinc-800/80 text-xs">
-        <div className="p-2.5 rounded-lg bg-zinc-950/60 border border-zinc-800/60 space-y-1.5">
+      <div className="mt-auto pt-3 border-t border-zinc-800/80 text-xs shrink-0">
+        <div className="p-2.5 rounded-lg bg-zinc-950/80 backdrop-blur border border-zinc-800 shadow-xl space-y-1.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 font-mono text-[11px] font-semibold text-zinc-200">
               <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>

@@ -19,6 +19,7 @@ import {
   Search,
   Sliders,
   Wrench,
+  HelpCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -107,7 +108,7 @@ export default function SandboxManagerClient({ initialVars }: SandboxManagerClie
   const currentCategory = filteredCategories.find((c) => c.id === activeCategory) || filteredCategories[0];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Restart Required Modal */}
       {showRestartModal && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-200">
@@ -119,19 +120,19 @@ export default function SandboxManagerClient({ initialVars }: SandboxManagerClie
                 </div>
                 <div>
                   <h4 className="text-lg font-bold text-white">Sandbox Settings Saved</h4>
-                  <p className="text-xs text-zinc-400">Sandbox configuration was successfully updated</p>
+                  <p className="text-xs text-zinc-400">World variables have been updated successfully</p>
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setDismissedState(state)}
-                className="text-zinc-400 hover:text-zinc-200 transition-colors p-1 cursor-pointer"
-                aria-label="Close modal"
+                className="text-zinc-400 hover:text-white p-1 rounded-md transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-4 bg-amber-950/40 border border-amber-800/60 rounded-md text-amber-200 text-sm space-y-2">
+            <div className="bg-amber-950/30 border border-amber-800/50 rounded-lg p-4 space-y-2">
               <div className="flex items-center space-x-2 font-semibold text-amber-300">
                 <RefreshCw className="w-4 h-4 text-amber-400" />
                 <span>Server Restart Required</span>
@@ -246,28 +247,50 @@ export default function SandboxManagerClient({ initialVars }: SandboxManagerClie
             </div>
           ) : null}
         </div>
+      </div>
 
-        {/* Footer Actions */}
-        <div className="p-4 bg-zinc-950/60 border-t border-zinc-800 flex items-center justify-between">
-          <form action={formAction} className="flex items-center space-x-4">
-            <input type="hidden" name="sandboxVars" value={JSON.stringify(vars)} />
+      {/* Sticky Bottom Bar */}
+      <form action={formAction}>
+        <input type="hidden" name="sandboxVars" value={JSON.stringify(vars)} />
+        <div className="sticky bottom-4 bg-zinc-900 border border-zinc-700 rounded-lg p-4 shadow-2xl flex items-center justify-between z-20">
+          <div className="flex items-center space-x-2">
+            <HelpCircle className="w-4 h-4 text-zinc-400 shrink-0" />
+            <span className="text-xs text-zinc-400">
+              Saving updates the <code className="text-zinc-300 font-mono font-semibold">ServerName_SandboxVars.lua</code> configuration directly.
+            </span>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            {state?.message && (
+              <span
+                className={`text-xs font-medium ${
+                  state.error ? 'text-rose-400' : 'text-emerald-400'
+                }`}
+              >
+                {state.message}
+              </span>
+            )}
             <button
               type="submit"
               disabled={isPending}
-              className="flex items-center space-x-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md font-medium transition-colors disabled:opacity-50 cursor-pointer"
+              className="inline-flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-medium rounded-md shadow-sm transition-colors cursor-pointer"
+              aria-label="Save Sandbox Configuration"
             >
-              <Save className="w-4 h-4" />
-              <span>{isPending ? 'Saving...' : 'Save Sandbox Configuration'}</span>
+              {isPending ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>Save Sandbox Configuration</span>
+                </>
+              )}
             </button>
-          </form>
-
-          {state?.message && (
-            <span className={`text-sm font-medium ${state.error ? 'text-red-400' : 'text-green-400'}`}>
-              {state.message}
-            </span>
-          )}
+          </div>
         </div>
-      </div>
+      </form>
     </div>
   );
 
