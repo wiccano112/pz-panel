@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useActionState, useMemo } from 'react';
+import { useState, useActionState, useMemo, useEffect } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useFormStatus } from 'react-dom';
 import {
@@ -11,6 +11,7 @@ import {
   RotateCcw,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   Plus,
   Trash2,
   X,
@@ -21,6 +22,7 @@ import {
 import {
   SpawnRegionItem,
 } from '@/types/serverSettings';
+import { useUnsavedChanges } from '@/context/UnsavedChangesContext';
 
 import {
   SERVER_PROPERTIES_SCHEMA,
@@ -97,12 +99,7 @@ export default function ServerSettingsClient({
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('all');
-
-  const handleTabChange = (tab: SettingsTab) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('tab', tab);
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-  };
+  const { isDirty, setIsDirty, confirmNavigation } = useUnsavedChanges();
 
   // Form states for Properties
   const [properties, setProperties] = useState<Record<string, string | number | boolean>>(() => {
@@ -132,8 +129,37 @@ export default function ServerSettingsClient({
     return initial;
   });
 
+  const [initialPropsJson] = useState(() => {
+    const initial: Record<string, string | number | boolean> = {};
+    for (const meta of SERVER_PROPERTIES_SCHEMA) {
+      const rawVal = initialProperties[meta.key];
+      if (rawVal !== undefined) {
+        if (meta.type === 'boolean') {
+          initial[meta.key] = rawVal.toLowerCase() === 'true';
+        } else if (meta.type === 'number') {
+          const num = Number(rawVal);
+          initial[meta.key] = isNaN(num) ? meta.defaultValue : num;
+        } else if (meta.type === 'select') {
+          if (typeof meta.defaultValue === 'number') {
+            const num = Number(rawVal);
+            initial[meta.key] = isNaN(num) ? meta.defaultValue : num;
+          } else {
+            initial[meta.key] = rawVal;
+          }
+        } else {
+          initial[meta.key] = rawVal;
+        }
+      } else {
+        initial[meta.key] = meta.defaultValue;
+      }
+    }
+    return JSON.stringify(initial);
+  });
+
   // Form states for Spawn Regions
   const [spawnRegions, setSpawnRegions] = useState<SpawnRegionItem[]>(initialSpawnRegions);
+  const [initialSpawnsJson] = useState(() => JSON.stringify(initialSpawnRegions));
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newRegionName, setNewRegionName] = useState('');
   const [newRegionFile, setNewRegionFile] = useState('');
@@ -146,6 +172,35 @@ export default function ServerSettingsClient({
 
   const [dismissedPropState, setDismissedPropState] = useState<unknown>(null);
   const [dismissedSpawnState, setDismissedSpawnState] = useState<unknown>(null);
+
+  // Sync isDirty state
+  useEffect(() => {
+    const isPropsDirty = JSON.stringify(properties) !== initialPropsJson;
+    const isSpawnsDirty = JSON.stringify(spawnRegions) !== initialSpawnsJson;
+    setIsDirty(isPropsDirty || isSpawnsDirty);
+  }, [properties, spawnRegions, initialPropsJson, initialSpawnsJson, setIsDirty]);
+
+  // Clear dirty flag when successfully saved
+  useEffect(() => {
+    if (propState?.success || spawnState?.success) {
+      setIsDirty(false);
+    }
+  }, [propState, spawnState, setIsDirty]);
+
+  const handleTabChange = (tab: SettingsTab) => {
+    if (tab === activeTab) return;
+    const navigate = () => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('tab', tab);
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    };
+
+    if (isDirty) {
+      confirmNavigation(navigate);
+    } else {
+      navigate();
+    }
+  };
 
   const showPropRestartModal = Boolean(
     propState && propState.success && dismissedPropState !== propState
@@ -380,6 +435,18 @@ export default function ServerSettingsClient({
         </button>
       </div>
 
+      {/* Unsaved Changes Alert Banner */}
+      {isDirty && (
+        <div className="bg-amber-950/40 border border-amber-500/50 text-amber-200 px-4 py-3 rounded-lg flex items-center justify-between text-sm shadow-md animate-in fade-in duration-200">
+          <div className="flex items-center space-x-2.5">
+            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
+            <span>
+              Tienes cambios pendientes sin guardar. Recuerda pulsar <strong>Save Server Properties</strong> o <strong>Save Spawn Regions</strong> al pie antes de cambiar de pantalla.
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* TAB 1: SERVER PROPERTIES */}
       {activeTab === 'properties' && (
         <form action={propAction} className="space-y-6">
@@ -520,6 +587,8 @@ export default function ServerSettingsClient({
                         </label>
                       ) : meta.type === 'select' && meta.options ? (
                         <select
+                          data-property-key={meta.key}
+                          aria-label={meta.label}
                           value={typeof currentVal === 'number' ? currentVal : String(currentVal)}
                           onChange={(e) => {
                             const targetOption = meta.options?.find((opt) => String(opt.value) === e.target.value);
@@ -538,6 +607,8 @@ export default function ServerSettingsClient({
                         <div className="flex items-center space-x-2">
                           <input
                             type="number"
+                            data-property-key={meta.key}
+                            aria-label={meta.label}
                             min={meta.min}
                             max={meta.max}
                             step={meta.key.includes('Modifier') ? '0.1' : '1'}
@@ -554,6 +625,8 @@ export default function ServerSettingsClient({
                       ) : (
                         <input
                           type="text"
+                          data-property-key={meta.key}
+                          aria-label={meta.label}
                           value={String(currentVal)}
                           onChange={(e) => handlePropertyChange(meta.key, e.target.value)}
                           className="w-full px-3 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-zinc-800 border border-zinc-700 rounded text-base sm:text-xs text-white focus:outline-none focus:border-indigo-500 font-mono"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useActionState } from 'react';
+import { useState, useActionState, useEffect } from 'react';
 import { handleSaveIniAction } from '@/app/actions';
 import {
   Trash2,
@@ -10,6 +10,7 @@ import {
   RefreshCw,
   X,
   CheckCircle2,
+  AlertTriangle,
   ArrowRight,
   GripVertical,
   ChevronUp,
@@ -19,6 +20,7 @@ import {
 import Link from 'next/link';
 import ModCatalog from '@/components/ModCatalog';
 import { CORE_MAP_NAME } from '@/constants/game';
+import { useUnsavedChanges } from '@/context/UnsavedChangesContext';
 
 export interface InitialData {
   workshopItems: string[];
@@ -34,13 +36,28 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
   const [workshopItems, setWorkshopItems] = useState(initialData.workshopItems);
   const [mods, setMods] = useState(initialData.mods);
   const [maps, setMaps] = useState(initialData.maps);
+  const [initialDataJson] = useState(() => JSON.stringify(initialData));
   const [dismissedState, setDismissedState] = useState<unknown>(null);
+  const { isDirty, setIsDirty } = useUnsavedChanges();
 
   // Drag & Drop State
   const [draggedItem, setDraggedItem] = useState<{ type: 'workshop' | 'mod' | 'map'; index: number } | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<{ type: 'workshop' | 'mod' | 'map'; index: number } | null>(null);
 
   const [state, formAction, isPending] = useActionState(handleSaveIniAction, null);
+
+  // Sync isDirty
+  useEffect(() => {
+    const currentData = { workshopItems, mods, maps };
+    setIsDirty(JSON.stringify(currentData) !== initialDataJson);
+  }, [workshopItems, mods, maps, initialDataJson, setIsDirty]);
+
+  // Clear isDirty on save
+  useEffect(() => {
+    if (state && !state.error) {
+      setIsDirty(false);
+    }
+  }, [state, setIsDirty]);
 
   const showRestartModal = Boolean(state && !state.error && dismissedState !== state);
 
@@ -193,6 +210,18 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unsaved Changes Alert Banner */}
+      {isDirty && (
+        <div className="bg-amber-950/40 border border-amber-500/50 text-amber-200 px-4 py-3 rounded-lg flex items-center justify-between text-sm shadow-md animate-in fade-in duration-200">
+          <div className="flex items-center space-x-2.5">
+            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
+            <span>
+              Tienes cambios pendientes sin guardar en la lista de mods. Recuerda pulsar <strong>Save Configuration</strong> al pie antes de cambiar de pantalla.
+            </span>
           </div>
         </div>
       )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useActionState, useMemo } from 'react';
+import { useState, useActionState, useMemo, useEffect } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { handleSaveSandboxAction } from '@/app/actions';
 import { SANDBOX_CATEGORIES } from '@/constants/sandbox';
@@ -13,6 +13,7 @@ import {
   UserCheck,
   Save,
   CheckCircle2,
+  AlertTriangle,
   RefreshCw,
   X,
   ArrowRight,
@@ -21,6 +22,7 @@ import {
   Wrench,
   HelpCircle,
 } from 'lucide-react';
+import { useUnsavedChanges } from '@/context/UnsavedChangesContext';
 import Link from 'next/link';
 
 export interface SandboxManagerClientProps {
@@ -48,8 +50,23 @@ export default function SandboxManagerClient({ initialVars }: SandboxManagerClie
   const activeCategory = tabParam && VALID_SANDBOX_CATEGORIES.includes(tabParam) ? tabParam : 'zombies';
 
   const [vars, setVars] = useState<SandboxVarsData>(initialVars);
+  const [initialVarsJson] = useState(() => JSON.stringify(initialVars));
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [dismissedState, setDismissedState] = useState<unknown>(null);
+  const { isDirty, setIsDirty } = useUnsavedChanges();
+  const [state, formAction, isPending] = useActionState(handleSaveSandboxAction, null);
+
+  // Sync isDirty state
+  useEffect(() => {
+    setIsDirty(JSON.stringify(vars) !== initialVarsJson);
+  }, [vars, initialVarsJson, setIsDirty]);
+
+  // Clear isDirty on save
+  useEffect(() => {
+    if (state && !state.error) {
+      setIsDirty(false);
+    }
+  }, [state, setIsDirty]);
 
   const handleCategoryChange = (catId: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -57,8 +74,6 @@ export default function SandboxManagerClient({ initialVars }: SandboxManagerClie
     params.delete('category');
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
-
-  const [state, formAction, isPending] = useActionState(handleSaveSandboxAction, null);
 
   const showRestartModal = Boolean(state && !state.error && dismissedState !== state);
 
@@ -185,6 +200,18 @@ export default function SandboxManagerClient({ initialVars }: SandboxManagerClie
           />
         </div>
       </div>
+
+      {/* Unsaved Changes Alert Banner */}
+      {isDirty && (
+        <div className="bg-amber-950/40 border border-amber-500/50 text-amber-200 px-4 py-3 rounded-lg flex items-center justify-between text-sm shadow-md animate-in fade-in duration-200">
+          <div className="flex items-center space-x-2.5">
+            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
+            <span>
+              Tienes cambios pendientes sin guardar. Recuerda pulsar <strong>Save Sandbox Configuration</strong> al pie antes de cambiar de pantalla.
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Category Tabs & Mobile Selector */}
       {!searchQuery.trim() && (

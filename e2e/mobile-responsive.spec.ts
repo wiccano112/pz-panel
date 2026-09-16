@@ -88,10 +88,43 @@ test.describe('Mobile Responsive Layout Tests', () => {
       const mobileHeader = page.locator('header.md\\:hidden');
       const desktopSidebar = page.locator('aside.md\\:flex');
 
-      // Given a desktop viewport, the mobile header should be hidden or not visible
-      // Note: md:hidden usually hides it via display: none on min-width 768px
       await expect(mobileHeader).toBeHidden();
       await expect(desktopSidebar).toBeVisible();
+    });
+
+    test('should show unsaved changes alert and modal when editing settings and clicking a nav link', async ({ page }) => {
+      await page.goto('/settings');
+
+      // Edit an input in server settings
+      const textInput = page.locator('input[data-property-key="PublicName"]');
+      await textInput.fill('Changed Server Value');
+
+      // Check that the alert banner is visible
+      const alertBanner = page.getByText('Tienes cambios pendientes sin guardar');
+      await expect(alertBanner).toBeVisible();
+
+      // Click on another nav link (e.g. Dashboard)
+      const dashboardLink = page.getByRole('link', { name: 'Dashboard' });
+      await dashboardLink.click();
+
+      // Confirmation modal should appear
+      const modal = page.getByText('Cambios sin guardar');
+      await expect(modal).toBeVisible();
+      await expect(page).toHaveURL(/.*\/settings/); // Should still be on /settings
+
+      // Click "Quedarme y guardar"
+      const stayButton = page.getByRole('button', { name: 'Quedarme y guardar' });
+      await stayButton.click();
+      await expect(modal).toBeHidden();
+      await expect(page).toHaveURL(/.*\/settings/);
+
+      // Now try to leave again and click "Descartar cambios y salir"
+      await dashboardLink.click();
+      await expect(modal).toBeVisible();
+
+      const discardButton = page.getByRole('button', { name: 'Descartar cambios y salir' });
+      await discardButton.click();
+      await expect(page).toHaveURL(/.*\//); // Successfully navigated to Dashboard
     });
   });
 });
