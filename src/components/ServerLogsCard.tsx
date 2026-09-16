@@ -143,12 +143,12 @@ export default function ServerLogsCard() {
   ];
 
   return (
-    <div className="bg-zinc-900 p-6 shadow rounded-lg border border-zinc-700 space-y-4">
+    <div className="bg-zinc-900 p-4 sm:p-6 shadow rounded-lg border border-zinc-700 space-y-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center space-x-3">
           <Terminal className="w-5 h-5 text-indigo-400" />
-          <h3 className="text-lg font-semibold text-white">Live Server Logs (tail -f)</h3>
+          <h3 className="text-base sm:text-lg font-semibold text-white">Live Server Logs (tail -f)</h3>
           
           {/* Status badge */}
           <span className="flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border bg-zinc-800 border-zinc-700">
@@ -168,11 +168,11 @@ export default function ServerLogsCard() {
         </div>
 
         {/* Action buttons */}
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Pause / Resume */}
           <button
             onClick={() => setIsPaused((prev) => !prev)}
-            className={`flex items-center space-x-1 px-2.5 py-1 text-xs rounded border transition-colors cursor-pointer ${
+            className={`flex items-center space-x-1 px-3 py-2 sm:py-1 min-h-[36px] sm:min-h-0 text-xs rounded border transition-colors cursor-pointer ${
               isPaused
                 ? 'bg-emerald-950/50 text-emerald-300 border-emerald-800 hover:bg-emerald-900/50'
                 : 'bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700'
@@ -186,7 +186,7 @@ export default function ServerLogsCard() {
           {/* Auto-scroll toggle */}
           <button
             onClick={() => setAutoScroll((prev) => !prev)}
-            className={`flex items-center space-x-1 px-2.5 py-1 text-xs rounded border transition-colors cursor-pointer ${
+            className={`flex items-center space-x-1 px-3 py-2 sm:py-1 min-h-[36px] sm:min-h-0 text-xs rounded border transition-colors cursor-pointer ${
               autoScroll
                 ? 'bg-indigo-950/50 text-indigo-300 border-indigo-800 hover:bg-indigo-900/50'
                 : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:bg-zinc-700'
@@ -201,7 +201,7 @@ export default function ServerLogsCard() {
           <button
             onClick={handleCopyLogs}
             disabled={filteredLogs.length === 0}
-            className="flex items-center space-x-1 px-2.5 py-1 text-xs bg-zinc-800 text-zinc-300 hover:bg-zinc-700 border border-zinc-700 rounded transition-colors disabled:opacity-40 cursor-pointer"
+            className="flex items-center space-x-1 px-3 py-2 sm:py-1 min-h-[36px] sm:min-h-0 text-xs bg-zinc-800 text-zinc-300 hover:bg-zinc-700 border border-zinc-700 rounded transition-colors disabled:opacity-40 cursor-pointer"
             title="Copy filtered logs"
           >
             {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -212,7 +212,7 @@ export default function ServerLogsCard() {
           <button
             onClick={handleClearLogs}
             disabled={logs.length === 0}
-            className="flex items-center space-x-1 px-2.5 py-1 text-xs bg-zinc-800 text-zinc-300 hover:text-rose-300 hover:bg-zinc-700 border border-zinc-700 rounded transition-colors disabled:opacity-40 cursor-pointer"
+            className="flex items-center space-x-1 px-3 py-2 sm:py-1 min-h-[36px] sm:min-h-0 text-xs bg-zinc-800 text-zinc-300 hover:text-rose-300 hover:bg-zinc-700 border border-zinc-700 rounded transition-colors disabled:opacity-40 cursor-pointer"
             title="Clear current log buffer"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -235,7 +235,7 @@ export default function ServerLogsCard() {
               <button
                 key={chip.type}
                 onClick={() => setActiveFilter(chip.type)}
-                className={`px-2.5 py-1 text-xs rounded-full border transition-all cursor-pointer flex items-center space-x-1.5 ${
+                className={`px-3 py-1.5 sm:py-1 min-h-[34px] sm:min-h-0 text-xs rounded-full border transition-all cursor-pointer flex items-center space-x-1.5 ${
                   isActive ? chip.activeColor : `${chip.color} hover:brightness-125`
                 }`}
               >
@@ -256,7 +256,7 @@ export default function ServerLogsCard() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search logs..."
-            className="w-full pl-8 pr-3 py-1 bg-zinc-800 border border-zinc-700 rounded text-xs text-zinc-100 placeholder-zinc-400 focus:outline-none focus:border-indigo-500 transition-colors"
+            className="w-full pl-8 pr-3 py-2 sm:py-1 min-h-[38px] sm:min-h-0 bg-zinc-800 border border-zinc-700 rounded text-base sm:text-xs text-zinc-100 placeholder-zinc-400 focus:outline-none focus:border-indigo-500 transition-colors"
           />
         </div>
       </div>
@@ -264,7 +264,7 @@ export default function ServerLogsCard() {
       {/* Terminal Display */}
       <div
         ref={logsContainerRef}
-        className="bg-zinc-950 border border-zinc-800 rounded-md p-3 h-96 overflow-y-auto font-mono text-xs text-zinc-300 space-y-1 shadow-inner select-text"
+        className="bg-zinc-950 border border-zinc-800 rounded-md p-3 h-72 sm:h-96 overflow-y-auto font-mono text-xs text-zinc-300 space-y-1 shadow-inner select-text"
       >
         {filteredLogs.length === 0 ? (
           <div className="h-full flex items-center justify-center text-zinc-500 italic text-xs">

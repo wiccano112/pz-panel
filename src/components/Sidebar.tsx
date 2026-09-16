@@ -4,7 +4,7 @@ import { Calendar, ExternalLink } from 'lucide-react';
 
 export default function Sidebar() {
   return (
-    <aside className="w-64 bg-zinc-900 text-white p-4 flex flex-col border-r border-zinc-800 h-screen sticky top-0 shrink-0 select-none">
+    <aside className="w-64 bg-zinc-900 text-white p-4 hidden md:flex flex-col border-r border-zinc-800 h-screen sticky top-0 shrink-0 select-none">
       {/* Header */}
       <div className="mb-6 px-1 flex items-center justify-between shrink-0">
         <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
@@ -35,7 +35,7 @@ export default function Sidebar() {
 
           <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 font-mono">
             <Calendar className="w-3 h-3 text-zinc-400 shrink-0" />
-            <span>Creado: {buildInfo.releaseDate}</span>
+            <span>Built: {buildInfo.releaseDate}</span>
           </div>
 
           {buildInfo.repoUrl && (

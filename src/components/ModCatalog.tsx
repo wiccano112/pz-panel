@@ -109,7 +109,7 @@ export default function ModCatalog({ onAddMod, installedWorkshopIds }: ModCatalo
           <h3 className="text-lg font-semibold text-white">Steam Workshop Catalog (Build 42)</h3>
         </div>
 
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           {/* Search Input */}
           <div className="relative flex-1 sm:w-64">
             <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -118,7 +118,7 @@ export default function ModCatalog({ onAddMod, installedWorkshopIds }: ModCatalo
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Search mods..."
-              className="w-full pl-9 pr-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded-md text-sm text-zinc-100 placeholder-zinc-400 focus:outline-none focus:border-indigo-500 transition-colors"
+              className="w-full pl-9 pr-3 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-zinc-800 border border-zinc-700 rounded-md text-base sm:text-sm text-zinc-100 placeholder-zinc-400 focus:outline-none focus:border-indigo-500 transition-colors"
             />
           </div>
 
@@ -129,7 +129,7 @@ export default function ModCatalog({ onAddMod, installedWorkshopIds }: ModCatalo
               value={days}
               onChange={(e) => handleDaysChange(e.target.value)}
               aria-label="Time period"
-              className="pl-8 pr-7 py-1.5 bg-zinc-800 border border-zinc-700 rounded-md text-sm text-zinc-200 focus:outline-none focus:border-indigo-500 cursor-pointer transition-colors"
+              className="w-full sm:w-auto pl-8 pr-7 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-zinc-800 border border-zinc-700 rounded-md text-base sm:text-sm text-zinc-200 focus:outline-none focus:border-indigo-500 cursor-pointer transition-colors"
             >
               <option value="0">All Time (Most Downloaded)</option>
               <option value="30">Last 30 days</option>
@@ -290,18 +290,18 @@ export default function ModCatalog({ onAddMod, installedWorkshopIds }: ModCatalo
               )}
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 w-full sm:w-auto justify-between sm:justify-start">
               <button
                 type="button"
                 onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                 disabled={page <= 1 || isValidating}
-                className="flex items-center space-x-1 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded border border-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                className="flex items-center justify-center space-x-1 px-4 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded border border-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
                 <span>Previous</span>
               </button>
 
-              <span className="px-3 py-1.5 bg-zinc-950 border border-zinc-800 rounded text-zinc-200 font-mono">
+              <span className="px-3 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 flex items-center justify-center bg-zinc-950 border border-zinc-800 rounded text-zinc-200 font-mono">
                 {page} / {totalPages}
               </span>
 
@@ -309,7 +309,7 @@ export default function ModCatalog({ onAddMod, installedWorkshopIds }: ModCatalo
                 type="button"
                 onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
                 disabled={page >= totalPages || isValidating}
-                className="flex items-center space-x-1 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded border border-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                className="flex items-center justify-center space-x-1 px-4 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded border border-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
                 <span>Next</span>
                 <ChevronRight className="w-4 h-4" />
@@ -330,7 +330,8 @@ export default function ModCatalog({ onAddMod, installedWorkshopIds }: ModCatalo
               </div>
               <button
                 onClick={() => setResolvingMod(null)}
-                className="text-zinc-400 hover:text-zinc-200 transition-colors"
+                className="text-zinc-400 hover:text-zinc-200 transition-colors p-1"
+                aria-label="Close modal"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -364,7 +365,7 @@ export default function ModCatalog({ onAddMod, installedWorkshopIds }: ModCatalo
                   type="text"
                   disabled
                   value={resolvingMod.workshopId}
-                  className="w-full px-3 py-1.5 bg-zinc-950 border border-zinc-800 rounded text-sm text-zinc-400 font-mono"
+                  className="w-full px-3 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-zinc-950 border border-zinc-800 rounded text-base sm:text-sm text-zinc-400 font-mono"
                 />
               </div>
 
@@ -381,7 +382,7 @@ export default function ModCatalog({ onAddMod, installedWorkshopIds }: ModCatalo
                     setManualModId(e.target.value);
                     if (modalError) setModalError('');
                   }}
-                  className="w-full px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 font-mono"
+                  className="w-full px-3 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-zinc-800 border border-zinc-700 rounded text-base sm:text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 font-mono"
                   autoFocus
                 />
                 {modalError && <p className="text-xs text-red-400 mt-1">{modalError}</p>}
@@ -396,21 +397,21 @@ export default function ModCatalog({ onAddMod, installedWorkshopIds }: ModCatalo
                   placeholder="e.g. RavenCreek (leave empty if not a map mod)"
                   value={manualMapId}
                   onChange={(e) => setManualMapId(e.target.value)}
-                  className="w-full px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 font-mono"
+                  className="w-full px-3 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-zinc-800 border border-zinc-700 rounded text-base sm:text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 font-mono"
                 />
               </div>
 
-              <div className="flex justify-end space-x-3 pt-2">
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:space-x-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setResolvingMod(null)}
-                  className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded text-sm font-medium transition-colors"
+                  className="px-4 py-2.5 sm:py-2 min-h-[44px] sm:min-h-0 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded text-sm font-medium transition-colors text-center"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-sm font-medium transition-colors cursor-pointer"
+                  className="px-4 py-2.5 sm:py-2 min-h-[44px] sm:min-h-0 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-sm font-medium transition-colors cursor-pointer text-center"
                 >
                   Confirm & Add Mod
                 </button>

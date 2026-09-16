@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Sidebar from "@/components/Sidebar";
+import MobileNav from "@/components/MobileNav";
+import { UnsavedChangesProvider } from "@/context/UnsavedChangesContext";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -24,11 +26,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
     >
-      <body className="min-h-full flex bg-zinc-950 text-white">
-        <Sidebar />
-        <main className="flex-1 p-6 flex flex-col">
-          {children}
-        </main>
+      <body className="min-h-full flex flex-col md:flex-row bg-zinc-950 text-white">
+        <UnsavedChangesProvider>
+          <MobileNav />
+          <Sidebar />
+          <main className="flex-1 p-3 sm:p-6 flex flex-col min-w-0">
+            {children}
+          </main>
+        </UnsavedChangesProvider>
       </body>
     </html>
   );

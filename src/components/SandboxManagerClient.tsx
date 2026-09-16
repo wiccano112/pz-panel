@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useActionState, useMemo } from 'react';
+import { useState, useActionState, useMemo, useEffect } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { handleSaveSandboxAction } from '@/app/actions';
 import { SANDBOX_CATEGORIES } from '@/constants/sandbox';
@@ -13,6 +13,7 @@ import {
   UserCheck,
   Save,
   CheckCircle2,
+  AlertTriangle,
   RefreshCw,
   X,
   ArrowRight,
@@ -21,6 +22,7 @@ import {
   Wrench,
   HelpCircle,
 } from 'lucide-react';
+import { useUnsavedChanges } from '@/context/UnsavedChangesContext';
 import Link from 'next/link';
 
 export interface SandboxManagerClientProps {
@@ -48,8 +50,23 @@ export default function SandboxManagerClient({ initialVars }: SandboxManagerClie
   const activeCategory = tabParam && VALID_SANDBOX_CATEGORIES.includes(tabParam) ? tabParam : 'zombies';
 
   const [vars, setVars] = useState<SandboxVarsData>(initialVars);
+  const [initialVarsJson] = useState(() => JSON.stringify(initialVars));
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [dismissedState, setDismissedState] = useState<unknown>(null);
+  const { isDirty, setIsDirty } = useUnsavedChanges();
+  const [state, formAction, isPending] = useActionState(handleSaveSandboxAction, null);
+
+  // Sync isDirty state
+  useEffect(() => {
+    setIsDirty(JSON.stringify(vars) !== initialVarsJson);
+  }, [vars, initialVarsJson, setIsDirty]);
+
+  // Clear isDirty on save
+  useEffect(() => {
+    if (state && !state.error) {
+      setIsDirty(false);
+    }
+  }, [state, setIsDirty]);
 
   const handleCategoryChange = (catId: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -57,8 +74,6 @@ export default function SandboxManagerClient({ initialVars }: SandboxManagerClie
     params.delete('category');
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
-
-  const [state, formAction, isPending] = useActionState(handleSaveSandboxAction, null);
 
   const showRestartModal = Boolean(state && !state.error && dismissedState !== state);
 
@@ -186,35 +201,72 @@ export default function SandboxManagerClient({ initialVars }: SandboxManagerClie
         </div>
       </div>
 
-      {/* Category Tabs */}
-      {!searchQuery.trim() && (
-        <div className="flex overflow-x-auto border-b border-zinc-800 bg-zinc-900/60 rounded-t-lg px-4 gap-2">
-          {SANDBOX_CATEGORIES.map((cat) => {
-            const cfg = CATEGORY_CONFIG[cat.id] || { icon: Sliders, color: 'text-zinc-400' };
-            const Icon = cfg.icon;
-            const isActive = activeCategory === cat.id;
-            return (
-              <button
-                key={cat.id}
-                onClick={() => handleCategoryChange(cat.id)}
-                className={`flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors cursor-pointer ${
-                  isActive
-                    ? 'border-indigo-500 text-indigo-400'
-                    : 'border-transparent text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                <Icon className={`w-4 h-4 ${cfg.color}`} />
-                <span>{cat.name}</span>
-              </button>
-            );
-          })}
+      {/* Unsaved Changes Alert Banner */}
+      {isDirty && (
+        <div className="bg-amber-950/40 border border-amber-500/50 text-amber-200 px-4 py-3 rounded-lg flex items-center justify-between text-sm shadow-md animate-in fade-in duration-200">
+          <div className="flex items-center space-x-2.5">
+            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
+            <span>
+              You have unsaved changes. Remember to click <strong>Save Sandbox Configuration</strong> at the bottom before leaving this page.
+            </span>
+          </div>
         </div>
+      )}
+
+      {/* Category Tabs & Mobile Selector */}
+      {!searchQuery.trim() && (
+        <>
+          {/* Mobile Category Dropdown */}
+          <div className="block md:hidden border-b border-zinc-800 bg-zinc-900/90 rounded-t-lg p-3">
+            <label htmlFor="sandbox-mobile-category-select" className="block text-xs font-semibold text-zinc-400 mb-1.5">
+              Select Category
+            </label>
+            <div className="relative">
+              <select
+                id="sandbox-mobile-category-select"
+                value={activeCategory}
+                onChange={(e) => handleCategoryChange(e.target.value)}
+                className="w-full px-3 py-2.5 min-h-[44px] bg-zinc-800 border border-zinc-700 rounded-md text-base text-zinc-100 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                aria-label="Select Sandbox Category"
+              >
+                {SANDBOX_CATEGORIES.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Desktop Category Tabs */}
+          <div className="hidden md:flex overflow-x-auto border-b border-zinc-800 bg-zinc-900/60 rounded-t-lg px-4 gap-2">
+            {SANDBOX_CATEGORIES.map((cat) => {
+              const cfg = CATEGORY_CONFIG[cat.id] || { icon: Sliders, color: 'text-zinc-400' };
+              const Icon = cfg.icon;
+              const isActive = activeCategory === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => handleCategoryChange(cat.id)}
+                  className={`flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors cursor-pointer ${
+                    isActive
+                      ? 'border-indigo-500 text-indigo-400'
+                      : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 ${cfg.color}`} />
+                  <span>{cat.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </>
       )}
 
       {/* Main Content Card */}
       <div className={`bg-zinc-900 border border-zinc-700 shadow-xl overflow-hidden ${!searchQuery.trim() ? 'rounded-b-lg' : 'rounded-lg'}`}>
         {/* Category Fields Content */}
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {searchQuery.trim() ? (
             <div className="space-y-8">
               {filteredCategories.length === 0 ? (
@@ -227,7 +279,7 @@ export default function SandboxManagerClient({ initialVars }: SandboxManagerClie
                     <h4 className="text-sm font-bold text-indigo-400 uppercase tracking-wider border-b border-zinc-800 pb-1">
                       {cat.name}
                     </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                       {cat.fields.map((field) => renderField(field))}
                     </div>
                   </div>
@@ -241,7 +293,7 @@ export default function SandboxManagerClient({ initialVars }: SandboxManagerClie
                 <p className="text-xs text-zinc-400">{currentCategory.description}</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 {currentCategory.fields.map((field) => renderField(field))}
               </div>
             </div>
@@ -249,21 +301,21 @@ export default function SandboxManagerClient({ initialVars }: SandboxManagerClie
         </div>
       </div>
 
-      {/* Sticky Bottom Bar */}
+      {/* Bottom Action Bar */}
       <form action={formAction}>
         <input type="hidden" name="sandboxVars" value={JSON.stringify(vars)} />
-        <div className="sticky bottom-4 bg-zinc-900 border border-zinc-700 rounded-lg p-4 shadow-2xl flex items-center justify-between z-20">
+        <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-3 sm:p-4 shadow-lg flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <div className="flex items-center space-x-2">
             <HelpCircle className="w-4 h-4 text-zinc-400 shrink-0" />
             <span className="text-xs text-zinc-400">
-              Saving updates the <code className="text-zinc-300 font-mono font-semibold">ServerName_SandboxVars.lua</code> configuration directly.
+              Saving updates <code className="text-zinc-300 font-mono font-semibold">ServerName_SandboxVars.lua</code> directly.
             </span>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
             {state?.message && (
               <span
-                className={`text-xs font-medium ${
+                className={`text-xs font-medium text-center sm:text-left ${
                   state.error ? 'text-rose-400' : 'text-emerald-400'
                 }`}
               >
@@ -273,7 +325,7 @@ export default function SandboxManagerClient({ initialVars }: SandboxManagerClie
             <button
               type="submit"
               disabled={isPending}
-              className="inline-flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-medium rounded-md shadow-sm transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center space-x-2 px-4 py-2.5 min-h-[44px] sm:min-h-0 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-medium rounded-md shadow-sm transition-colors cursor-pointer w-full sm:w-auto"
               aria-label="Save Sandbox Configuration"
             >
               {isPending ? (
@@ -316,7 +368,7 @@ export default function SandboxManagerClient({ initialVars }: SandboxManagerClie
             <select
               value={Number(val)}
               onChange={(e) => handleFieldChange(field.key, field.subTable, Number(e.target.value))}
-              className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-md text-sm text-zinc-100 focus:outline-none focus:border-indigo-500 cursor-pointer transition-colors"
+              className="w-full px-3 py-2.5 sm:py-2 min-h-[44px] sm:min-h-0 bg-zinc-900 border border-zinc-700 rounded-md text-base sm:text-sm text-zinc-100 focus:outline-none focus:border-indigo-500 cursor-pointer transition-colors"
             >
               {field.options.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -334,7 +386,7 @@ export default function SandboxManagerClient({ initialVars }: SandboxManagerClie
               max={field.max}
               step={field.step || 1}
               onChange={(e) => handleFieldChange(field.key, field.subTable, parseFloat(e.target.value) || 0)}
-              className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-md text-sm text-zinc-100 focus:outline-none focus:border-indigo-500 font-mono transition-colors"
+              className="w-full px-3 py-2.5 sm:py-2 min-h-[44px] sm:min-h-0 bg-zinc-900 border border-zinc-700 rounded-md text-base sm:text-sm text-zinc-100 focus:outline-none focus:border-indigo-500 font-mono transition-colors"
             />
           )}
 
@@ -343,19 +395,19 @@ export default function SandboxManagerClient({ initialVars }: SandboxManagerClie
               type="text"
               value={String(val ?? '')}
               onChange={(e) => handleFieldChange(field.key, field.subTable, e.target.value)}
-              className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-md text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 font-mono transition-colors"
+              className="w-full px-3 py-2.5 sm:py-2 min-h-[44px] sm:min-h-0 bg-zinc-900 border border-zinc-700 rounded-md text-base sm:text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 font-mono transition-colors"
             />
           )}
 
           {field.type === 'boolean' && (
-            <label className="flex items-center space-x-3 cursor-pointer">
+            <label className="flex items-center space-x-3 cursor-pointer min-h-[44px] py-1 px-1 -mx-1 rounded-md hover:bg-zinc-750 transition-colors">
               <input
                 type="checkbox"
                 checked={Boolean(val)}
                 onChange={(e) => handleFieldChange(field.key, field.subTable, e.target.checked)}
-                className="w-4 h-4 rounded text-indigo-600 bg-zinc-900 border-zinc-700 focus:ring-indigo-500"
+                className="w-5 h-5 rounded text-indigo-600 bg-zinc-900 border-zinc-700 focus:ring-indigo-500 cursor-pointer"
               />
-              <span className="text-xs font-medium text-zinc-300">
+              <span className="text-sm sm:text-xs font-medium text-zinc-300 select-none">
                 {Boolean(val) ? 'Enabled' : 'Disabled'}
               </span>
             </label>

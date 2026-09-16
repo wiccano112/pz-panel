@@ -1,11 +1,18 @@
 "use client";
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, PackagePlus, Sliders, Users, Settings } from 'lucide-react';
+import { useUnsavedChanges } from '@/context/UnsavedChangesContext';
 
-export default function NavLinks() {
+interface NavLinksProps {
+  onNavigate?: () => void;
+}
+
+export default function NavLinks({ onNavigate }: NavLinksProps = {}) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { isDirty, confirmNavigation } = useUnsavedChanges();
 
   const links = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -15,6 +22,22 @@ export default function NavLinks() {
     { href: '/players', label: 'Players & Moderation', icon: Users },
   ];
 
+  const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (pathname === href) {
+      onNavigate?.();
+      return;
+    }
+
+    if (isDirty) {
+      e.preventDefault();
+      confirmNavigation(() => {
+        onNavigate?.();
+        router.push(href);
+      });
+    } else {
+      onNavigate?.();
+    }
+  };
 
   return (
     <nav className="flex flex-col space-y-1.5">
@@ -26,6 +49,7 @@ export default function NavLinks() {
           <Link
             key={link.href}
             href={link.href}
+            onClick={(e) => handleLinkClick(e, link.href)}
             className={`flex items-center space-x-2.5 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
               isActive
                 ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
