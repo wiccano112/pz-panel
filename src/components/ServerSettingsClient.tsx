@@ -566,8 +566,8 @@ export default function ServerSettingsClient({
             )}
           </div>
 
-          {/* Sticky Bottom Bar */}
-          <div className="sticky bottom-4 bg-zinc-900 border border-zinc-700 rounded-lg p-3 sm:p-4 shadow-2xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 z-20">
+          {/* Bottom Action Bar */}
+          <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-3 sm:p-4 shadow-lg flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div className="flex items-center space-x-2">
               <HelpCircle className="w-4 h-4 text-zinc-400 shrink-0" />
               <span className="text-xs text-zinc-400">
@@ -703,8 +703,8 @@ export default function ServerSettingsClient({
             </div>
           </div>
 
-          {/* Sticky Bottom Bar */}
-          <div className="sticky bottom-4 bg-zinc-900 border border-zinc-700 rounded-lg p-3 sm:p-4 shadow-2xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 z-20">
+          {/* Bottom Action Bar */}
+          <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-3 sm:p-4 shadow-lg flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div className="flex items-center space-x-2">
               <HelpCircle className="w-4 h-4 text-zinc-400 shrink-0" />
               <span className="text-xs text-zinc-400">
