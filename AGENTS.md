@@ -114,6 +114,15 @@ El servidor de Project Zomboid desplegado se encuentra en la ruta parametrizada 
    ```
 
 ### 9. Estándar de Lenguaje de la Interfaz (Inglés Obligatorio)
-- **Regla Estricta de Idioma en UI:** Todo el contenido visible para el usuario en la interfaz web de PZ-Panel (textos, títulos, botones, modales, alertas, banners, tooltips, placeholders, mensajes de validación/error, chips de estado, aria-labels y logs de frontend) **DEBE estar estrictamente en INGLÉS**.
+- **Regla Estricta de Idioma en UI:** Todo el contenido visible para el usuario en la interfaz web de PZ-Panel (textos, títulos, botones, modales, alertas, banners, tooltips, placeholders, mensajes de validación/error, chips de estado, aria-labels y logs de frontend) **DEBE estar estrictamente en INGLÉS**, independientemente del idioma en que el usuario plantee sus solicitudes.
 - **Consistencia:** No mezclar términos en español en componentes (`src/components/`, `src/app/`, `src/context/`) ni en las pruebas E2E (`e2e/`).
 - **Comentarios y Nombres de Código:** Se prefiere el estándar en inglés para identificadores, tipos y comentarios técnicos en el código fuente.
+
+### 10. Sincronización Inmediata del Tablero y Tareas (Real-Time Ledger Sync)
+- **Cierre Atómico de Tareas:** Tan pronto como una tarea sea implementada y validada en su respectivo commit, el agente o el orquestador DEBE actualizar inmediatamente `tasks.json` (`"status": "done"`, `completedAt`) y `board.md`.
+- **Cero Tareas Fantasmas:** No dejar tareas en `"status": "doing"` cuando el código ya está integrado o commiteado; la sincronización del ledger debe ocurrir en el mismo ciclo atómico del commit o push.
+
+### 11. Reglas de Ergonomía Responsive y Viewports Estrictos
+- **Regla Universal de Flexbox Vertical (`min-h-0`):** En contenedores con `flex flex-col` donde un hijo sea scrollable (`flex-1 overflow-y-auto`), es OBLIGATORIO incluir `min-h-0` para prevenir que el contenedor sobrepase el viewport en resoluciones de altura reducida (ej. pantallas de laptop con 600px-720px de alto).
+- **Uso de Viewport Dinámico (`dvh`):** Utilizar `h-screen max-h-screen md:h-dvh md:max-h-dvh` en barras laterales, drawers móviles y modales de pantalla completa para evitar solapamientos con barras de navegación móviles.
+- **Cobertura E2E de Altura Reducida:** La suite de Playwright debe incluir validaciones con viewports compactos (ej. 1024x600) para asegurar que los elementos inferiores (tarjetas de versión, botones de acción) nunca queden inaccesibles o recortados.

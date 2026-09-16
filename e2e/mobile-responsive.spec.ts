@@ -126,5 +126,19 @@ test.describe('Mobile Responsive Layout Tests', () => {
       await discardButton.click();
       await expect(page).toHaveURL(/.*\//); // Successfully navigated to Dashboard
     });
+
+    test('should keep version card and github link fully visible on compact viewport heights (e.g. 600px)', async ({ page }) => {
+      await page.setViewportSize({ width: 1024, height: 600 });
+      await page.goto('/');
+
+      const sidebar = page.locator('aside');
+      await expect(sidebar).toBeVisible();
+
+      const versionCard = sidebar.locator('div.font-mono', { hasText: 'v' });
+      await expect(versionCard).toBeVisible();
+
+      const githubLink = sidebar.getByRole('link', { name: 'GitHub Release' });
+      await expect(githubLink).toBeVisible();
+    });
   });
 });
