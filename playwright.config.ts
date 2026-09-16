@@ -18,7 +18,9 @@ export default defineConfig({
       use: {
         ...devices['Pixel 5'],
         channel: 'chrome',
-        executablePath: '/usr/bin/google-chrome',
+        launchOptions: {
+          executablePath: '/usr/bin/google-chrome',
+        },
       },
     },
     {
@@ -26,7 +28,9 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         channel: 'chrome',
-        executablePath: '/usr/bin/google-chrome',
+        launchOptions: {
+          executablePath: '/usr/bin/google-chrome',
+        },
       },
     },
   ],
