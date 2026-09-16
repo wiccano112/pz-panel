@@ -2,24 +2,25 @@
 ## 📋 ToDo List - Backlog y Próximas Sesiones
 
 ### 🎯 Objetivo Próxima Sesión
-Investigación, arquitectura e implementación de la **Vista Mobile y Experiencia Responsive** del panel (Drawer/Sidebar colapsable, adaptación táctil en vistas de configuración, moderación y tablas de logs).
+Mantenimiento continuo, nuevas integraciones y monitoreo de rendimiento.
 
 ---
 
 ### 📌 Estado del Backlog
 
-- [ ] **1. Investigación y Estrategia de Vista Mobile / Responsive**
-  - [ ] **Arquitectura de Navegación Mobile:**
-    - [ ] Evaluar Drawer / Menú lateral colapsable (Hamburger menu con backdrop) vs. Bottom Navigation Bar para dispositivos móviles.
-    - [ ] Adaptabilidad de la barra de versión flotante en pantallas pequeñas.
-  - [ ] **Evaluación de Frameworks de UI / Librerías de Componentes:**
-    - [ ] Analizar mantener el stack puro actual (**Tailwind CSS v4 + Lucide React**) optimizando breakpoints nativos (`sm:`, `md:`, `lg:`).
-    - [ ] Evaluar librerías headless / estilizadas complementarias compatibles con React 19 (ej. Radix UI / shadcn/ui primitives vs. MUI / Mantine).
-    - [ ] Considerar el impacto en el bundle size, performance del contenedor Docker y compatibilidad con Turbopack / Next.js 16.
-  - [ ] **Adaptabilidad de Vistas Complejas:**
-    - [ ] Grillas de Sandbox y Server Properties en una sola columna con espaciados táctiles cómodos (touch targets >= 44px).
-    - [ ] Tablas de Moderación y Logs con scroll horizontal o tarjetas expandibles estilo accordion para móviles.
-    - [ ] Drag & Drop de Mods y Workshop adaptado a interacción touch (botones arriba/abajo como alternativa al drag).
+- [x] **1. Investigación y Estrategia de Vista Mobile / Responsive (v1.0.9)**
+  - [x] **Arquitectura de Navegación Mobile:**
+    - [x] Drawer lateral colapsable (Hamburger menu con backdrop, auto-close en navegación/ESC) y Top Bar móvil (`md:hidden`).
+    - [x] Badge de versión compacto en header móvil y tarjeta completa en pie de Drawer.
+  - [x] **Evaluación de Frameworks de UI / Librerías de Componentes:**
+    - [x] Mantener stack puro (**Tailwind CSS v4 + React 19 + Lucide React**) sin sobrecoste de librerías headless de terceros.
+    - [x] Bundle ultraligero sub-30KB, cero overhead en imagen Docker y compatibilidad total con Turbopack / Next.js 16.
+  - [x] **Adaptabilidad de Vistas Complejas:**
+    - [x] Grillas de Sandbox y Server Properties en 1 columna en móvil con touch targets >= 44px (`h-11 sm:h-9` y `text-base sm:text-xs` para evitar zoom en iOS Safari).
+    - [x] Dropdown selector de categorías nativo en móvil para Sandbox.
+    - [x] Tablas de Moderación de Jugadores adaptadas a tarjetas/acordeón colapsables en móvil.
+    - [x] Visor de logs con altura responsiva y controles táctiles cómodos.
+    - [x] Reordenamiento de Mods y Workshop con botones táctiles accesibles (`ChevronUp`/`ChevronDown`).
 
 ---
 
