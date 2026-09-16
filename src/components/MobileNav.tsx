@@ -82,12 +82,12 @@ export default function MobileNav() {
 
       {/* Mobile Drawer */}
       <div
-        className={`fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-zinc-900 border-r border-zinc-800 p-4 flex flex-col z-50 transform transition-transform duration-300 ease-in-out shadow-2xl ${
+        className={`fixed inset-y-0 left-0 w-72 max-w-[85vw] h-screen max-h-screen md:h-dvh md:max-h-dvh bg-zinc-900 border-r border-zinc-800 p-4 pb-5 flex flex-col z-50 transform transition-transform duration-300 ease-in-out shadow-2xl ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         {/* Drawer Header */}
-        <div className="mb-6 px-1 flex items-center justify-between shrink-0">
+        <div className="mb-5 px-1 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
             <h2 className="text-xl font-bold tracking-tight text-white">
               PZ-Panel
@@ -107,13 +107,13 @@ export default function MobileNav() {
         </div>
 
         {/* Drawer Navigation Links */}
-        <div className="flex-1 overflow-y-auto pr-1">
+        <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-1">
           <NavLinks onNavigate={closeDrawer} />
         </div>
 
         {/* Drawer Footer / Version Info */}
         <div className="mt-auto pt-3 border-t border-zinc-800/80 text-xs shrink-0">
-          <div className="p-2.5 rounded-lg bg-zinc-950/80 backdrop-blur border border-zinc-800 shadow-xl space-y-1.5">
+          <div className="p-2.5 rounded-lg bg-zinc-950/90 backdrop-blur border border-zinc-800 shadow-xl space-y-1.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 font-mono text-[11px] font-semibold text-zinc-200">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
@@ -134,10 +134,10 @@ export default function MobileNav() {
                 href={`${buildInfo.repoUrl}/releases/tag/v${buildInfo.version}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-between text-[10px] text-zinc-400 hover:text-zinc-200 transition-colors pt-1 border-t border-zinc-800/40"
+                className="flex items-center justify-between text-[11px] font-medium text-indigo-400 hover:text-indigo-300 transition-colors pt-1.5 border-t border-zinc-800/60"
               >
                 <span>GitHub Release</span>
-                <ExternalLink className="w-2.5 h-2.5" />
+                <ExternalLink className="w-3 h-3" />
               </a>
             )}
           </div>
