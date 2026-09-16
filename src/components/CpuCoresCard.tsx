@@ -259,7 +259,7 @@ export default function CpuCoresCard() {
           >
             <div className="flex items-center space-x-2">
               <span className="font-medium">
-                {showAllCores ? 'Ocultar todos los cores del host' : 'Ver todos los cores del host'}
+                {showAllCores ? 'Hide all host cores' : 'View all host cores'}
               </span>
               <span className="text-[11px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 font-mono">
                 {data.totalCores} Cores

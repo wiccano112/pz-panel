@@ -220,7 +220,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
           <div className="flex items-center space-x-2.5">
             <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
             <span>
-              Tienes cambios pendientes sin guardar en la lista de mods. Recuerda pulsar <strong>Save Configuration</strong> al pie antes de cambiar de pantalla.
+              You have unsaved changes in the mod list. Remember to click <strong>Save Configuration</strong> at the bottom before leaving this page.
             </span>
           </div>
         </div>

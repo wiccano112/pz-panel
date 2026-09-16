@@ -100,29 +100,29 @@ test.describe('Mobile Responsive Layout Tests', () => {
       await textInput.fill('Changed Server Value');
 
       // Check that the alert banner is visible
-      const alertBanner = page.getByText('Tienes cambios pendientes sin guardar');
+      const alertBanner = page.getByText('You have unsaved changes');
       await expect(alertBanner).toBeVisible();
 
-      // Click on another nav link (e.g. Dashboard)
-      const dashboardLink = page.getByRole('link', { name: 'Dashboard' });
+      // Click on another nav link in desktop sidebar (e.g. Dashboard)
+      const dashboardLink = page.locator('aside').getByRole('link', { name: 'Dashboard' });
       await dashboardLink.click();
 
       // Confirmation modal should appear
-      const modal = page.getByText('Cambios sin guardar');
+      const modal = page.getByRole('heading', { name: 'Unsaved Changes' });
       await expect(modal).toBeVisible();
       await expect(page).toHaveURL(/.*\/settings/); // Should still be on /settings
 
-      // Click "Quedarme y guardar"
-      const stayButton = page.getByRole('button', { name: 'Quedarme y guardar' });
+      // Click "Stay & Save"
+      const stayButton = page.getByRole('button', { name: 'Stay & Save' });
       await stayButton.click();
       await expect(modal).toBeHidden();
       await expect(page).toHaveURL(/.*\/settings/);
 
-      // Now try to leave again and click "Descartar cambios y salir"
+      // Now try to leave again and click "Discard Changes & Leave"
       await dashboardLink.click();
       await expect(modal).toBeVisible();
 
-      const discardButton = page.getByRole('button', { name: 'Descartar cambios y salir' });
+      const discardButton = page.getByRole('button', { name: 'Discard Changes & Leave' });
       await discardButton.click();
       await expect(page).toHaveURL(/.*\//); // Successfully navigated to Dashboard
     });

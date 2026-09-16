@@ -207,7 +207,7 @@ export default function SandboxManagerClient({ initialVars }: SandboxManagerClie
           <div className="flex items-center space-x-2.5">
             <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
             <span>
-              Tienes cambios pendientes sin guardar. Recuerda pulsar <strong>Save Sandbox Configuration</strong> al pie antes de cambiar de pantalla.
+              You have unsaved changes. Remember to click <strong>Save Sandbox Configuration</strong> at the bottom before leaving this page.
             </span>
           </div>
         </div>

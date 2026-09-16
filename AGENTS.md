@@ -113,6 +113,7 @@ El servidor de Project Zomboid desplegado se encuentra en la ruta parametrizada 
    gh release create vX.Y.Z --title "vX.Y.Z" --generate-notes
    ```
 
-
-
-
+### 9. Estándar de Lenguaje de la Interfaz (Inglés Obligatorio)
+- **Regla Estricta de Idioma en UI:** Todo el contenido visible para el usuario en la interfaz web de PZ-Panel (textos, títulos, botones, modales, alertas, banners, tooltips, placeholders, mensajes de validación/error, chips de estado, aria-labels y logs de frontend) **DEBE estar estrictamente en INGLÉS**.
+- **Consistencia:** No mezclar términos en español en componentes (`src/components/`, `src/app/`, `src/context/`) ni en las pruebas E2E (`e2e/`).
+- **Comentarios y Nombres de Código:** Se prefiere el estándar en inglés para identificadores, tipos y comentarios técnicos en el código fuente.

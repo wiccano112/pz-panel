@@ -65,11 +65,11 @@ export function UnsavedChangesProvider({ children }: { children: React.ReactNode
           <div className="bg-zinc-900 border border-zinc-700 rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center space-x-3 text-amber-400">
               <span className="text-2xl">⚠️</span>
-              <h3 className="text-lg font-bold text-white">Cambios sin guardar</h3>
+              <h3 className="text-lg font-bold text-white">Unsaved Changes</h3>
             </div>
             <p className="text-sm text-zinc-300 leading-relaxed">
-              Tienes cambios pendientes en el formulario. Si sales de esta pantalla sin hacer clic en{' '}
-              <strong className="text-white">Save Configuration</strong>, perderás las modificaciones realizadas.
+              You have unsaved changes in this form. If you leave this page without clicking{' '}
+              <strong className="text-white">Save Configuration</strong>, your changes will be lost.
             </p>
             <div className="flex items-center justify-end space-x-3 pt-2">
               <button
@@ -77,14 +77,14 @@ export function UnsavedChangesProvider({ children }: { children: React.ReactNode
                 onClick={handleCancelLeave}
                 className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-medium rounded-lg transition-colors cursor-pointer"
               >
-                Quedarme y guardar
+                Stay & Save
               </button>
               <button
                 type="button"
                 onClick={handleConfirmLeave}
                 className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white text-sm font-medium rounded-lg transition-colors cursor-pointer"
               >
-                Descartar cambios y salir
+                Discard Changes & Leave
               </button>
             </div>
           </div>
