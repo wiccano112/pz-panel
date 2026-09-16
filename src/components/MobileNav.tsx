@@ -126,7 +126,7 @@ export default function MobileNav() {
 
             <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 font-mono">
               <Calendar className="w-3 h-3 text-zinc-400 shrink-0" />
-              <span>Creado: {buildInfo.releaseDate}</span>
+              <span>Created: {buildInfo.releaseDate}</span>
             </div>
 
             {buildInfo.repoUrl && (
