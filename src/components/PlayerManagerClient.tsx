@@ -123,8 +123,29 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
         </div>
       </div>
 
-      {/* Tabs Bar */}
-      <div className="flex overflow-x-auto border-b border-zinc-800 bg-zinc-900/60 rounded-t-lg px-4 gap-2">
+      {/* Tabs Navigation */}
+      {/* Mobile Tab Selector */}
+      <div className="block md:hidden border-b border-zinc-800 bg-zinc-900/90 rounded-t-lg p-3">
+        <label htmlFor="players-mobile-tab-select" className="block text-xs font-semibold text-zinc-400 mb-1.5">
+          Select Moderation View
+        </label>
+        <select
+          id="players-mobile-tab-select"
+          value={activeTab}
+          onChange={(e) => handleTabChange(e.target.value as PlayerTab)}
+          className="w-full px-3 py-2.5 min-h-[44px] bg-zinc-800 border border-zinc-700 rounded-md text-base text-zinc-100 focus:outline-none focus:border-indigo-500 cursor-pointer"
+          aria-label="Select Player Moderation Tab"
+        >
+          <option value="live">Connected Players ({overview.connectedPlayers.length})</option>
+          <option value="history">Connection History ({overview.connectionHistory?.length || 0})</option>
+          <option value="whitelist">Whitelist ({overview.whitelist.length})</option>
+          <option value="bans">Bans ({overview.bannedSteamIds.length + overview.bannedIps.length})</option>
+          <option value="broadcast">Server Broadcast</option>
+        </select>
+      </div>
+
+      {/* Desktop Tabs Bar */}
+      <div className="hidden md:flex overflow-x-auto border-b border-zinc-800 bg-zinc-900/60 rounded-t-lg px-4 gap-2">
         <button
           onClick={() => handleTabChange('live')}
           className={`flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
@@ -205,7 +226,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
 
       {/* Tab 1: Live Connected Players */}
       {activeTab === 'live' && (
-        <div className="bg-zinc-900 border border-zinc-700 rounded-b-lg p-6 shadow-xl space-y-4">
+        <div className="bg-zinc-900 border border-zinc-700 rounded-b-lg p-4 sm:p-6 shadow-xl space-y-4">
           <div className="flex items-center justify-between">
             <h4 className="text-base font-semibold text-white">Active Survivors</h4>
             <span className="text-xs text-zinc-400">Updates live via server polling</span>
@@ -218,58 +239,103 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
               <p className="text-xs text-zinc-500">Connected survivors will appear here in real-time.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto border border-zinc-800 rounded-lg">
-              <table className="w-full text-left text-sm text-zinc-300">
-                <thead className="bg-zinc-950 text-xs uppercase text-zinc-400 border-b border-zinc-800">
-                  <tr>
-                    <th className="px-4 py-3">Player</th>
-                    <th className="px-4 py-3">Role</th>
-                    <th className="px-4 py-3">Session</th>
-                    <th className="px-4 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-800">
-                  {overview.connectedPlayers.map((player) => (
-                    <tr key={player.username} className="hover:bg-zinc-800/40 transition-colors">
-                      <td className="px-4 py-3 font-medium text-white flex items-center space-x-2">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400" />
+            <>
+              {/* Mobile Cards View */}
+              <div className="block md:hidden space-y-3">
+                {overview.connectedPlayers.map((player) => (
+                  <div
+                    key={player.username}
+                    className="p-4 bg-zinc-800/60 border border-zinc-700/80 rounded-lg space-y-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2 font-semibold text-white">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
                         <span>{player.username}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="px-2 py-0.5 rounded text-xs bg-zinc-800 border border-zinc-700 text-zinc-300">
-                          {player.role || 'Player'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-zinc-400">
-                        {player.connectedSince || 'Online'}
-                      </td>
-                      <td className="px-4 py-3 text-right space-x-2">
-                        <form action={banAction} className="inline-block">
-                          <input type="hidden" name="banType" value="ip" />
-                          <input type="hidden" name="target" value={player.username} />
-                          <input type="hidden" name="reason" value="Kicked via PZ-Panel" />
-                          <button
-                            type="submit"
-                            disabled={banPending}
-                            className="px-2.5 py-1 bg-rose-950/60 hover:bg-rose-900/60 text-rose-300 border border-rose-800 text-xs rounded transition-colors disabled:opacity-50 cursor-pointer"
-                            aria-label={`Kick or ban player ${player.username}`}
-                          >
-                            Kick / Ban
-                          </button>
-                        </form>
-                      </td>
+                      </div>
+                      <span className="px-2 py-0.5 rounded text-xs bg-zinc-900 border border-zinc-700 text-zinc-300">
+                        {player.role || 'Player'}
+                      </span>
+                    </div>
+
+                    <div className="text-xs text-zinc-400">
+                      <span>Connected: </span>
+                      <span className="text-zinc-200">{player.connectedSince || 'Online'}</span>
+                    </div>
+
+                    <div className="pt-1">
+                      <form action={banAction}>
+                        <input type="hidden" name="banType" value="ip" />
+                        <input type="hidden" name="target" value={player.username} />
+                        <input type="hidden" name="reason" value="Kicked via PZ-Panel" />
+                        <button
+                          type="submit"
+                          disabled={banPending}
+                          className="w-full py-2.5 min-h-[44px] bg-rose-950/70 hover:bg-rose-900 text-rose-300 border border-rose-800 text-sm font-medium rounded transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center space-x-1.5"
+                          aria-label={`Kick or ban player ${player.username}`}
+                        >
+                          <Ban className="w-4 h-4" />
+                          <span>Kick / Ban Player</span>
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto border border-zinc-800 rounded-lg">
+                <table className="w-full text-left text-sm text-zinc-300">
+                  <thead className="bg-zinc-950 text-xs uppercase text-zinc-400 border-b border-zinc-800">
+                    <tr>
+                      <th className="px-4 py-3">Player</th>
+                      <th className="px-4 py-3">Role</th>
+                      <th className="px-4 py-3">Session</th>
+                      <th className="px-4 py-3 text-right">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800">
+                    {overview.connectedPlayers.map((player) => (
+                      <tr key={player.username} className="hover:bg-zinc-800/40 transition-colors">
+                        <td className="px-4 py-3 font-medium text-white flex items-center space-x-2">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                          <span>{player.username}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="px-2 py-0.5 rounded text-xs bg-zinc-800 border border-zinc-700 text-zinc-300">
+                            {player.role || 'Player'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-zinc-400">
+                          {player.connectedSince || 'Online'}
+                        </td>
+                        <td className="px-4 py-3 text-right space-x-2">
+                          <form action={banAction} className="inline-block">
+                            <input type="hidden" name="banType" value="ip" />
+                            <input type="hidden" name="target" value={player.username} />
+                            <input type="hidden" name="reason" value="Kicked via PZ-Panel" />
+                            <button
+                              type="submit"
+                              disabled={banPending}
+                              className="px-2.5 py-1 bg-rose-950/60 hover:bg-rose-900/60 text-rose-300 border border-rose-800 text-xs rounded transition-colors disabled:opacity-50 cursor-pointer"
+                              aria-label={`Kick or ban player ${player.username}`}
+                            >
+                              Kick / Ban
+                            </button>
+                          </form>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       )}
 
       {/* Tab: Connection History */}
       {activeTab === 'history' && (
-        <div className="bg-zinc-900 border border-zinc-700 rounded-b-lg p-6 shadow-xl space-y-6">
+        <div className="bg-zinc-900 border border-zinc-700 rounded-b-lg p-4 sm:p-6 shadow-xl space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h4 className="text-base font-semibold text-white flex items-center space-x-2">
@@ -283,21 +349,21 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
 
             {/* Filter and Search Bar */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-              <div className="relative">
+              <div className="relative flex-1">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
                 <input
                   type="text"
                   value={historySearch}
                   onChange={(e) => setHistorySearch(e.target.value)}
                   placeholder="Filter player, Steam ID, IP..."
-                  className="pl-9 pr-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-sky-500 w-full sm:w-64"
+                  className="pl-9 pr-3 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-zinc-800 border border-zinc-700 rounded text-base sm:text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-sky-500 w-full sm:w-64"
                 />
               </div>
 
-              <div className="flex rounded border border-zinc-700 bg-zinc-800 p-0.5 text-xs">
+              <div className="flex rounded border border-zinc-700 bg-zinc-800 p-0.5 text-xs min-h-[44px] sm:min-h-0 items-center justify-around">
                 <button
                   onClick={() => setHistoryFilter('ALL')}
-                  className={`px-2.5 py-1 rounded transition-colors cursor-pointer ${
+                  className={`flex-1 sm:flex-none px-3 py-2 sm:py-1 rounded transition-colors cursor-pointer text-center ${
                     historyFilter === 'ALL'
                       ? 'bg-zinc-700 text-white font-medium'
                       : 'text-zinc-400 hover:text-zinc-200'
@@ -307,7 +373,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
                 </button>
                 <button
                   onClick={() => setHistoryFilter('CONNECTED')}
-                  className={`px-2.5 py-1 rounded transition-colors cursor-pointer ${
+                  className={`flex-1 sm:flex-none px-3 py-2 sm:py-1 rounded transition-colors cursor-pointer text-center ${
                     historyFilter === 'CONNECTED'
                       ? 'bg-emerald-950 text-emerald-300 border border-emerald-800 font-medium'
                       : 'text-zinc-400 hover:text-zinc-200'
@@ -317,7 +383,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
                 </button>
                 <button
                   onClick={() => setHistoryFilter('DISCONNECTED')}
-                  className={`px-2.5 py-1 rounded transition-colors cursor-pointer ${
+                  className={`flex-1 sm:flex-none px-3 py-2 sm:py-1 rounded transition-colors cursor-pointer text-center ${
                     historyFilter === 'DISCONNECTED'
                       ? 'bg-rose-950 text-rose-300 border border-rose-800 font-medium'
                       : 'text-zinc-400 hover:text-zinc-200'
@@ -338,48 +404,44 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto border border-zinc-800 rounded-lg">
-              <table className="w-full text-left text-sm text-zinc-300">
-                <thead className="bg-zinc-950 text-xs uppercase text-zinc-400 border-b border-zinc-800">
-                  <tr>
-                    <th className="px-4 py-3">Event</th>
-                    <th className="px-4 py-3">Timestamp</th>
-                    <th className="px-4 py-3">Player</th>
-                    <th className="px-4 py-3">Steam ID</th>
-                    <th className="px-4 py-3">IP Address</th>
-                    <th className="px-4 py-3">Coordinates</th>
-                    <th className="px-4 py-3 text-right">Moderation</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-800">
-                  {filteredHistory.map((event) => (
-                    <tr key={event.id} className="hover:bg-zinc-800/40 transition-colors">
-                      <td className="px-4 py-3">
-                        {event.type === 'CONNECTED' ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-950/70 text-emerald-300 border border-emerald-800">
-                            <LogIn className="w-3 h-3 mr-1 text-emerald-400" />
-                            Connected
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-zinc-800/80 text-zinc-400 border border-zinc-700">
-                            <LogOut className="w-3 h-3 mr-1 text-zinc-500" />
-                            Disconnected
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs text-zinc-400">
-                        {event.timestamp}
-                      </td>
-                      <td className="px-4 py-3 font-semibold text-white">
-                        {event.username}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs text-zinc-400">
-                        {event.steamid || '—'}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs text-zinc-400">
-                        {event.ip || '—'}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-zinc-400">
+            <>
+              {/* Mobile Cards View */}
+              <div className="block md:hidden space-y-3">
+                {filteredHistory.map((event) => (
+                  <div
+                    key={event.id}
+                    className="p-4 bg-zinc-800/60 border border-zinc-700/80 rounded-lg space-y-2.5"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="font-bold text-white text-sm">{event.username}</span>
+                      {event.type === 'CONNECTED' ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-950/70 text-emerald-300 border border-emerald-800">
+                          <LogIn className="w-3 h-3 mr-1 text-emerald-400" />
+                          Connected
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-zinc-800/80 text-zinc-400 border border-zinc-700">
+                          <LogOut className="w-3 h-3 mr-1 text-zinc-500" />
+                          Disconnected
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs text-zinc-400 pt-1">
+                      <div>
+                        <span className="block text-[10px] uppercase text-zinc-500 font-semibold">Timestamp</span>
+                        <span className="font-mono text-zinc-300">{event.timestamp}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] uppercase text-zinc-500 font-semibold">Steam ID</span>
+                        <span className="font-mono text-zinc-300 truncate block">{event.steamid || '—'}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] uppercase text-zinc-500 font-semibold">IP Address</span>
+                        <span className="font-mono text-zinc-300">{event.ip || '—'}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] uppercase text-zinc-500 font-semibold">Coordinates</span>
                         {event.coordinates ? (
                           <span className="inline-flex items-center text-amber-300/90 font-mono text-[11px]">
                             <MapPin className="w-3 h-3 mr-1 text-amber-400 shrink-0" />
@@ -388,53 +450,148 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
                         ) : (
                           <span className="text-zinc-600">—</span>
                         )}
-                      </td>
-                      <td className="px-4 py-3 text-right space-x-2">
+                      </div>
+                    </div>
+
+                    {(event.steamid || event.ip) && (
+                      <div className="pt-2 border-t border-zinc-750 flex flex-col sm:flex-row gap-2">
                         {event.steamid && (
-                          <form action={banAction} className="inline-block">
+                          <form action={banAction} className="flex-1">
                             <input type="hidden" name="banType" value="steam" />
                             <input type="hidden" name="target" value={event.steamid} />
                             <input type="hidden" name="reason" value="Banned via History log" />
                             <button
                               type="submit"
                               disabled={banPending}
-                              className="px-2 py-0.5 bg-rose-950/60 hover:bg-rose-900/60 text-rose-300 border border-rose-800 text-xs rounded transition-colors disabled:opacity-50 cursor-pointer"
-                              title={`Ban Steam ID ${event.steamid}`}
+                              className="w-full py-2.5 min-h-[44px] bg-rose-950/60 hover:bg-rose-900/60 text-rose-300 border border-rose-800 text-xs font-medium rounded transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center space-x-1"
                               aria-label={`Ban Steam ID ${event.steamid}`}
                             >
-                              Ban Steam
+                              <Ban className="w-3.5 h-3.5" />
+                              <span>Ban Steam ID</span>
                             </button>
                           </form>
                         )}
                         {event.ip && (
-                          <form action={banAction} className="inline-block">
+                          <form action={banAction} className="flex-1">
                             <input type="hidden" name="banType" value="ip" />
                             <input type="hidden" name="target" value={event.ip} />
                             <input type="hidden" name="reason" value="Banned via History log" />
                             <button
                               type="submit"
                               disabled={banPending}
-                              className="px-2 py-0.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 text-xs rounded transition-colors disabled:opacity-50 cursor-pointer"
-                              title={`Ban IP ${event.ip}`}
+                              className="w-full py-2.5 min-h-[44px] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 text-xs font-medium rounded transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center space-x-1"
                               aria-label={`Ban IP ${event.ip}`}
                             >
-                              Ban IP
+                              <Ban className="w-3.5 h-3.5" />
+                              <span>Ban IP</span>
                             </button>
                           </form>
                         )}
-                      </td>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto border border-zinc-800 rounded-lg">
+                <table className="w-full text-left text-sm text-zinc-300">
+                  <thead className="bg-zinc-950 text-xs uppercase text-zinc-400 border-b border-zinc-800">
+                    <tr>
+                      <th className="px-4 py-3">Event</th>
+                      <th className="px-4 py-3">Timestamp</th>
+                      <th className="px-4 py-3">Player</th>
+                      <th className="px-4 py-3">Steam ID</th>
+                      <th className="px-4 py-3">IP Address</th>
+                      <th className="px-4 py-3">Coordinates</th>
+                      <th className="px-4 py-3 text-right">Moderation</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800">
+                    {filteredHistory.map((event) => (
+                      <tr key={event.id} className="hover:bg-zinc-800/40 transition-colors">
+                        <td className="px-4 py-3">
+                          {event.type === 'CONNECTED' ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-950/70 text-emerald-300 border border-emerald-800">
+                              <LogIn className="w-3 h-3 mr-1 text-emerald-400" />
+                              Connected
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-zinc-800/80 text-zinc-400 border border-zinc-700">
+                              <LogOut className="w-3 h-3 mr-1 text-zinc-500" />
+                              Disconnected
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs text-zinc-400">
+                          {event.timestamp}
+                        </td>
+                        <td className="px-4 py-3 font-semibold text-white">
+                          {event.username}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs text-zinc-400">
+                          {event.steamid || '—'}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs text-zinc-400">
+                          {event.ip || '—'}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-zinc-400">
+                          {event.coordinates ? (
+                            <span className="inline-flex items-center text-amber-300/90 font-mono text-[11px]">
+                              <MapPin className="w-3 h-3 mr-1 text-amber-400 shrink-0" />
+                              {event.coordinates}
+                            </span>
+                          ) : (
+                            <span className="text-zinc-600">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right space-x-2">
+                          {event.steamid && (
+                            <form action={banAction} className="inline-block">
+                              <input type="hidden" name="banType" value="steam" />
+                              <input type="hidden" name="target" value={event.steamid} />
+                              <input type="hidden" name="reason" value="Banned via History log" />
+                              <button
+                                type="submit"
+                                disabled={banPending}
+                                className="px-2 py-0.5 bg-rose-950/60 hover:bg-rose-900/60 text-rose-300 border border-rose-800 text-xs rounded transition-colors disabled:opacity-50 cursor-pointer"
+                                title={`Ban Steam ID ${event.steamid}`}
+                                aria-label={`Ban Steam ID ${event.steamid}`}
+                              >
+                                Ban Steam
+                              </button>
+                            </form>
+                          )}
+                          {event.ip && (
+                            <form action={banAction} className="inline-block">
+                              <input type="hidden" name="banType" value="ip" />
+                              <input type="hidden" name="target" value={event.ip} />
+                              <input type="hidden" name="reason" value="Banned via History log" />
+                              <button
+                                type="submit"
+                                disabled={banPending}
+                                className="px-2 py-0.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 text-xs rounded transition-colors disabled:opacity-50 cursor-pointer"
+                                title={`Ban IP ${event.ip}`}
+                                aria-label={`Ban IP ${event.ip}`}
+                              >
+                                Ban IP
+                              </button>
+                            </form>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       )}
 
       {/* Tab 2: Whitelist Management */}
       {activeTab === 'whitelist' && (
-        <div className="bg-zinc-900 border border-zinc-700 rounded-b-lg p-6 shadow-xl space-y-6">
+        <div className="bg-zinc-900 border border-zinc-700 rounded-b-lg p-4 sm:p-6 shadow-xl space-y-6">
           {/* Add user form */}
           <div className="p-4 bg-zinc-800/60 border border-zinc-700/80 rounded-lg space-y-3">
             <h4 className="text-sm font-semibold text-white flex items-center space-x-2">
@@ -450,7 +607,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
                   name="username"
                   required
                   placeholder="e.g. SurvivorBob"
-                  className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-zinc-900 border border-zinc-700 rounded text-base sm:text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
@@ -459,7 +616,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
                 <select
                   name="role"
                   defaultValue="5"
-                  className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-sm text-zinc-100 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                  className="w-full px-3 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-zinc-900 border border-zinc-700 rounded text-base sm:text-sm text-zinc-100 focus:outline-none focus:border-indigo-500 cursor-pointer"
                 >
                   {ROLE_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -476,7 +633,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
                   name="steamid"
                   placeholder="76561198000000000"
                   maxLength={17}
-                  className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 font-mono"
+                  className="w-full px-3 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-zinc-900 border border-zinc-700 rounded text-base sm:text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 font-mono"
                 />
               </div>
 
@@ -484,7 +641,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
                 <button
                   type="submit"
                   disabled={addWhitelistPending}
-                  className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-sm font-medium transition-colors disabled:opacity-50 cursor-pointer"
+                  className="w-full py-2.5 sm:py-2 min-h-[44px] sm:min-h-0 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-sm font-medium transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center space-x-2"
                   aria-label="Add user to whitelist"
                 >
                   {addWhitelistPending ? 'Adding...' : 'Add to Whitelist'}
@@ -499,66 +656,121 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
             )}
           </div>
 
-          {/* Whitelist Table */}
+          {/* Whitelist Table / Cards */}
           <div className="space-y-3">
             <h4 className="text-base font-semibold text-white">Whitelisted Players ({overview.whitelist.length})</h4>
 
             {overview.whitelist.length === 0 ? (
               <p className="text-sm text-zinc-500 italic">No users currently registered in whitelist table.</p>
             ) : (
-              <div className="overflow-x-auto border border-zinc-800 rounded-lg">
-                <table className="w-full text-left text-sm text-zinc-300">
-                  <thead className="bg-zinc-950 text-xs uppercase text-zinc-400 border-b border-zinc-800">
-                    <tr>
-                      <th className="px-4 py-3">Username</th>
-                      <th className="px-4 py-3">Role</th>
-                      <th className="px-4 py-3">Steam ID</th>
-                      <th className="px-4 py-3">Last Active</th>
-                      <th className="px-4 py-3 text-right">Remove</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-800">
-                    {overview.whitelist.map((user: WhitelistUser) => (
-                      <tr key={user.id} className="hover:bg-zinc-800/40 transition-colors">
-                        <td className="px-4 py-3 font-semibold text-white">{user.username}</td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`px-2 py-0.5 rounded text-xs border ${
-                              user.role === 1
-                                ? 'bg-amber-950/60 border-amber-800 text-amber-300'
-                                : user.role === 2
-                                ? 'bg-indigo-950/60 border-indigo-800 text-indigo-300'
-                                : 'bg-zinc-800 border-zinc-700 text-zinc-300'
-                            }`}
+              <>
+                {/* Mobile Cards View */}
+                <div className="block md:hidden space-y-3">
+                  {overview.whitelist.map((user: WhitelistUser) => (
+                    <div
+                      key={user.id}
+                      className="p-4 bg-zinc-800/60 border border-zinc-700/80 rounded-lg space-y-2.5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-white text-sm">{user.username}</span>
+                        <span
+                          className={`px-2 py-0.5 rounded text-xs border ${
+                            user.role === 1
+                              ? 'bg-amber-950/60 border-amber-800 text-amber-300'
+                              : user.role === 2
+                              ? 'bg-indigo-950/60 border-indigo-800 text-indigo-300'
+                              : 'bg-zinc-800 border-zinc-700 text-zinc-300'
+                          }`}
+                        >
+                          {user.roleName}
+                        </span>
+                      </div>
+
+                      <div className="text-xs text-zinc-400 space-y-1">
+                        <div>
+                          <span className="text-zinc-500">Steam ID: </span>
+                          <span className="font-mono text-zinc-300">{user.steamid || '—'}</span>
+                        </div>
+                        <div>
+                          <span className="text-zinc-500">Last Active: </span>
+                          <span className="text-zinc-300">{user.lastConnection || 'Never'}</span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-zinc-750">
+                        <form action={removeWhitelistAction}>
+                          <input type="hidden" name="id" value={user.id} />
+                          <button
+                            type="submit"
+                            disabled={removeWhitelistPending}
+                            className="w-full py-2.5 min-h-[44px] flex items-center justify-center space-x-2 text-rose-300 bg-rose-950/40 hover:bg-rose-900/40 border border-rose-800/60 rounded text-xs font-medium transition-colors cursor-pointer"
+                            title={`Remove ${user.username} from whitelist`}
+                            aria-label={`Remove ${user.username} from whitelist`}
                           >
-                            {user.roleName}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 font-mono text-xs text-zinc-400">
-                          {user.steamid || '—'}
-                        </td>
-                        <td className="px-4 py-3 text-xs text-zinc-500">
-                          {user.lastConnection || 'Never'}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <form action={removeWhitelistAction}>
-                            <input type="hidden" name="id" value={user.id} />
-                            <button
-                              type="submit"
-                              disabled={removeWhitelistPending}
-                              className="p-1.5 text-zinc-400 hover:text-red-400 transition-colors cursor-pointer"
-                              title={`Remove ${user.username} from whitelist`}
-                              aria-label={`Remove ${user.username} from whitelist`}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </form>
-                        </td>
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Remove from Whitelist</span>
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto border border-zinc-800 rounded-lg">
+                  <table className="w-full text-left text-sm text-zinc-300">
+                    <thead className="bg-zinc-950 text-xs uppercase text-zinc-400 border-b border-zinc-800">
+                      <tr>
+                        <th className="px-4 py-3">Username</th>
+                        <th className="px-4 py-3">Role</th>
+                        <th className="px-4 py-3">Steam ID</th>
+                        <th className="px-4 py-3">Last Active</th>
+                        <th className="px-4 py-3 text-right">Remove</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800">
+                      {overview.whitelist.map((user: WhitelistUser) => (
+                        <tr key={user.id} className="hover:bg-zinc-800/40 transition-colors">
+                          <td className="px-4 py-3 font-semibold text-white">{user.username}</td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`px-2 py-0.5 rounded text-xs border ${
+                                user.role === 1
+                                  ? 'bg-amber-950/60 border-amber-800 text-amber-300'
+                                  : user.role === 2
+                                  ? 'bg-indigo-950/60 border-indigo-800 text-indigo-300'
+                                  : 'bg-zinc-800 border-zinc-700 text-zinc-300'
+                              }`}
+                            >
+                              {user.roleName}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 font-mono text-xs text-zinc-400">
+                            {user.steamid || '—'}
+                          </td>
+                          <td className="px-4 py-3 text-xs text-zinc-500">
+                            {user.lastConnection || 'Never'}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <form action={removeWhitelistAction}>
+                              <input type="hidden" name="id" value={user.id} />
+                              <button
+                                type="submit"
+                                disabled={removeWhitelistPending}
+                                className="p-1.5 text-zinc-400 hover:text-red-400 transition-colors cursor-pointer"
+                                title={`Remove ${user.username} from whitelist`}
+                                aria-label={`Remove ${user.username} from whitelist`}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </form>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -566,7 +778,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
 
       {/* Tab 3: Bans & Moderation */}
       {activeTab === 'bans' && (
-        <div className="bg-zinc-900 border border-zinc-700 rounded-b-lg p-6 shadow-xl space-y-6">
+        <div className="bg-zinc-900 border border-zinc-700 rounded-b-lg p-4 sm:p-6 shadow-xl space-y-6">
           {/* Ban Form */}
           <div className="p-4 bg-zinc-800/60 border border-zinc-700/80 rounded-lg space-y-3">
             <h4 className="text-sm font-semibold text-white flex items-center space-x-2">
@@ -581,7 +793,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
                   name="banType"
                   value={banType}
                   onChange={(e) => setBanType(e.target.value as 'steam' | 'ip')}
-                  className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-sm text-zinc-100 focus:outline-none focus:border-rose-500 cursor-pointer"
+                  className="w-full px-3 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-zinc-900 border border-zinc-700 rounded text-base sm:text-sm text-zinc-100 focus:outline-none focus:border-rose-500 cursor-pointer"
                 >
                   <option value="steam">Steam ID (17 digits)</option>
                   <option value="ip">IP Address</option>
@@ -597,7 +809,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
                   name="target"
                   required
                   placeholder={banType === 'steam' ? '76561198000000000' : '192.168.1.100'}
-                  className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-rose-500 font-mono"
+                  className="w-full px-3 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-zinc-900 border border-zinc-700 rounded text-base sm:text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-rose-500 font-mono"
                 />
               </div>
 
@@ -607,7 +819,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
                   type="text"
                   name="reason"
                   placeholder="Griefing, hacking, etc."
-                  className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-rose-500"
+                  className="w-full px-3 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-zinc-900 border border-zinc-700 rounded text-base sm:text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-rose-500"
                 />
               </div>
 
@@ -615,10 +827,11 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
                 <button
                   type="submit"
                   disabled={banPending}
-                  className="w-full py-2 bg-rose-700 hover:bg-rose-600 text-white rounded text-sm font-medium transition-colors disabled:opacity-50 cursor-pointer"
+                  className="w-full py-2.5 sm:py-2 min-h-[44px] sm:min-h-0 bg-rose-700 hover:bg-rose-600 text-white rounded text-sm font-medium transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center space-x-1.5"
                   aria-label="Enforce ban on target"
                 >
-                  {banPending ? 'Enforcing...' : 'Enforce Ban'}
+                  <Ban className="w-4 h-4" />
+                  <span>{banPending ? 'Enforcing...' : 'Enforce Ban'}</span>
                 </button>
               </div>
             </form>
@@ -630,89 +843,170 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
             )}
           </div>
 
-          {/* Banned Steam IDs Table */}
+          {/* Banned Steam IDs Table / Cards */}
           <div className="space-y-3">
             <h4 className="text-base font-semibold text-white">Banned Steam IDs ({overview.bannedSteamIds.length})</h4>
             {overview.bannedSteamIds.length === 0 ? (
               <p className="text-sm text-zinc-500 italic">No Steam IDs currently banned.</p>
             ) : (
-              <div className="overflow-x-auto border border-zinc-800 rounded-lg">
-                <table className="w-full text-left text-sm text-zinc-300">
-                  <thead className="bg-zinc-950 text-xs uppercase text-zinc-400 border-b border-zinc-800">
-                    <tr>
-                      <th className="px-4 py-3">Steam ID</th>
-                      <th className="px-4 py-3">Reason</th>
-                      <th className="px-4 py-3 text-right">Unban</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-800">
-                    {overview.bannedSteamIds.map((b: BannedSteamId) => (
-                      <tr key={b.steamid} className="hover:bg-zinc-800/40 transition-colors">
-                        <td className="px-4 py-3 font-mono text-sm text-rose-300">{b.steamid}</td>
-                        <td className="px-4 py-3 text-xs text-zinc-400">{b.reason}</td>
-                        <td className="px-4 py-3 text-right">
-                          <form action={unbanAction}>
-                            <input type="hidden" name="unbanType" value="steam" />
-                            <input type="hidden" name="target" value={b.steamid} />
-                            <button
-                              type="submit"
-                              disabled={unbanPending}
-                              className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs rounded border border-zinc-700 transition-colors cursor-pointer"
-                              aria-label={`Unban Steam ID ${b.steamid}`}
-                            >
-                              Unban
-                            </button>
-                          </form>
-                        </td>
+              <>
+                {/* Mobile Cards View */}
+                <div className="block md:hidden space-y-3">
+                  {overview.bannedSteamIds.map((b: BannedSteamId) => (
+                    <div
+                      key={b.steamid}
+                      className="p-4 bg-zinc-800/60 border border-zinc-700/80 rounded-lg space-y-2.5"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <span className="block text-[10px] uppercase text-zinc-500 font-semibold">Steam ID</span>
+                          <span className="font-mono text-sm text-rose-300">{b.steamid}</span>
+                        </div>
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        <span className="text-zinc-500">Reason: </span>
+                        <span>{b.reason || 'No reason provided'}</span>
+                      </div>
+                      <div className="pt-2 border-t border-zinc-750">
+                        <form action={unbanAction}>
+                          <input type="hidden" name="unbanType" value="steam" />
+                          <input type="hidden" name="target" value={b.steamid} />
+                          <button
+                            type="submit"
+                            disabled={unbanPending}
+                            className="w-full py-2.5 min-h-[44px] bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium rounded border border-zinc-700 transition-colors cursor-pointer text-center"
+                            aria-label={`Unban Steam ID ${b.steamid}`}
+                          >
+                            Unban Steam ID
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto border border-zinc-800 rounded-lg">
+                  <table className="w-full text-left text-sm text-zinc-300">
+                    <thead className="bg-zinc-950 text-xs uppercase text-zinc-400 border-b border-zinc-800">
+                      <tr>
+                        <th className="px-4 py-3">Steam ID</th>
+                        <th className="px-4 py-3">Reason</th>
+                        <th className="px-4 py-3 text-right">Unban</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800">
+                      {overview.bannedSteamIds.map((b: BannedSteamId) => (
+                        <tr key={b.steamid} className="hover:bg-zinc-800/40 transition-colors">
+                          <td className="px-4 py-3 font-mono text-sm text-rose-300">{b.steamid}</td>
+                          <td className="px-4 py-3 text-xs text-zinc-400">{b.reason}</td>
+                          <td className="px-4 py-3 text-right">
+                            <form action={unbanAction}>
+                              <input type="hidden" name="unbanType" value="steam" />
+                              <input type="hidden" name="target" value={b.steamid} />
+                              <button
+                                type="submit"
+                                disabled={unbanPending}
+                                className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs rounded border border-zinc-700 transition-colors cursor-pointer"
+                                aria-label={`Unban Steam ID ${b.steamid}`}
+                              >
+                                Unban
+                              </button>
+                            </form>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
 
-          {/* Banned IPs Table */}
+          {/* Banned IPs Table / Cards */}
           <div className="space-y-3">
             <h4 className="text-base font-semibold text-white">Banned IP Addresses ({overview.bannedIps.length})</h4>
             {overview.bannedIps.length === 0 ? (
               <p className="text-sm text-zinc-500 italic">No IP addresses currently banned.</p>
             ) : (
-              <div className="overflow-x-auto border border-zinc-800 rounded-lg">
-                <table className="w-full text-left text-sm text-zinc-300">
-                  <thead className="bg-zinc-950 text-xs uppercase text-zinc-400 border-b border-zinc-800">
-                    <tr>
-                      <th className="px-4 py-3">IP Address</th>
-                      <th className="px-4 py-3">Username</th>
-                      <th className="px-4 py-3">Reason</th>
-                      <th className="px-4 py-3 text-right">Unban</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-800">
-                    {overview.bannedIps.map((b: BannedIp) => (
-                      <tr key={b.ip} className="hover:bg-zinc-800/40 transition-colors">
-                        <td className="px-4 py-3 font-mono text-sm text-rose-300">{b.ip}</td>
-                        <td className="px-4 py-3 text-xs text-zinc-300">{b.username || '—'}</td>
-                        <td className="px-4 py-3 text-xs text-zinc-400">{b.reason}</td>
-                        <td className="px-4 py-3 text-right">
-                          <form action={unbanAction}>
-                            <input type="hidden" name="unbanType" value="ip" />
-                            <input type="hidden" name="target" value={b.ip} />
-                            <button
-                              type="submit"
-                              disabled={unbanPending}
-                              className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs rounded border border-zinc-700 transition-colors cursor-pointer"
-                              aria-label={`Unban IP ${b.ip}`}
-                            >
-                              Unban
-                            </button>
-                          </form>
-                        </td>
+              <>
+                {/* Mobile Cards View */}
+                <div className="block md:hidden space-y-3">
+                  {overview.bannedIps.map((b: BannedIp) => (
+                    <div
+                      key={b.ip}
+                      className="p-4 bg-zinc-800/60 border border-zinc-700/80 rounded-lg space-y-2.5"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <span className="block text-[10px] uppercase text-zinc-500 font-semibold">IP Address</span>
+                          <span className="font-mono text-sm text-rose-300">{b.ip}</span>
+                        </div>
+                        {b.username && (
+                          <span className="text-xs text-zinc-300 bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800">
+                            {b.username}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        <span className="text-zinc-500">Reason: </span>
+                        <span>{b.reason || 'No reason provided'}</span>
+                      </div>
+                      <div className="pt-2 border-t border-zinc-750">
+                        <form action={unbanAction}>
+                          <input type="hidden" name="unbanType" value="ip" />
+                          <input type="hidden" name="target" value={b.ip} />
+                          <button
+                            type="submit"
+                            disabled={unbanPending}
+                            className="w-full py-2.5 min-h-[44px] bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium rounded border border-zinc-700 transition-colors cursor-pointer text-center"
+                            aria-label={`Unban IP ${b.ip}`}
+                          >
+                            Unban IP Address
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto border border-zinc-800 rounded-lg">
+                  <table className="w-full text-left text-sm text-zinc-300">
+                    <thead className="bg-zinc-950 text-xs uppercase text-zinc-400 border-b border-zinc-800">
+                      <tr>
+                        <th className="px-4 py-3">IP Address</th>
+                        <th className="px-4 py-3">Username</th>
+                        <th className="px-4 py-3">Reason</th>
+                        <th className="px-4 py-3 text-right">Unban</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800">
+                      {overview.bannedIps.map((b: BannedIp) => (
+                        <tr key={b.ip} className="hover:bg-zinc-800/40 transition-colors">
+                          <td className="px-4 py-3 font-mono text-sm text-rose-300">{b.ip}</td>
+                          <td className="px-4 py-3 text-xs text-zinc-300">{b.username || '—'}</td>
+                          <td className="px-4 py-3 text-xs text-zinc-400">{b.reason}</td>
+                          <td className="px-4 py-3 text-right">
+                            <form action={unbanAction}>
+                              <input type="hidden" name="unbanType" value="ip" />
+                              <input type="hidden" name="target" value={b.ip} />
+                              <button
+                                type="submit"
+                                disabled={unbanPending}
+                                className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs rounded border border-zinc-700 transition-colors cursor-pointer"
+                                aria-label={`Unban IP ${b.ip}`}
+                              >
+                                Unban
+                              </button>
+                            </form>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -720,7 +1014,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
 
       {/* Tab 4: Server Broadcast Announcement */}
       {activeTab === 'broadcast' && (
-        <div className="bg-zinc-900 border border-zinc-700 rounded-b-lg p-6 shadow-xl space-y-4">
+        <div className="bg-zinc-900 border border-zinc-700 rounded-b-lg p-4 sm:p-6 shadow-xl space-y-4">
           <div className="flex items-center space-x-2">
             <Megaphone className="w-5 h-5 text-amber-400" />
             <h4 className="text-base font-semibold text-white">Broadcast Announcement to In-Game Chat</h4>
@@ -736,15 +1030,15 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
                 required
                 rows={3}
                 placeholder="Attention survivors: Server restarting in 5 minutes for maintenance..."
-                className="w-full p-3 bg-zinc-800 border border-zinc-700 rounded-md text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-amber-500"
+                className="w-full p-3 bg-zinc-800 border border-zinc-700 rounded-md text-base sm:text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-amber-500"
               />
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
               <button
                 type="submit"
                 disabled={broadcastPending}
-                className="flex items-center space-x-2 px-5 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50 cursor-pointer"
+                className="flex items-center justify-center space-x-2 px-5 py-2.5 min-h-[44px] sm:min-h-0 bg-amber-600 hover:bg-amber-500 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50 cursor-pointer w-full sm:w-auto"
                 aria-label="Send broadcast announcement"
               >
                 <Send className="w-4 h-4" />
@@ -752,7 +1046,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
               </button>
 
               {broadcastState?.message && (
-                <span className={`text-xs font-medium ${broadcastState.error ? 'text-red-400' : 'text-green-400'}`}>
+                <span className={`text-xs font-medium text-center sm:text-left ${broadcastState.error ? 'text-red-400' : 'text-green-400'}`}>
                   {broadcastState.message}
                 </span>
               )}
