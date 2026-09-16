@@ -44,7 +44,7 @@ function SubmitButton({ label }: { label: string }) {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-medium rounded-md shadow-sm transition-colors cursor-pointer"
+      className="inline-flex items-center justify-center space-x-2 px-4 py-2.5 min-h-[44px] sm:min-h-0 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-medium rounded-md shadow-sm transition-colors cursor-pointer w-full sm:w-auto"
       aria-label={label}
     >
       {pending ? (
@@ -68,7 +68,7 @@ function RestartButton() {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex items-center space-x-2 px-3.5 py-1.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-xs font-semibold rounded shadow transition-colors cursor-pointer"
+      className="inline-flex items-center justify-center space-x-2 px-3.5 py-2.5 min-h-[44px] sm:min-h-0 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-xs font-semibold rounded shadow transition-colors cursor-pointer w-full sm:w-auto"
       aria-label="Restart Server Now"
     >
       {pending ? (
@@ -387,7 +387,7 @@ export default function ServerSettingsClient({
 
           {/* Search and Category Filters */}
           <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-4 space-y-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="relative flex-1">
                 <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
@@ -395,14 +395,14 @@ export default function ServerSettingsClient({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search properties by name or description..."
-                  className="w-full pl-9 pr-4 py-1.5 bg-zinc-800 border border-zinc-700 rounded-md text-xs text-white placeholder-zinc-400 focus:outline-none focus:border-indigo-500 transition-colors"
+                  className="w-full pl-9 pr-4 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-zinc-800 border border-zinc-700 rounded-md text-base sm:text-xs text-white placeholder-zinc-400 focus:outline-none focus:border-indigo-500 transition-colors"
                 />
               </div>
 
               <button
                 type="button"
                 onClick={handleResetProperties}
-                className="flex items-center space-x-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs rounded border border-zinc-700 transition-colors cursor-pointer"
+                className="flex items-center justify-center space-x-1.5 px-3.5 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs rounded border border-zinc-700 transition-colors cursor-pointer w-full sm:w-auto"
                 title="Reset all fields to default values"
                 aria-label="Reset all properties to defaults"
               >
@@ -411,8 +411,32 @@ export default function ServerSettingsClient({
               </button>
             </div>
 
-            {/* Category Filter Chips */}
-            <div className="flex flex-wrap gap-2 pt-1 border-t border-zinc-800">
+            {/* Mobile Category Dropdown */}
+            <div className="block md:hidden pt-1 border-t border-zinc-800">
+              <label htmlFor="settings-mobile-category-select" className="block text-xs font-semibold text-zinc-400 mb-1.5">
+                Category Filter
+              </label>
+              <select
+                id="settings-mobile-category-select"
+                value={activeCategory}
+                onChange={(e) => setActiveCategory(e.target.value)}
+                className="w-full px-3 py-2.5 min-h-[44px] bg-zinc-800 border border-zinc-700 rounded-md text-base text-zinc-100 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                aria-label="Select Properties Category"
+              >
+                <option value="all">All Categories ({SERVER_PROPERTIES_SCHEMA.length})</option>
+                {SERVER_PROPERTY_CATEGORIES.map((cat) => {
+                  const count = SERVER_PROPERTIES_SCHEMA.filter((p) => p.category === cat.id).length;
+                  return (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.label} ({count})
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            {/* Desktop Category Filter Chips */}
+            <div className="hidden md:flex flex-wrap gap-2 pt-1 border-t border-zinc-800">
               <button
                 type="button"
                 onClick={() => setActiveCategory('all')}
@@ -475,25 +499,25 @@ export default function ServerSettingsClient({
 
                     <div className="pt-2 border-t border-zinc-800/80">
                       {meta.type === 'boolean' ? (
-                        <div className="flex items-center space-x-3">
+                        <label className="flex items-center space-x-3 cursor-pointer min-h-[44px] py-1 px-1 -mx-1 rounded-md hover:bg-zinc-800/80 transition-colors">
                           <button
                             type="button"
                             onClick={() => handlePropertyChange(meta.key, !currentVal)}
-                            className={`relative inline-flex h-5 w-10 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                               currentVal ? 'bg-indigo-600' : 'bg-zinc-700'
                             }`}
                             aria-label={`Toggle ${meta.label}`}
                           >
                             <span
-                              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
                                 currentVal ? 'translate-x-5' : 'translate-x-0'
                               }`}
                             />
                           </button>
-                          <span className="text-xs font-medium text-zinc-300">
+                          <span className="text-sm sm:text-xs font-medium text-zinc-300 select-none">
                             {currentVal ? 'Enabled' : 'Disabled'}
                           </span>
-                        </div>
+                        </label>
                       ) : meta.type === 'select' && meta.options ? (
                         <select
                           value={typeof currentVal === 'number' ? currentVal : String(currentVal)}
@@ -502,7 +526,7 @@ export default function ServerSettingsClient({
                             const val = targetOption ? targetOption.value : e.target.value;
                             handlePropertyChange(meta.key, val);
                           }}
-                          className="w-full px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded text-xs text-white focus:outline-none focus:border-indigo-500 cursor-pointer"
+                          className="w-full px-3 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-zinc-800 border border-zinc-700 rounded text-base sm:text-xs text-white focus:outline-none focus:border-indigo-500 cursor-pointer"
                         >
                           {meta.options.map((opt) => (
                             <option key={String(opt.value)} value={opt.value}>
@@ -524,7 +548,7 @@ export default function ServerSettingsClient({
                                 e.target.value === '' ? 0 : Number(e.target.value)
                               )
                             }
-                            className="w-full px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded text-xs text-white focus:outline-none focus:border-indigo-500"
+                            className="w-full px-3 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-zinc-800 border border-zinc-700 rounded text-base sm:text-xs text-white focus:outline-none focus:border-indigo-500 font-mono"
                           />
                         </div>
                       ) : (
@@ -532,7 +556,7 @@ export default function ServerSettingsClient({
                           type="text"
                           value={String(currentVal)}
                           onChange={(e) => handlePropertyChange(meta.key, e.target.value)}
-                          className="w-full px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded text-xs text-white focus:outline-none focus:border-indigo-500"
+                          className="w-full px-3 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-zinc-800 border border-zinc-700 rounded text-base sm:text-xs text-white focus:outline-none focus:border-indigo-500 font-mono"
                         />
                       )}
                     </div>
@@ -543,18 +567,18 @@ export default function ServerSettingsClient({
           </div>
 
           {/* Sticky Bottom Bar */}
-          <div className="sticky bottom-4 bg-zinc-900 border border-zinc-700 rounded-lg p-4 shadow-2xl flex items-center justify-between">
+          <div className="sticky bottom-4 bg-zinc-900 border border-zinc-700 rounded-lg p-3 sm:p-4 shadow-2xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 z-20">
             <div className="flex items-center space-x-2">
-              <HelpCircle className="w-4 h-4 text-zinc-400" />
+              <HelpCircle className="w-4 h-4 text-zinc-400 shrink-0" />
               <span className="text-xs text-zinc-400">
-                Saving updates the <code className="text-zinc-300 font-mono">ServerName.ini</code> configuration directly.
+                Saving updates <code className="text-zinc-300 font-mono">ServerName.ini</code> directly.
               </span>
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
               {propState?.message && (
                 <span
-                  className={`text-xs font-medium ${
+                  className={`text-xs font-medium text-center sm:text-left ${
                     propState.success ? 'text-emerald-400' : 'text-rose-400'
                   }`}
                 >
@@ -573,8 +597,8 @@ export default function ServerSettingsClient({
           <input type="hidden" name="spawnRegions" value={JSON.stringify(spawnRegions)} />
 
           {/* Official Spawns Toggle Card */}
-          <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 space-y-4">
-            <div className="flex items-start justify-between">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-4 sm:p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
               <div>
                 <h4 className="text-base font-bold text-white flex items-center space-x-2">
                   <MapPin className="w-5 h-5 text-indigo-400" />
@@ -588,7 +612,7 @@ export default function ServerSettingsClient({
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(true)}
-                className="flex items-center space-x-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded shadow transition-colors cursor-pointer"
+                className="flex items-center justify-center space-x-1.5 px-3.5 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded shadow transition-colors cursor-pointer w-full sm:w-auto"
                 aria-label="Add custom map spawn region"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -607,7 +631,7 @@ export default function ServerSettingsClient({
                     key={official.name}
                     type="button"
                     onClick={() => handleToggleOfficialSpawn(official)}
-                    className={`p-3 rounded-lg border text-left transition-all cursor-pointer flex flex-col justify-between space-y-2 ${
+                    className={`p-3 min-h-[44px] rounded-lg border text-left transition-all cursor-pointer flex flex-col justify-between space-y-2 ${
                       isEnabled
                         ? 'bg-indigo-950/40 border-indigo-500/80 text-white shadow-sm'
                         : 'bg-zinc-800/40 border-zinc-700/60 text-zinc-400 hover:border-zinc-600'
@@ -631,7 +655,7 @@ export default function ServerSettingsClient({
           </div>
 
           {/* Active Spawn Regions List */}
-          <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 space-y-4">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-4 sm:p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h4 className="text-base font-bold text-white flex items-center space-x-2">
                 <FileText className="w-5 h-5 text-indigo-400" />
@@ -668,7 +692,7 @@ export default function ServerSettingsClient({
                     type="button"
                     onClick={() => handleRemoveSpawnRegion(region.name)}
                     disabled={spawnRegions.length <= 1}
-                    className="p-1.5 text-zinc-400 hover:text-rose-400 hover:bg-rose-950/30 rounded border border-zinc-800 transition-colors disabled:opacity-30 cursor-pointer"
+                    className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center text-zinc-400 hover:text-rose-400 hover:bg-rose-950/30 rounded border border-zinc-800 transition-colors disabled:opacity-30 cursor-pointer"
                     title="Remove spawn region"
                     aria-label={`Remove spawn region ${region.name}`}
                   >
@@ -680,18 +704,18 @@ export default function ServerSettingsClient({
           </div>
 
           {/* Sticky Bottom Bar */}
-          <div className="sticky bottom-4 bg-zinc-900 border border-zinc-700 rounded-lg p-4 shadow-2xl flex items-center justify-between">
+          <div className="sticky bottom-4 bg-zinc-900 border border-zinc-700 rounded-lg p-3 sm:p-4 shadow-2xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 z-20">
             <div className="flex items-center space-x-2">
-              <HelpCircle className="w-4 h-4 text-zinc-400" />
+              <HelpCircle className="w-4 h-4 text-zinc-400 shrink-0" />
               <span className="text-xs text-zinc-400">
                 Writes to <code className="text-zinc-300 font-mono">ServerName_spawnregions.lua</code>.
               </span>
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
               {spawnState?.message && (
                 <span
-                  className={`text-xs font-medium ${
+                  className={`text-xs font-medium text-center sm:text-left ${
                     spawnState.success ? 'text-emerald-400' : 'text-rose-400'
                   }`}
                 >
@@ -742,7 +766,7 @@ export default function ServerSettingsClient({
                   placeholder="e.g. Raven Creek"
                   value={newRegionName}
                   onChange={(e) => setNewRegionName(e.target.value)}
-                  className="w-full px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-zinc-800 border border-zinc-700 rounded text-base sm:text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
@@ -755,27 +779,27 @@ export default function ServerSettingsClient({
                   placeholder="media/maps/RavenCreek/spawnpoints.lua"
                   value={newRegionFile}
                   onChange={(e) => setNewRegionFile(e.target.value)}
-                  className="w-full px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-zinc-800 border border-zinc-700 rounded text-base sm:text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500 font-mono"
                 />
                 <p className="text-[10px] text-zinc-400 mt-1">
                   Standard format: <code className="text-zinc-300">media/maps/[MapFolder]/spawnpoints.lua</code>
                 </p>
               </div>
 
-              <div className="flex items-center justify-end space-x-3 pt-2">
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:space-x-3 pt-2">
                 <button
                   type="button"
                   onClick={() => {
                     setIsAddModalOpen(false);
                     setAddModalError('');
                   }}
-                  className="px-3.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium rounded border border-zinc-700 transition-colors cursor-pointer"
+                  className="px-3.5 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium rounded border border-zinc-700 transition-colors cursor-pointer text-center"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded shadow transition-colors cursor-pointer"
+                  className="px-4 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded shadow transition-colors cursor-pointer text-center"
                 >
                   Add Region
                 </button>

@@ -256,36 +256,36 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
                     <span className="text-sm font-mono truncate text-zinc-100">{mod}</span>
                   </div>
 
-                  <div className="flex items-center space-x-1">
+                  <div className="flex items-center space-x-1 sm:space-x-0.5">
                     {/* Quick Move Up/Down */}
                     <button
                       type="button"
                       onClick={() => moveItem('mod', idx, idx - 1)}
                       disabled={idx === 0}
-                      className="p-1 text-zinc-400 hover:text-zinc-200 disabled:opacity-20 disabled:hover:text-zinc-400 cursor-pointer"
+                      className="p-2 sm:p-1 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60 rounded disabled:opacity-20 disabled:hover:text-zinc-400 disabled:hover:bg-transparent cursor-pointer"
                       title="Move Up"
                       aria-label={`Move mod ${mod} up`}
                     >
-                      <ChevronUp className="w-3.5 h-3.5" />
+                      <ChevronUp className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                     </button>
                     <button
                       type="button"
                       onClick={() => moveItem('mod', idx, idx + 1)}
                       disabled={idx === mods.length - 1}
-                      className="p-1 text-zinc-400 hover:text-zinc-200 disabled:opacity-20 disabled:hover:text-zinc-400 cursor-pointer"
+                      className="p-2 sm:p-1 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60 rounded disabled:opacity-20 disabled:hover:text-zinc-400 disabled:hover:bg-transparent cursor-pointer"
                       title="Move Down"
                       aria-label={`Move mod ${mod} down`}
                     >
-                      <ChevronDown className="w-3.5 h-3.5" />
+                      <ChevronDown className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                     </button>
                     <button
                       type="button"
                       onClick={() => removeItem('mod', idx)}
-                      className="p-1 text-red-500 hover:text-red-400 transition-colors cursor-pointer"
+                      className="p-2 sm:p-1 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center text-red-500 hover:text-red-400 hover:bg-rose-950/40 rounded transition-colors cursor-pointer"
                       title="Remove Mod ID"
                       aria-label={`Remove mod ${mod}`}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                     </button>
                   </div>
                 </li>
@@ -303,7 +303,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
             </div>
             <button 
               onClick={() => addItemManual('map')} 
-              className="text-zinc-400 hover:text-indigo-400 transition-colors p-1 cursor-pointer"
+              className="text-zinc-400 hover:text-indigo-400 transition-colors p-2 sm:p-1 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center cursor-pointer"
               title="Add Map ID manually"
               aria-label="Add Map ID manually"
             >
@@ -359,35 +359,35 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
                       Core Base
                     </span>
                   ) : (
-                    <div className="flex items-center space-x-1">
+                    <div className="flex items-center space-x-1 sm:space-x-0.5">
                       <button
                         type="button"
                         onClick={() => moveItem('map', idx, idx - 1)}
                         disabled={idx === 0}
-                        className="p-1 text-zinc-400 hover:text-zinc-200 disabled:opacity-20 disabled:hover:text-zinc-400 cursor-pointer"
+                        className="p-2 sm:p-1 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60 rounded disabled:opacity-20 disabled:hover:text-zinc-400 disabled:hover:bg-transparent cursor-pointer"
                         title="Move Up"
                         aria-label={`Move map ${map} up`}
                       >
-                        <ChevronUp className="w-3.5 h-3.5" />
+                        <ChevronUp className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                       </button>
                       <button
                         type="button"
                         onClick={() => moveItem('map', idx, idx + 1)}
                         disabled={idx >= nonCoreCount - 1}
-                        className="p-1 text-zinc-400 hover:text-zinc-200 disabled:opacity-20 disabled:hover:text-zinc-400 cursor-pointer"
+                        className="p-2 sm:p-1 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60 rounded disabled:opacity-20 disabled:hover:text-zinc-400 disabled:hover:bg-transparent cursor-pointer"
                         title="Move Down"
                         aria-label={`Move map ${map} down`}
                       >
-                        <ChevronDown className="w-3.5 h-3.5" />
+                        <ChevronDown className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                       </button>
                       <button
                         type="button"
                         onClick={() => removeItem('map', idx)}
-                        className="p-1 text-red-500 hover:text-red-400 transition-colors cursor-pointer"
+                        className="p-2 sm:p-1 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center text-red-500 hover:text-red-400 hover:bg-rose-950/40 rounded transition-colors cursor-pointer"
                         title="Remove Map ID"
                         aria-label={`Remove map ${map}`}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                       </button>
                     </div>
                   )}
@@ -406,7 +406,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
             </div>
             <button 
               onClick={() => addItemManual('workshop')} 
-              className="text-zinc-400 hover:text-indigo-400 transition-colors p-1 cursor-pointer"
+              className="text-zinc-400 hover:text-indigo-400 transition-colors p-2 sm:p-1 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center cursor-pointer"
               title="Add workshop item manually"
               aria-label="Add workshop item manually"
             >
@@ -447,35 +447,35 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
                     <span className="text-sm font-mono truncate text-zinc-100">{item}</span>
                   </div>
 
-                  <div className="flex items-center space-x-1">
+                  <div className="flex items-center space-x-1 sm:space-x-0.5">
                     <button
                       type="button"
                       onClick={() => moveItem('workshop', idx, idx - 1)}
                       disabled={idx === 0}
-                      className="p-1 text-zinc-400 hover:text-zinc-200 disabled:opacity-20 disabled:hover:text-zinc-400 cursor-pointer"
+                      className="p-2 sm:p-1 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60 rounded disabled:opacity-20 disabled:hover:text-zinc-400 disabled:hover:bg-transparent cursor-pointer"
                       title="Move Up"
                       aria-label={`Move workshop item ${item} up`}
                     >
-                      <ChevronUp className="w-3.5 h-3.5" />
+                      <ChevronUp className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                     </button>
                     <button
                       type="button"
                       onClick={() => moveItem('workshop', idx, idx + 1)}
                       disabled={idx === workshopItems.length - 1}
-                      className="p-1 text-zinc-400 hover:text-zinc-200 disabled:opacity-20 disabled:hover:text-zinc-400 cursor-pointer"
+                      className="p-2 sm:p-1 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/60 rounded disabled:opacity-20 disabled:hover:text-zinc-400 disabled:hover:bg-transparent cursor-pointer"
                       title="Move Down"
                       aria-label={`Move workshop item ${item} down`}
                     >
-                      <ChevronDown className="w-3.5 h-3.5" />
+                      <ChevronDown className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                     </button>
                     <button
                       type="button"
                       onClick={() => removeItem('workshop', idx)}
-                      className="p-1 text-red-500 hover:text-red-400 transition-colors cursor-pointer"
+                      className="p-2 sm:p-1 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center text-red-500 hover:text-red-400 hover:bg-rose-950/40 rounded transition-colors cursor-pointer"
                       title="Remove Workshop Item"
                       aria-label={`Remove workshop item ${item}`}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                     </button>
                   </div>
                 </li>
@@ -491,7 +491,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
         <input type="hidden" name="mods" value={JSON.stringify(mods)} />
         <input type="hidden" name="maps" value={JSON.stringify(maps)} />
 
-        <div className="sticky bottom-4 bg-zinc-900 border border-zinc-700 rounded-lg p-4 shadow-2xl flex items-center justify-between z-20">
+        <div className="sticky bottom-4 bg-zinc-900 border border-zinc-700 rounded-lg p-3 sm:p-4 shadow-2xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 z-20">
           <div className="flex items-center space-x-2">
             <HelpCircle className="w-4 h-4 text-zinc-400 shrink-0" />
             <span className="text-xs text-zinc-400">
@@ -499,10 +499,10 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
             </span>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
             {state?.message && (
               <span
-                className={`text-xs font-medium ${
+                className={`text-xs font-medium text-center sm:text-left ${
                   state.error ? 'text-rose-400' : 'text-emerald-400'
                 }`}
               >
@@ -512,7 +512,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
             <button
               type="submit"
               disabled={isPending}
-              className="inline-flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-medium rounded-md shadow-sm transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center space-x-2 px-4 py-2.5 min-h-[44px] sm:min-h-0 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-medium rounded-md shadow-sm transition-colors cursor-pointer w-full sm:w-auto"
               aria-label="Save Configuration"
             >
               {isPending ? (
