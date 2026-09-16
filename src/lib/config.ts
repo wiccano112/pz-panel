@@ -9,25 +9,45 @@ export const CONFIG = {
   steamApiKey: process.env.STEAM_API_KEY || '',
 
   get serverCpus(): string {
-    if (process.env.PZ_SERVER_CPUS) {
-      return process.env.PZ_SERVER_CPUS;
+    if (process.env.PZ_SERVER_CPUS && process.env.PZ_SERVER_CPUS.trim()) {
+      return process.env.PZ_SERVER_CPUS.trim();
     }
     try {
-      if (fs.existsSync(this.composeFile)) {
-        const content = fs.readFileSync(this.composeFile, 'utf8');
-        const match = content.match(/cpuset\s*:\s*["']?([0-9,\s-]+)["']?/i);
-        if (match && match[1]) {
-          return match[1].trim();
+      const candidates = [
+        path.join(this.serverDir, 'docker-compose.yml'),
+        path.join(this.serverDir, 'docker-compose.yaml'),
+        path.join(this.serverDir, 'compose.yml'),
+        path.join(this.serverDir, 'compose.yaml'),
+        path.join(this.hostServerDir, 'docker-compose.yml'),
+        path.join(this.hostServerDir, 'docker-compose.yaml'),
+      ];
+      for (const file of candidates) {
+        if (fs.existsSync(file)) {
+          const content = fs.readFileSync(file, 'utf8');
+          const match = content.match(/cpuset\s*:\s*["']?([0-9,\s-]+)["']?/i);
+          if (match && match[1]) {
+            return match[1].trim();
+          }
         }
       }
     } catch {
       // Ignore read errors
     }
-    return '12-15';
+    return '12-17';
   },
 
   get composeFile(): string {
-    return path.join(this.hostServerDir, 'docker-compose.yml');
+    const candidates = [
+      path.join(this.serverDir, 'docker-compose.yml'),
+      path.join(this.serverDir, 'docker-compose.yaml'),
+      path.join(this.serverDir, 'compose.yml'),
+      path.join(this.serverDir, 'compose.yaml'),
+      path.join(this.hostServerDir, 'docker-compose.yml'),
+    ];
+    for (const f of candidates) {
+      if (fs.existsSync(f)) return f;
+    }
+    return path.join(this.serverDir, 'docker-compose.yml');
   },
 
   get iniPath(): string {

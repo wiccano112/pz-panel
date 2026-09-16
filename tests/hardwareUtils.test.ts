@@ -6,6 +6,7 @@ describe('hardwareUtils - CPU Core Parsing & Metrics', () => {
     expect(parseCpuRange('0')).toEqual([0]);
     expect(parseCpuRange('0-3')).toEqual([0, 1, 2, 3]);
     expect(parseCpuRange('12-15')).toEqual([12, 13, 14, 15]);
+    expect(parseCpuRange('12-17')).toEqual([12, 13, 14, 15, 16, 17]);
   });
 
   it('should parse comma-separated lists and mixed ranges', () => {

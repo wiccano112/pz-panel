@@ -249,7 +249,26 @@ export async function getHardwareCpuStats(): Promise<HardwareCpuStats> {
   const { package: packageTempC, cores: coreTemps } = getCpuTemps();
 
   // 4. Assigned Cores resolution
-  const assignedRangeString = CONFIG.serverCpus;
+  let assignedRangeString = CONFIG.serverCpus;
+  if (!process.env.PZ_SERVER_CPUS) {
+    try {
+      const { execFile } = await import('child_process');
+      const { promisify } = await import('util');
+      const execFileAsync = promisify(execFile);
+      const { stdout } = await execFileAsync('docker', [
+        'inspect',
+        '-f',
+        '{{.HostConfig.CpusetCpus}}',
+        CONFIG.containerName,
+      ]);
+      const inspected = stdout.trim();
+      if (inspected) {
+        assignedRangeString = inspected;
+      }
+    } catch {
+      // Ignore docker inspect errors (e.g. container stopped or non-docker env)
+    }
+  }
   const assignedCpus = parseCpuRange(assignedRangeString);
   const assignedSet = new Set(assignedCpus);
 
