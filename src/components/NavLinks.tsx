@@ -4,7 +4,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, PackagePlus, Sliders, Users, Settings } from 'lucide-react';
 
-export default function NavLinks() {
+interface NavLinksProps {
+  onNavigate?: () => void;
+}
+
+export default function NavLinks({ onNavigate }: NavLinksProps = {}) {
   const pathname = usePathname();
 
   const links = [
@@ -14,7 +18,6 @@ export default function NavLinks() {
     { href: '/settings', label: 'Server Properties', icon: Settings },
     { href: '/players', label: 'Players & Moderation', icon: Users },
   ];
-
 
   return (
     <nav className="flex flex-col space-y-1.5">
@@ -26,6 +29,7 @@ export default function NavLinks() {
           <Link
             key={link.href}
             href={link.href}
+            onClick={() => onNavigate?.()}
             className={`flex items-center space-x-2.5 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
               isActive
                 ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
