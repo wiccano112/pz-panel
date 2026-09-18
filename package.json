@@ -13,7 +13,9 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report",
+    "test:all": "vitest run && playwright test",
     "validate": "pnpm run lint && pnpm tsc --noEmit && pnpm test",
+    "validate:all": "pnpm run lint && pnpm tsc --noEmit && pnpm test && playwright test",
     "version:patch": "node scripts/bump-version.mjs patch",
     "version:minor": "node scripts/bump-version.mjs minor",
     "version:major": "node scripts/bump-version.mjs major"

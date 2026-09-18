@@ -134,5 +134,23 @@ El servidor de Project Zomboid desplegado se encuentra en la ruta parametrizada 
 
 ### 12. Separación Estricta de Puertos (Producción vs Testing E2E)
 - **Puerto 3000 (PRODUCCIÓN INVARIABLE):** El contenedor Docker `pz-panel` corre **única y exclusivamente en el puerto 3000** (`http://localhost:3000`). Este es el punto de acceso para el usuario final y administradores.
-- **Puerto 3001 (SOLO TEST RUNNER EFÍMERO):** El puerto 3001 se reserva exclusivamente para levantar procesos locales temporales durante la ejecución de pruebas E2E de Playwright (`playwright.config.ts`), evitando interferir con el contenedor de producción en el 3000. Al terminar las pruebas E2E, el proceso del 3001 debe ser terminado de inmediato.
+- **Puerto 3001 (SOLO TEST RUNNER EFÍMERO):** El puerto 3001 se reserva exclusivamente para el `webServer` auto-gestionado de Playwright (`playwright.config.ts`), evitando interferir con el contenedor de producción en el 3000. Al terminar las pruebas E2E, Playwright apaga el servidor automáticamente.
+
+### 13. Rebase y Sincronización Obligatoria antes del Hand-off (Cero Conflictos)
+- **Sincronización Previa a la Entrega:** Antes de que un agente (Jim, Dwight, etc.) declare su tarea como `done` y emita el hand-off al orquestador (Michael), DEBE ejecutar en su worktree:
+  ```bash
+  git fetch origin && git merge origin/main
+  ```
+- **Validación Local Limpia:** Sobre la rama sincronizada, debe ejecutar `pnpm run validate` (o `pnpm run validate:all`) con 0 errores de compilación, 0 conflictos y 100% de tests pasando antes de notificar por outbox.
+
+### 14. Invariante de Aislamiento Absoluto del Servidor de Juego (`pz-server`)
+- **Prohibición de Acciones Destructivas en Desarrollo:** Queda terminantemente prohibido para cualquier subagente en desarrollo emitir comandos directos de detención o reinicio sobre el contenedor `pz-server` (`docker stop pz-server`, `docker restart pz-server` o `docker rm pz-server`).
+- **Uso Estricto de Mocks:** Toda prueba de ciclo de vida (RCON save, timeouts, staging de configuración) DEBE realizarse mediante mocks en Vitest o contra entornos aislados sin afectar a los jugadores conectados.
+
+### 15. Comandos de Prueba y Validación Estandarizados
+- **`pnpm test` (Unit & Integration):** Ejecuta la batería de Vitest (78 tests, ~400ms) para desarrollo ágil y TDD.
+- **`pnpm run test:e2e` (Browser E2E):** Ejecuta la suite de Playwright con inicio y apagado automático del servidor efímero en `:3001`.
+- **`pnpm run test:all` (Full Test Battery):** Ejecuta en un solo paso Vitest + Playwright E2E (85 tests).
+- **`pnpm run validate:all` (Comprehensive CI Pipeline):** Ejecuta Lint + TypeScript strict + Vitest + Playwright E2E.
+
 

@@ -12,6 +12,13 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
 
+  webServer: {
+    command: 'PORT=3001 node .next/standalone/server.js',
+    port: 3001,
+    reuseExistingServer: !process.env.CI,
+    timeout: 60 * 1000,
+  },
+
   projects: [
     {
       name: 'Mobile Chrome',
