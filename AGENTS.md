@@ -83,15 +83,14 @@ El servidor de Project Zomboid desplegado se encuentra en la ruta parametrizada 
   - **Versión Explícita:** `node scripts/bump-version.mjs 1.2.5` (para forzar una versión específica).
 - **Marca de Agua en UI:** La barra lateral (`src/components/Sidebar.tsx`) consume directamente `src/version.json` para mostrar en tiempo real la versión activa, canal, fecha de release y enlace dinámico a los releases de GitHub (`${repoUrl}/releases/tag/v${version}`).
 
-#### Guía Paso a Paso para Hacer Bump y Publicar un Release:
+#### Guía Paso a Paso para Hacer Bump y Publicar un Release (Pipeline Atómico Inquebrantable):
 1. **Ejecutar el Bump de Versión:**
    ```bash
    pnpm run version:patch   # o version:minor / version:major
    ```
-2. **Control de Calidad, Validación Completa y Verificación de Contenedor:**
+2. **Control de Calidad y Validación Completa:**
    ```bash
    pnpm run validate        # Ejecuta lint, typecheck y tests (Vitest)
-   docker compose up -d --build
    ```
 3. **Auditoría Pre-Push de Seguridad:**
    - Verificar que no haya secretos ni rutas locales (`/home/...`) antes de commitear.
@@ -112,6 +111,12 @@ El servidor de Project Zomboid desplegado se encuentra en la ruta parametrizada 
    ```bash
    gh release create vX.Y.Z --title "vX.Y.Z" --generate-notes
    ```
+8. **DESPLIEGUE EN PRODUCCIÓN MANDATORIO (Puerto 3000):**
+   - **Ningún release se considera listo ni anunciado hasta ejecutar:**
+     ```bash
+     docker compose up -d --build
+     ```
+   - Verificar salud inmediata en producción: `curl -I http://localhost:3000` (debe responder `HTTP 200 OK`).
 
 ### 9. Estándar de Lenguaje de la Interfaz (Inglés Obligatorio)
 - **Regla Estricta de Idioma en UI:** Todo el contenido visible para el usuario en la interfaz web de PZ-Panel (textos, títulos, botones, modales, alertas, banners, tooltips, placeholders, mensajes de validación/error, chips de estado, aria-labels y logs de frontend) **DEBE estar estrictamente en INGLÉS**, independientemente del idioma en que el usuario plantee sus solicitudes.
@@ -126,3 +131,8 @@ El servidor de Project Zomboid desplegado se encuentra en la ruta parametrizada 
 - **Regla Universal de Flexbox Vertical (`min-h-0`):** En contenedores con `flex flex-col` donde un hijo sea scrollable (`flex-1 overflow-y-auto`), es OBLIGATORIO incluir `min-h-0` para prevenir que el contenedor sobrepase el viewport en resoluciones de altura reducida (ej. pantallas de laptop con 600px-720px de alto).
 - **Uso de Viewport Dinámico (`dvh`):** Utilizar `h-screen max-h-screen md:h-dvh md:max-h-dvh` en barras laterales, drawers móviles y modales de pantalla completa para evitar solapamientos con barras de navegación móviles.
 - **Cobertura E2E de Altura Reducida:** La suite de Playwright debe incluir validaciones con viewports compactos (ej. 1024x600) para asegurar que los elementos inferiores (tarjetas de versión, botones de acción) nunca queden inaccesibles o recortados.
+
+### 12. Separación Estricta de Puertos (Producción vs Testing E2E)
+- **Puerto 3000 (PRODUCCIÓN INVARIABLE):** El contenedor Docker `pz-panel` corre **única y exclusivamente en el puerto 3000** (`http://localhost:3000`). Este es el punto de acceso para el usuario final y administradores.
+- **Puerto 3001 (SOLO TEST RUNNER EFÍMERO):** El puerto 3001 se reserva exclusivamente para levantar procesos locales temporales durante la ejecución de pruebas E2E de Playwright (`playwright.config.ts`), evitando interferir con el contenedor de producción en el 3000. Al terminar las pruebas E2E, el proceso del 3001 debe ser terminado de inmediato.
+
