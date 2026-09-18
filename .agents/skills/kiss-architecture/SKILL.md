@@ -62,3 +62,13 @@ Before writing any new code or introducing a dependency, ask:
 
 🚩 **Red Flag 3: Over-Abstraction**
 * Introducing 4 layers of interfaces, factories, and adapters for a simple file parser that only needs a pure TypeScript function and Zod validation.
+
+---
+
+## 5. Feature Ownership Pattern (Vertical Slicing vs Horizontal Splitting)
+
+In Next.js (App Router), frontend components and backend Server Actions are tightly coupled. 
+
+* ❌ **Anti-Pattern (Horizontal Splitting):** Splitting one feature across two developers/agents (Developer A writes the Server Action, Developer B writes the UI component). This creates Git merge conflicts, type desynchronizations, and unnecessary communication overhead.
+* ✅ **Recommended Pattern (Vertical Slicing):** A single Full-Stack Builder owns the feature end-to-end (Server Action + Zod validation + UI component + Unit tests in Vitest).
+* ✅ **Validation Pipeline:** Once built, an independent QA specialist writes and validates Playwright E2E browser tests, while an Auditor reviews security and linting.
