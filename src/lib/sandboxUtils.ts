@@ -1,4 +1,5 @@
 import fs from 'fs/promises';
+import { z } from 'zod';
 import { SandboxVarsData } from '@/types/sandbox';
 import { CONFIG } from '@/lib/config';
 import { withLock } from '@/lib/mutex';
@@ -330,6 +331,47 @@ class LuaTableParser {
   }
 }
 
+const safeIdentifierRegex = /^[a-zA-Z0-9_.\-]+$/;
+
+export const sandboxPrimitiveValueSchema = z.union([
+  z.boolean(),
+  z.number().finite(),
+  z.string().max(10000),
+]);
+
+export const sandboxSubTableSchema = z.record(
+  z.string().min(1).max(128).regex(safeIdentifierRegex, 'Key contains invalid characters'),
+  sandboxPrimitiveValueSchema
+);
+
+export const sandboxVarsSchema = z.record(
+  z.string().min(1).max(128).regex(safeIdentifierRegex, 'Key contains invalid characters'),
+  z.union([
+    sandboxPrimitiveValueSchema,
+    sandboxSubTableSchema,
+  ])
+);
+
+export function sanitizeLuaString(val: string): string {
+  return val
+    .replace(/\0/g, '')
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\r/g, '')
+    .replace(/\n/g, '\\n');
+}
+
+export function formatLuaKey(key: string): string {
+  if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key)) {
+    return key;
+  }
+  const sanitizedKey = key
+    .replace(/\0/g, '')
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"');
+  return `["${sanitizedKey}"]`;
+}
+
 export function parseLuaTable(luaSource: string): Record<string, unknown> | unknown[] {
   const tokens = tokenizeLua(luaSource);
   const parser = new LuaTableParser(tokens);
@@ -340,10 +382,9 @@ function serializeLuaValue(val: unknown, depth = 1): string {
   const indent = '    '.repeat(depth);
   if (val === null || val === undefined) return 'nil';
   if (typeof val === 'boolean') return val ? 'true' : 'false';
-  if (typeof val === 'number') return isNaN(val) ? '1' : String(val);
+  if (typeof val === 'number') return Number.isFinite(val) ? String(val) : '1';
   if (typeof val === 'string') {
-    const sanitized = val.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r/g, '').replace(/\n/g, '\\n');
-    return `"${sanitized}"`;
+    return `"${sanitizeLuaString(val)}"`;
   }
   if (Array.isArray(val)) {
     if (val.length === 0) return '{}';
@@ -354,12 +395,12 @@ function serializeLuaValue(val: unknown, depth = 1): string {
     const entries = Object.entries(val as Record<string, unknown>);
     if (entries.length === 0) return '{}';
     const lines = entries.map(([k, v]) => {
-      const formattedKey = /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(k) ? k : `["${k.replace(/"/g, '\\"')}"]`;
+      const formattedKey = formatLuaKey(k);
       return `${indent}    ${formattedKey} = ${serializeLuaValue(v, depth + 1)},`;
     });
     return `{\n${lines.join('\n')}\n${indent}}`;
   }
-  return `"${String(val)}"`;
+  return `"${sanitizeLuaString(String(val))}"`;
 }
 
 export async function readSandboxVars(): Promise<SandboxVarsData> {
@@ -374,10 +415,18 @@ export async function readSandboxVars(): Promise<SandboxVarsData> {
 }
 
 export async function saveSandboxVars(updatedVars: SandboxVarsData): Promise<{ success: boolean; error?: string }> {
+  const parseResult = sandboxVarsSchema.safeParse(updatedVars);
+  if (!parseResult.success) {
+    return {
+      success: false,
+      error: `Validation failed: ${parseResult.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(', ')}`,
+    };
+  }
+
   return withLock('sandbox_vars_file', async () => {
     try {
       const existing = await readSandboxVars();
-      const merged: SandboxVarsData = { ...existing, ...updatedVars };
+      const merged: SandboxVarsData = { ...existing, ...parseResult.data };
 
       // Ensure VERSION = 6 is preserved at top
       let lua = 'SandboxVars = {\n';
@@ -386,12 +435,12 @@ export async function saveSandboxVars(updatedVars: SandboxVarsData): Promise<{ s
       for (const [key, val] of Object.entries(merged)) {
         if (key === 'VERSION') continue;
 
-        const formattedKey = /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key) ? key : `["${key.replace(/"/g, '\\"')}"]`;
+        const formattedKey = formatLuaKey(key);
         if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
           const subEntries = Object.entries(val as Record<string, unknown>);
           lua += `    ${formattedKey} = {\n`;
           for (const [subKey, subVal] of subEntries) {
-            const formattedSubKey = /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(subKey) ? subKey : `["${subKey.replace(/"/g, '\\"')}"]`;
+            const formattedSubKey = formatLuaKey(subKey);
             lua += `        ${formattedSubKey} = ${serializeLuaValue(subVal, 2)},\n`;
           }
           lua += '    },\n';

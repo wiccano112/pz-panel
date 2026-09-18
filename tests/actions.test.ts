@@ -7,10 +7,13 @@ import {
   handleBroadcastAction,
   handleSaveServerPropertiesAction,
   handleSaveSpawnRegionsAction,
+  handleSaveSandboxAction,
+  getLiveConnectedPlayersAction,
 } from '@/app/actions';
 import * as playerUtils from '@/lib/playerUtils';
 import * as serverUtils from '@/lib/serverUtils';
 import * as spawnRegionUtils from '@/lib/spawnRegionUtils';
+import * as sandboxUtils from '@/lib/sandboxUtils';
 
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
@@ -22,6 +25,7 @@ vi.mock('@/lib/playerUtils', () => ({
   banSteamId: vi.fn(),
   banIp: vi.fn(),
   sendServerBroadcast: vi.fn(),
+  getLiveConnectedPlayers: vi.fn(),
 }));
 
 vi.mock('@/lib/serverUtils', () => ({
@@ -32,6 +36,14 @@ vi.mock('@/lib/serverUtils', () => ({
 vi.mock('@/lib/spawnRegionUtils', () => ({
   saveSpawnRegions: vi.fn(),
 }));
+
+vi.mock('@/lib/sandboxUtils', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/sandboxUtils')>();
+  return {
+    ...actual,
+    saveSandboxVars: vi.fn(),
+  };
+});
 
 describe('Server Actions - Validation & Execution Contracts', () => {
   beforeEach(() => {
@@ -226,6 +238,107 @@ describe('Server Actions - Validation & Execution Contracts', () => {
       const result = await handleSaveSpawnRegionsAction(null, formData);
       expect(result.success).toBe(true);
       expect(spawnRegionUtils.saveSpawnRegions).toHaveBeenCalledWith(validRegions);
+    });
+  });
+
+  describe('getLiveConnectedPlayersAction', () => {
+    it('should return connected players from playerUtils', async () => {
+      const mockPlayers = [
+        { username: 'Survivor1', steamid: '76561198000000001', role: 'Admin', connectedSince: '12:00' },
+      ];
+      vi.mocked(playerUtils.getLiveConnectedPlayers).mockResolvedValue(mockPlayers);
+
+      const result = await getLiveConnectedPlayersAction();
+      expect(result).toEqual(mockPlayers);
+      expect(playerUtils.getLiveConnectedPlayers).toHaveBeenCalled();
+    });
+
+    it('should handle errors gracefully and return empty array', async () => {
+      vi.mocked(playerUtils.getLiveConnectedPlayers).mockRejectedValue(new Error('Log read failure'));
+
+      const result = await getLiveConnectedPlayersAction();
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('handleSaveSandboxAction', () => {
+    it('should reject missing sandbox payload', async () => {
+      const formData = new FormData();
+      const result = await handleSaveSandboxAction(null, formData);
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('Missing sandbox variables payload');
+    });
+
+    it('should reject malformed JSON in sandbox payload', async () => {
+      const formData = new FormData();
+      formData.append('sandboxVars', '{ invalid: JSON ...');
+
+      const result = await handleSaveSandboxAction(null, formData);
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('Failed to parse sandbox payload');
+    });
+
+    it('should reject invalid keys with unsafe characters', async () => {
+      const formData = new FormData();
+      formData.append(
+        'sandboxVars',
+        JSON.stringify({
+          'Invalid;Key--injection': 123,
+        })
+      );
+
+      const result = await handleSaveSandboxAction(null, formData);
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('Invalid sandbox configuration format');
+    });
+
+    it('should reject non-primitive/non-table nested structures (e.g. nested arrays of objects)', async () => {
+      const formData = new FormData();
+      formData.append(
+        'sandboxVars',
+        JSON.stringify({
+          NestedBad: [{ deep: 'invalid' }],
+        })
+      );
+
+      const result = await handleSaveSandboxAction(null, formData);
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('Invalid sandbox configuration format');
+    });
+
+    it('should validate and save valid sandbox vars with primitive values and sub-tables', async () => {
+      vi.mocked(sandboxUtils.saveSandboxVars).mockResolvedValue({ success: true });
+
+      const validVars = {
+        Zombies: 3,
+        PVP: true,
+        ServerWelcomeMessage: 'Hello World',
+        ZombieLore: {
+          Speed: 2,
+          Strength: 1,
+          Transmission: 1,
+        },
+      };
+
+      const formData = new FormData();
+      formData.append('sandboxVars', JSON.stringify(validVars));
+
+      const result = await handleSaveSandboxAction(null, formData);
+      expect(result.success).toBe(true);
+      expect(result.message).toContain('Sandbox configuration saved successfully');
+      expect(sandboxUtils.saveSandboxVars).toHaveBeenCalledWith(validVars);
+    });
+
+    it('should return error when saveSandboxVars returns an error', async () => {
+      vi.mocked(sandboxUtils.saveSandboxVars).mockResolvedValue({ success: false, error: 'Disk write error' });
+
+      const validVars = { Zombies: 4 };
+      const formData = new FormData();
+      formData.append('sandboxVars', JSON.stringify(validVars));
+
+      const result = await handleSaveSandboxAction(null, formData);
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('Failed to save sandbox vars: Disk write error');
     });
   });
 });
