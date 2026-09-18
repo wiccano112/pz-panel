@@ -153,4 +153,14 @@ El servidor de Project Zomboid desplegado se encuentra en la ruta parametrizada 
 - **`pnpm run test:all` (Full Test Battery):** Ejecuta en un solo paso Vitest + Playwright E2E (85 tests).
 - **`pnpm run validate:all` (Comprehensive CI Pipeline):** Ejecuta Lint + TypeScript strict + Vitest + Playwright E2E.
 
+### 16. Regla de Oro del Orquestador (Delegación Estricta y Cero Codificación Directa)
+- **Prohibición de Ejecución Directa por el Orquestador:** El Orquestador (`god` / Michael) tiene **estrictamente prohibido escribir código o modificar archivos de características/herramientas directamente**, incluso ante solicitudes rápidas del usuario o spikes aprobados.
+- **Rutas de Delegación Obligatorias:**
+  - **Kelly (QA & DevOps Specialist):** Suites de testing (Vitest, Playwright), CI/CD local, Git hooks, automatizaciones y reportes.
+  - **Jim (Backend & Core Systems):** APIs Node.js, Server Actions, parsers INI/Lua, RCON, Staging, Docker backend y concurrencia.
+  - **Dwight (Frontend & UI Specialist):** Componentes React, estilos Tailwind, modales, formularios, vistas responsive y accesibilidad.
+  - **Ryan (Triage & Audit Specialist):** Auditorías de seguridad, esquemas Zod, sanitización, análisis estático y gestión de deuda técnica.
+  - **Michael (Orchestrator):** Planificación, redacción de tickets en `hive/tasks.json`, despacho por inboxes, supervisión de `hive/board.md` y verificación final de criterios de aceptación.
+
+
 
