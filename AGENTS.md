@@ -123,9 +123,9 @@ El servidor de Project Zomboid desplegado se encuentra en la ruta parametrizada 
 - **Consistencia:** No mezclar términos en español en componentes (`src/components/`, `src/app/`, `src/context/`) ni en las pruebas E2E (`e2e/`).
 - **Comentarios y Nombres de Código:** Se prefiere el estándar en inglés para identificadores, tipos y comentarios técnicos en el código fuente.
 
-### 10. Sincronización Inmediata del Tablero y Tareas (Real-Time Ledger Sync)
-- **Cierre Atómico de Tareas:** Tan pronto como una tarea sea implementada y validada en su respectivo commit, el agente o el orquestador DEBE actualizar inmediatamente `tasks.json` (`"status": "done"`, `completedAt`) y `board.md`.
-- **Cero Tareas Fantasmas:** No dejar tareas en `"status": "doing"` cuando el código ya está integrado o commiteado; la sincronización del ledger debe ocurrir en el mismo ciclo atómico del commit o push.
+### 10. Gestión Limpia de Tareas y Commits Atómicos
+- **Cierre Atómico de Tareas:** Tan pronto como una característica, corrección o refactorización sea implementada y validada en su respectivo commit, el estado de trabajo debe ser actualizado inmediatamente.
+- **Cero Commits Rotos:** Cada commit en la rama de trabajo o en `main` debe ser atómico, autofuncional y dejar la suite de pruebas en verde.
 
 ### 11. Reglas de Ergonomía Responsive y Viewports Estrictos
 - **Regla Universal de Flexbox Vertical (`min-h-0`):** En contenedores con `flex flex-col` donde un hijo sea scrollable (`flex-1 overflow-y-auto`), es OBLIGATORIO incluir `min-h-0` para prevenir que el contenedor sobrepase el viewport en resoluciones de altura reducida (ej. pantallas de laptop con 600px-720px de alto).
@@ -136,15 +136,15 @@ El servidor de Project Zomboid desplegado se encuentra en la ruta parametrizada 
 - **Puerto 3000 (PRODUCCIÓN INVARIABLE):** El contenedor Docker `pz-panel` corre **única y exclusivamente en el puerto 3000** (`http://localhost:3000`). Este es el punto de acceso para el usuario final y administradores.
 - **Puerto 3001 (SOLO TEST RUNNER EFÍMERO):** El puerto 3001 se reserva exclusivamente para el `webServer` auto-gestionado de Playwright (`playwright.config.ts`), evitando interferir con el contenedor de producción en el 3000. Al terminar las pruebas E2E, Playwright apaga el servidor automáticamente.
 
-### 13. Rebase y Sincronización Obligatoria antes del Hand-off (Cero Conflictos)
-- **Sincronización Previa a la Entrega:** Antes de que un agente (Jim, Dwight, etc.) declare su tarea como `done` y emita el hand-off al orquestador (Michael), DEBE ejecutar en su worktree:
+### 13. Rebase y Sincronización Obligatoria antes de Integrar (Cero Conflictos)
+- **Sincronización Previa a la Entrega:** Antes de dar por finalizada una rama de trabajo o feature, se DEBE sincronizar con la rama principal:
   ```bash
   git fetch origin && git merge origin/main
   ```
-- **Validación Local Limpia:** Sobre la rama sincronizada, debe ejecutar `pnpm run validate` (o `pnpm run validate:all`) con 0 errores de compilación, 0 conflictos y 100% de tests pasando antes de notificar por outbox.
+- **Validación Local Limpia:** Sobre la rama sincronizada, se debe ejecutar `pnpm run validate` (o `pnpm run validate:all`) con 0 errores de compilación, 0 conflictos y 100% de tests pasando antes de realizar merge o push.
 
 ### 14. Invariante de Aislamiento Absoluto del Servidor de Juego (`pz-server`)
-- **Prohibición de Acciones Destructivas en Desarrollo:** Queda terminantemente prohibido para cualquier subagente en desarrollo emitir comandos directos de detención o reinicio sobre el contenedor `pz-server` (`docker stop pz-server`, `docker restart pz-server` o `docker rm pz-server`).
+- **Prohibición de Acciones Destructivas en Desarrollo:** Queda terminantemente prohibido emitir comandos directos de detención o reinicio sobre el contenedor `pz-server` (`docker stop pz-server`, `docker restart pz-server` o `docker rm pz-server`).
 - **Uso Estricto de Mocks:** Toda prueba de ciclo de vida (RCON save, timeouts, staging de configuración) DEBE realizarse mediante mocks en Vitest o contra entornos aislados sin afectar a los jugadores conectados.
 
 ### 15. Comandos de Prueba y Validación Estandarizados
@@ -153,14 +153,13 @@ El servidor de Project Zomboid desplegado se encuentra en la ruta parametrizada 
 - **`pnpm run test:all` (Full Test Battery):** Ejecuta en un solo paso Vitest + Playwright E2E (85 tests).
 - **`pnpm run validate:all` (Comprehensive CI Pipeline):** Ejecuta Lint + TypeScript strict + Vitest + Playwright E2E.
 
-### 16. Regla de Oro del Orquestador (Delegación Estricta y Cero Codificación Directa)
-- **Prohibición de Ejecución Directa por el Orquestador:** El Orquestador (`god` / Michael) tiene **estrictamente prohibido escribir código o modificar archivos de características/herramientas directamente**, incluso ante solicitudes rápidas del usuario o spikes aprobados.
-- **Rutas de Delegación Obligatorias:**
-  - **Kelly (QA & DevOps Specialist):** Suites de testing (Vitest, Playwright), CI/CD local, Git hooks, automatizaciones y reportes.
-  - **Jim (Backend & Core Systems):** APIs Node.js, Server Actions, parsers INI/Lua, RCON, Staging, Docker backend y concurrencia.
-  - **Dwight (Frontend & UI Specialist):** Componentes React, estilos Tailwind, modales, formularios, vistas responsive y accesibilidad.
-  - **Ryan (Triage & Audit Specialist):** Auditorías de seguridad, esquemas Zod, sanitización, análisis estático y gestión de deuda técnica.
-  - **Michael (Orchestrator):** Planificación, redacción de tickets en `hive/tasks.json`, despacho por inboxes, supervisión de `hive/board.md` y verificación final de criterios de aceptación.
+### 16. Principio de Especialización y Separación de Responsabilidades
+- **Separación de Dominios:** Cualquier sistema o equipo que trabaje sobre este proyecto debe mantener una estricta separación de responsabilidades:
+  - **DevOps & QA:** Configuración de suites de prueba, pipelines locales de validación, Git hooks y reportes de cobertura.
+  - **Backend & Core Systems:** APIs Next.js / Server Actions, parsers de archivos INI/Lua, RCON, Staging de configuración y Docker.
+  - **Frontend & UI:** Componentes React, Tailwind CSS, modales, formularios, accesibilidad y diseño responsive.
+  - **Seguridad & Auditoría:** Esquemas Zod estrictos, sanitización contra inyecciones Lua/Shell, validación de variables de entorno y prevención de fugas de secretos.
+  - **Orquestación & Revisión:** Coordinación del flujo de trabajo, revisión imparcial de código y verificación final de criterios de aceptación.
 
 
 
