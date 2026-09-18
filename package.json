@@ -15,8 +15,11 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report",
     "test:all": "vitest run && playwright test",
+    "ci": "pnpm run validate:all",
     "validate": "pnpm run lint && pnpm tsc --noEmit && pnpm test",
     "validate:all": "pnpm run lint && pnpm tsc --noEmit && pnpm test && playwright test",
+    "prepare": "node scripts/setup-hooks.mjs",
+    "setup:hooks": "node scripts/setup-hooks.mjs",
     "version:patch": "node scripts/bump-version.mjs patch",
     "version:minor": "node scripts/bump-version.mjs minor",
     "version:major": "node scripts/bump-version.mjs major"
