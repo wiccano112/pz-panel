@@ -150,12 +150,56 @@ async function isContainerPresent(containerName: string): Promise<boolean> {
   }
 }
 
+export async function sendRconSaveCommand(): Promise<boolean> {
+  try {
+    await execFileAsync('docker', [
+      'exec',
+      CONFIG.containerName,
+      'sh',
+      '-c',
+      `printf 'save\\n' >> /home/steam/server-console.txt 2>/dev/null || true`,
+    ]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function applyStagedConfigurations(): Promise<void> {
+  const stagedIni = `${CONFIG.iniPath}.staged`;
+  const stagedSandbox = `${CONFIG.sandboxPath}.staged`;
+
+  try {
+    await fs.access(stagedIni);
+    const content = await fs.readFile(stagedIni, 'utf-8');
+    const tmpPath = `${CONFIG.iniPath}.tmp.${Date.now()}`;
+    await fs.writeFile(tmpPath, content, 'utf-8');
+    await fs.rename(tmpPath, CONFIG.iniPath);
+    await fs.unlink(stagedIni).catch(() => {});
+  } catch {
+    // Staged INI not present or ignored
+  }
+
+  try {
+    await fs.access(stagedSandbox);
+    const content = await fs.readFile(stagedSandbox, 'utf-8');
+    const tmpPath = `${CONFIG.sandboxPath}.tmp.${Date.now()}`;
+    await fs.writeFile(tmpPath, content, 'utf-8');
+    await fs.rename(tmpPath, CONFIG.sandboxPath);
+    await fs.unlink(stagedSandbox).catch(() => {});
+  } catch {
+    // Staged sandbox not present or ignored
+  }
+}
+
 export async function executeServerAction(action: 'start' | 'stop' | 'restart') {
   try {
     const exists = await isContainerPresent(CONFIG.containerName);
     const composeFile = await findComposeFile();
 
     if (action === 'start') {
+      await applyStagedConfigurations();
+
       if (exists) {
         await execFileAsync('docker', ['start', CONFIG.containerName]);
       } else if (composeFile) {
@@ -175,14 +219,34 @@ export async function executeServerAction(action: 'start' | 'stop' | 'restart') 
       }
     } else if (action === 'stop') {
       if (exists) {
-        await execFileAsync('docker', ['stop', CONFIG.containerName]);
+        await sendRconSaveCommand();
+        await execFileAsync('docker', ['stop', '-t', '60', CONFIG.containerName]);
+        await applyStagedConfigurations();
       } else {
+        await applyStagedConfigurations();
         return { success: true, message: 'Server is already stopped (no active container)' };
       }
     } else if (action === 'restart') {
       if (exists) {
-        await execFileAsync('docker', ['restart', CONFIG.containerName]);
+        await sendRconSaveCommand();
+        await execFileAsync('docker', ['stop', '-t', '60', CONFIG.containerName]);
+        await applyStagedConfigurations();
+
+        if (composeFile) {
+          await execFileAsync('docker', [
+            'compose',
+            '--project-directory',
+            CONFIG.hostServerDir,
+            '-f',
+            composeFile,
+            'up',
+            '-d',
+          ]);
+        } else {
+          await execFileAsync('docker', ['start', CONFIG.containerName]);
+        }
       } else if (composeFile) {
+        await applyStagedConfigurations();
         await execFileAsync('docker', [
           'compose',
           '--project-directory',
@@ -266,9 +330,17 @@ export async function readIniFile() {
     const content = await fs.readFile(CONFIG.iniPath, 'utf-8');
     const parsed = parsePzIni(content);
 
-    const workshopItems = parsed.WorkshopItems ? parsed.WorkshopItems.split(';').filter(Boolean) : [];
-    const mods = parsed.Mods ? parsed.Mods.split(';').filter(Boolean) : [];
-    const rawMaps = parsed.Map ? parsed.Map.split(';').filter(Boolean) : [];
+    const splitIniList = (val?: string): string[] => {
+      if (!val) return [];
+      return val
+        .split(/\\?;/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+    };
+
+    const workshopItems = splitIniList(parsed.WorkshopItems);
+    const mods = splitIniList(parsed.Mods);
+    const rawMaps = splitIniList(parsed.Map);
     
     // Ensure CORE_MAP_NAME is in the array and strictly last
     const nonCoreMaps = rawMaps.filter(m => m !== CORE_MAP_NAME);
@@ -292,11 +364,11 @@ export async function saveIniFile(workshopItems: string[], mods: string[], maps:
 
       // Ensure CORE_MAP_NAME is saved and strictly at the end
       const nonCoreMaps = maps.filter(m => m && m !== CORE_MAP_NAME);
-      const mapVal = [...nonCoreMaps, CORE_MAP_NAME].join(';');
+      const mapVal = [...nonCoreMaps, CORE_MAP_NAME].join('\\;');
 
       const updated = updatePzIni(content, {
-        WorkshopItems: workshopItems.filter(Boolean).join(';'),
-        Mods: mods.filter(Boolean).join(';'),
+        WorkshopItems: workshopItems.filter(Boolean).join('\\;'),
+        Mods: mods.filter(Boolean).join('\\;'),
         Map: mapVal,
       });
       
@@ -307,6 +379,10 @@ export async function saveIniFile(workshopItems: string[], mods: string[], maps:
       const tmpPath = `${CONFIG.iniPath}.tmp.${Date.now()}`;
       await fs.writeFile(tmpPath, updated, 'utf-8');
       await fs.rename(tmpPath, CONFIG.iniPath);
+
+      // SEC-01: Staging copy to protect against Java shutdown flush overwrite
+      const stagedPath = `${CONFIG.iniPath}.staged`;
+      await fs.writeFile(stagedPath, updated, 'utf-8');
 
       invalidateCache();
       return true;
@@ -357,6 +433,10 @@ export async function saveServerProperties(
       const tmpPath = `${CONFIG.iniPath}.tmp.${Date.now()}`;
       await fs.writeFile(tmpPath, updated, 'utf-8');
       await fs.rename(tmpPath, CONFIG.iniPath);
+
+      // SEC-01: Staging copy to protect against Java shutdown flush overwrite
+      const stagedPath = `${CONFIG.iniPath}.staged`;
+      await fs.writeFile(stagedPath, updated, 'utf-8');
 
       invalidateCache();
       return { success: true };

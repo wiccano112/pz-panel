@@ -1,7 +1,15 @@
-import { describe, it, expect } from 'vitest';
-import { parseLuaTable } from '@/lib/sandboxUtils';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import fs from 'fs/promises';
+import { parseLuaTable, readSandboxVars, saveSandboxVars } from '@/lib/sandboxUtils';
+import { CONFIG } from '@/lib/config';
 
-describe('sandboxUtils - Lua Table Parser', () => {
+vi.mock('fs/promises');
+
+describe('sandboxUtils - Lua Table Parser & File Operations', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('should parse simple key-value pairs', () => {
     const lua = `
       SandboxVars = {
@@ -93,5 +101,41 @@ Line2]],
   it('should return empty object for empty or invalid table', () => {
     expect(parseLuaTable('')).toEqual({});
     expect(parseLuaTable('   ')).toEqual({});
+  });
+
+  describe('readSandboxVars & saveSandboxVars (SEC-01)', () => {
+    it('should read sandbox variables from file', async () => {
+      const mockLua = `
+SandboxVars = {
+    VERSION = 6,
+    Zombies = 2,
+}
+`;
+      vi.mocked(fs.readFile).mockResolvedValue(mockLua);
+
+      const vars = await readSandboxVars();
+      expect(vars.VERSION).toBe(6);
+      expect(vars.Zombies).toBe(2);
+    });
+
+    it('should save sandbox variables and create staging copy', async () => {
+      vi.mocked(fs.readFile).mockResolvedValue('SandboxVars = { VERSION = 6, Zombies = 1 }');
+      vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+      vi.mocked(fs.rename).mockResolvedValue(undefined);
+
+      const res = await saveSandboxVars({ Zombies: 4 });
+      expect(res.success).toBe(true);
+
+      // Writes atomic tmp file and staged copy (2 writes)
+      expect(fs.writeFile).toHaveBeenCalledTimes(2);
+
+      const writtenLua = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+      const stagedPath = vi.mocked(fs.writeFile).mock.calls[1][0] as string;
+      const stagedLua = vi.mocked(fs.writeFile).mock.calls[1][1] as string;
+
+      expect(writtenLua).toContain('Zombies = 4');
+      expect(stagedPath).toBe(`${CONFIG.sandboxPath}.staged`);
+      expect(stagedLua).toBe(writtenLua);
+    });
   });
 });

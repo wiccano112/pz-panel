@@ -407,6 +407,10 @@ export async function saveSandboxVars(updatedVars: SandboxVarsData): Promise<{ s
       await fs.writeFile(tmpPath, lua, 'utf-8');
       await fs.rename(tmpPath, CONFIG.sandboxPath);
 
+      // SEC-01: Staging copy to protect against Java shutdown flush overwrite
+      const stagedPath = `${CONFIG.sandboxPath}.staged`;
+      await fs.writeFile(stagedPath, lua, 'utf-8');
+
       return { success: true };
     } catch (error) {
       console.error('Failed to write SandboxVars.lua:', error);
