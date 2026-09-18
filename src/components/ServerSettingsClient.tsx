@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useActionState, useMemo, useEffect } from 'react';
+import { useState, useActionState, useMemo, useEffect, useTransition } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useFormStatus } from 'react-dom';
 import {
@@ -18,11 +18,14 @@ import {
   RefreshCw,
   HelpCircle,
   FileText,
+  Users,
+  Loader2,
 } from 'lucide-react';
 import {
   SpawnRegionItem,
 } from '@/types/serverSettings';
 import { useUnsavedChanges } from '@/context/UnsavedChangesContext';
+import { ConnectedPlayer } from '@/types/players';
 
 import {
   SERVER_PROPERTIES_SCHEMA,
@@ -33,6 +36,7 @@ import {
   handleSaveServerPropertiesAction,
   handleSaveSpawnRegionsAction,
   handleServerAction,
+  getLiveConnectedPlayersAction,
 } from '@/app/actions';
 
 interface ServerSettingsClientProps {
@@ -60,25 +64,6 @@ function SubmitButton({ label }: { label: string }) {
           <span>{label}</span>
         </>
       )}
-    </button>
-  );
-}
-
-function RestartButton() {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="inline-flex items-center justify-center space-x-2 px-3.5 py-2.5 min-h-[44px] sm:min-h-0 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-xs font-semibold rounded shadow transition-colors cursor-pointer w-full sm:w-auto"
-      aria-label="Restart Server Now"
-    >
-      {pending ? (
-        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-      ) : (
-        <RefreshCw className="w-3.5 h-3.5" />
-      )}
-      <span>Restart Server</span>
     </button>
   );
 }
@@ -169,10 +154,10 @@ export default function ServerSettingsClient({
   const [propState, propAction] = useActionState(handleSaveServerPropertiesAction, null);
   const [spawnState, spawnAction] = useActionState(handleSaveSpawnRegionsAction, null);
   const [restartState, restartAction] = useActionState(handleServerAction, null);
+  const [, startTransition] = useTransition();
 
   const [dismissedPropState, setDismissedPropState] = useState<unknown>(null);
   const [dismissedSpawnState, setDismissedSpawnState] = useState<unknown>(null);
-
   // Sync isDirty state
   useEffect(() => {
     const isPropsDirty = JSON.stringify(properties) !== initialPropsJson;
@@ -202,6 +187,39 @@ export default function ServerSettingsClient({
     }
   };
 
+  const [isCheckingRestart, setIsCheckingRestart] = useState(false);
+  const [activePlayersForRestart, setActivePlayersForRestart] = useState<ConnectedPlayer[]>([]);
+  const [showActivePlayersRestartModal, setShowActivePlayersRestartModal] = useState(false);
+
+  const executeRestart = () => {
+    const formData = new FormData();
+    formData.append('actionType', 'restart');
+    startTransition(() => {
+      restartAction(formData);
+    });
+  };
+
+  const handleRestartClick = async () => {
+    try {
+      setIsCheckingRestart(true);
+      const players = await getLiveConnectedPlayersAction();
+      if (players && players.length > 0) {
+        setActivePlayersForRestart(players);
+        setShowActivePlayersRestartModal(true);
+      } else {
+        executeRestart();
+      }
+    } catch {
+      executeRestart();
+    } finally {
+      setIsCheckingRestart(false);
+    }
+  };
+
+  const handleConfirmRestart = () => {
+    setShowActivePlayersRestartModal(false);
+    executeRestart();
+  };
   const showPropRestartModal = Boolean(
     propState && propState.success && dismissedPropState !== propState
   );
@@ -298,6 +316,76 @@ export default function ServerSettingsClient({
 
   return (
     <div className="space-y-6">
+      {/* Active Players Confirmation Modal for Restart */}
+      {showActivePlayersRestartModal && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-zinc-900 border border-amber-600/60 rounded-lg p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-amber-950/80 border border-amber-700/80 rounded-full text-amber-400">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="text-lg font-bold text-white">Confirm Server Restart</h4>
+                  <p className="text-xs text-amber-400/90 font-medium">
+                    {activePlayersForRestart.length} active player{activePlayersForRestart.length === 1 ? '' : 's'} connected
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowActivePlayersRestartModal(false)}
+                className="text-zinc-400 hover:text-zinc-200 p-1 cursor-pointer transition-colors"
+                aria-label="Close modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-xs text-zinc-300 leading-relaxed bg-zinc-800/80 p-3 rounded-md border border-zinc-700/60">
+                There are currently active players on the server. Restarting now will disconnect them immediately and may result in lost unsaved character progress.
+              </p>
+
+              <div className="border border-zinc-800 rounded-md bg-zinc-950/60 p-3 max-h-40 overflow-y-auto space-y-2">
+                <div className="flex items-center space-x-1.5 text-xs text-zinc-400 font-semibold mb-1">
+                  <Users className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Connected Players ({activePlayersForRestart.length}):</span>
+                </div>
+                {activePlayersForRestart.map((player, idx) => (
+                  <div
+                    key={player.username || idx}
+                    className="flex items-center justify-between text-xs py-1.5 px-2 bg-zinc-900/80 rounded border border-zinc-800"
+                  >
+                    <span className="font-semibold text-zinc-200">{player.username}</span>
+                    <span className="text-[10px] text-zinc-400 font-mono">
+                      {player.role || 'Player'} {player.steamid ? `(${player.steamid.slice(-4)})` : ''}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowActivePlayersRestartModal(false)}
+                className="px-4 py-2 min-h-[44px] sm:min-h-0 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium rounded-md border border-zinc-700 transition-colors cursor-pointer text-center"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRestart}
+                className="px-4 py-2 min-h-[44px] sm:min-h-0 bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold rounded-md shadow-sm transition-colors cursor-pointer text-center"
+              >
+                Force Restart
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Restart Reminder Modal (Properties) */}
       {showPropRestartModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
@@ -330,10 +418,20 @@ export default function ServerSettingsClient({
               >
                 Restart Later
               </button>
-              <form action={restartAction}>
-                <input type="hidden" name="actionType" value="restart" />
-                <RestartButton />
-              </form>
+              <button
+                type="button"
+                onClick={handleRestartClick}
+                disabled={isCheckingRestart}
+                className="inline-flex items-center justify-center space-x-2 px-3.5 py-2.5 min-h-[44px] sm:min-h-0 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-xs font-semibold rounded shadow transition-colors cursor-pointer w-full sm:w-auto"
+                aria-label="Restart Server Now"
+              >
+                {isCheckingRestart ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3.5 h-3.5" />
+                )}
+                <span>Restart Server</span>
+              </button>
             </div>
             {restartState && (
               <p className={`text-xs ${restartState.success ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -376,10 +474,20 @@ export default function ServerSettingsClient({
               >
                 Restart Later
               </button>
-              <form action={restartAction}>
-                <input type="hidden" name="actionType" value="restart" />
-                <RestartButton />
-              </form>
+              <button
+                type="button"
+                onClick={handleRestartClick}
+                disabled={isCheckingRestart}
+                className="inline-flex items-center justify-center space-x-2 px-3.5 py-2.5 min-h-[44px] sm:min-h-0 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-xs font-semibold rounded shadow transition-colors cursor-pointer w-full sm:w-auto"
+                aria-label="Restart Server Now"
+              >
+                {isCheckingRestart ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3.5 h-3.5" />
+                )}
+                <span>Restart Server</span>
+              </button>
             </div>
             {restartState && (
               <p className={`text-xs ${restartState.success ? 'text-emerald-400' : 'text-rose-400'}`}>

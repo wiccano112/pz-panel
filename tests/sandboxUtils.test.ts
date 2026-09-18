@@ -1,6 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import fs from 'fs/promises';
-import { parseLuaTable, readSandboxVars, saveSandboxVars } from '@/lib/sandboxUtils';
+import {
+  parseLuaTable,
+  readSandboxVars,
+  saveSandboxVars,
+  sandboxVarsSchema,
+  sanitizeLuaString,
+  formatLuaKey,
+} from '@/lib/sandboxUtils';
 import { CONFIG } from '@/lib/config';
 
 vi.mock('fs/promises');
@@ -137,5 +144,60 @@ SandboxVars = {
       expect(stagedPath).toBe(`${CONFIG.sandboxPath}.staged`);
       expect(stagedLua).toBe(writtenLua);
     });
+  });
+});
+
+describe('sandboxUtils - Zod Schema Validation & Lua Sanitization', () => {
+  it('should accept valid sandbox variables and nested tables', () => {
+    const validData = {
+      VERSION: 6,
+      Zombies: 4,
+      PVP: true,
+      ServerWelcomeMessage: 'Welcome to our server!',
+      ZombieLore: {
+        Speed: 2,
+        Strength: 1,
+        Toughness: 2,
+      },
+      'ModOption.Active': true,
+    };
+
+    const parseResult = sandboxVarsSchema.safeParse(validData);
+    expect(parseResult.success).toBe(true);
+  });
+
+  it('should reject invalid keys with semicolons, quotes or shell/Lua injection characters', () => {
+    const injectionKeys = [
+      { 'Zombies"; os.execute("id"); --': 1 },
+      { 'Key\nInjected': true },
+      { 'Key\0Null': 123 },
+      { '': 1 },
+    ];
+
+    for (const data of injectionKeys) {
+      const result = sandboxVarsSchema.safeParse(data);
+      expect(result.success).toBe(false);
+    }
+  });
+
+  it('should reject non-finite numbers (NaN, Infinity)', () => {
+    expect(sandboxVarsSchema.safeParse({ Speed: NaN }).success).toBe(false);
+    expect(sandboxVarsSchema.safeParse({ Speed: Infinity }).success).toBe(false);
+    expect(sandboxVarsSchema.safeParse({ Speed: -Infinity }).success).toBe(false);
+  });
+
+  it('should properly sanitize Lua strings against injection and escape sequences', () => {
+    expect(sanitizeLuaString('Hello "World"')).toBe('Hello \\"World\\"');
+    expect(sanitizeLuaString('Line1\nLine2\r')).toBe('Line1\\nLine2');
+    expect(sanitizeLuaString('Backslash \\ test')).toBe('Backslash \\\\ test');
+    expect(sanitizeLuaString('Null\0Byte')).toBe('NullByte');
+  });
+
+  it('should format Lua keys correctly and safely', () => {
+    expect(formatLuaKey('Zombies')).toBe('Zombies');
+    expect(formatLuaKey('Zombie_Lore_1')).toBe('Zombie_Lore_1');
+    expect(formatLuaKey('Custom.Key')).toBe('["Custom.Key"]');
+    expect(formatLuaKey('Mod-Setting')).toBe('["Mod-Setting"]');
+    expect(formatLuaKey('Key"Quote')).toBe('["Key\\"Quote"]');
   });
 });

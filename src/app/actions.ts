@@ -3,7 +3,7 @@
 import { executeServerAction, saveServerProperties } from '@/lib/serverUtils';
 
 import { revalidatePath } from 'next/cache';
-import { saveSandboxVars } from '@/lib/sandboxUtils';
+import { saveSandboxVars, sandboxVarsSchema } from '@/lib/sandboxUtils';
 import { saveSpawnRegions } from '@/lib/spawnRegionUtils';
 import { z } from 'zod';
 import {
@@ -14,9 +14,19 @@ import {
   banIp,
   unbanIp,
   sendServerBroadcast,
+  getLiveConnectedPlayers,
 } from '@/lib/playerUtils';
 import { ActionResult } from '@/types/actions';
+import { ConnectedPlayer } from '@/types/players';
 
+export async function getLiveConnectedPlayersAction(): Promise<ConnectedPlayer[]> {
+  try {
+    return await getLiveConnectedPlayers();
+  } catch (error) {
+    console.error('Failed to get live connected players:', error);
+    return [];
+  }
+}
 
 export async function handleServerAction(
   prevState: unknown,
@@ -68,8 +78,18 @@ export async function handleSaveSandboxAction(
       return { success: false, message: 'Missing sandbox variables payload', error: true };
     }
 
-    const parsedVars = JSON.parse(rawPayload);
-    const result = await saveSandboxVars(parsedVars);
+    const parsedJson = JSON.parse(rawPayload);
+    const parseResult = sandboxVarsSchema.safeParse(parsedJson);
+
+    if (!parseResult.success) {
+      return {
+        success: false,
+        message: `Invalid sandbox configuration format: ${parseResult.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(', ')}`,
+        error: true,
+      };
+    }
+
+    const result = await saveSandboxVars(parseResult.data);
 
     if (result.success) {
       revalidatePath('/sandbox');

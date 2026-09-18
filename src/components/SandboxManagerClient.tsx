@@ -21,6 +21,7 @@ import {
   Sliders,
   Wrench,
   HelpCircle,
+  AlertTriangle,
 } from 'lucide-react';
 import { useUnsavedChanges } from '@/context/UnsavedChangesContext';
 import Link from 'next/link';
@@ -212,6 +213,19 @@ export default function SandboxManagerClient({ initialVars }: SandboxManagerClie
           </div>
         </div>
       )}
+
+      {/* Informational / Warning Banner (SEC-04) */}
+      <div className="bg-amber-950/40 border border-amber-800/60 rounded-lg p-4 flex items-start space-x-3 shadow-md">
+        <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+        <div className="text-xs text-amber-200/90 leading-relaxed space-y-1">
+          <p className="font-semibold text-amber-300">
+            Important Note on Sandbox Persistence:
+          </p>
+          <p>
+            Modifications saved to <code className="font-mono text-amber-100 font-bold bg-amber-950/60 px-1 py-0.5 rounded border border-amber-800/60">_SandboxVars.lua</code> apply immediately to newly generated chunks and newly created worlds upon server reboot. Ongoing active games maintain existing chunk parameters in <code className="font-mono text-amber-100 font-bold bg-amber-950/60 px-1 py-0.5 rounded border border-amber-800/60">map_sand.bin</code> within the world save directory.
+          </p>
+        </div>
+      </div>
 
       {/* Category Tabs & Mobile Selector */}
       {!searchQuery.trim() && (
