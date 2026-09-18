@@ -8,15 +8,15 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:3001',
+    baseURL: 'http://127.0.0.1:3001',
     trace: 'on-first-retry',
   },
 
   webServer: {
-    command: 'PORT=3001 node .next/standalone/server.js',
-    port: 3001,
+    command: 'mkdir -p .next/standalone/.next && cp -r .next/static .next/standalone/.next/ 2>/dev/null || true; HOSTNAME=127.0.0.1 PORT=3001 node .next/standalone/server.js',
+    url: 'http://127.0.0.1:3001',
     reuseExistingServer: !process.env.CI,
-    timeout: 60 * 1000,
+    timeout: 30 * 1000,
   },
 
   projects: [
