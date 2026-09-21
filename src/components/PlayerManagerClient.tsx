@@ -429,8 +429,13 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
 
                     <div className="grid grid-cols-2 gap-2 text-xs text-zinc-400 pt-1">
                       <div>
-                        <span className="block text-[10px] uppercase text-zinc-500 font-semibold">Timestamp</span>
-                        <span className="font-mono text-zinc-300">{event.timestamp}</span>
+                        <span className="block text-[10px] uppercase text-zinc-500 font-semibold">Timestamp (CLT)</span>
+                        <span
+                          className="font-mono text-zinc-300"
+                          title={event.rawTimestamp ? `Server UTC: ${event.rawTimestamp}` : undefined}
+                        >
+                          {event.timestamp}
+                        </span>
                       </div>
                       <div>
                         <span className="block text-[10px] uppercase text-zinc-500 font-semibold">Steam ID</span>
@@ -499,7 +504,7 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
                   <thead className="bg-zinc-950 text-xs uppercase text-zinc-400 border-b border-zinc-800">
                     <tr>
                       <th className="px-4 py-3">Event</th>
-                      <th className="px-4 py-3">Timestamp</th>
+                      <th className="px-4 py-3">Timestamp (CLT)</th>
                       <th className="px-4 py-3">Player</th>
                       <th className="px-4 py-3">Steam ID</th>
                       <th className="px-4 py-3">IP Address</th>
@@ -523,7 +528,10 @@ export default function PlayerManagerClient({ initialData }: PlayerManagerClient
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-3 font-mono text-xs text-zinc-400">
+                        <td
+                          className="px-4 py-3 font-mono text-xs text-zinc-400"
+                          title={event.rawTimestamp ? `Server UTC: ${event.rawTimestamp}` : undefined}
+                        >
                           {event.timestamp}
                         </td>
                         <td className="px-4 py-3 font-semibold text-white">

@@ -52,6 +52,75 @@ function withDb<T>(operation: (db: DatabaseSync) => T): { success: boolean; data
 }
 
 
+export function parsePzLogTimestampToUtc(rawTimestamp: string): Date | null {
+  if (!rawTimestamp || typeof rawTimestamp !== 'string') return null;
+  const match = rawTimestamp.trim().match(/^(\d{2})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?$/);
+  if (!match) return null;
+  const [, day, month, year, hours, minutes, seconds, ms = '0'] = match;
+  const fullYear = 2000 + parseInt(year, 10);
+  const padMs = ms.padEnd(3, '0').slice(0, 3);
+  const d = new Date(`${fullYear}-${month}-${day}T${hours}:${minutes}:${seconds}.${padMs}Z`);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+export function formatToClt(dateOrRaw: Date | string): string {
+  if (!dateOrRaw) return '';
+  const date = typeof dateOrRaw === 'string' ? parsePzLogTimestampToUtc(dateOrRaw) : dateOrRaw;
+  if (!date || isNaN(date.getTime())) {
+    return typeof dateOrRaw === 'string' ? dateOrRaw : '';
+  }
+  try {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Santiago',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
+    return `${formatter.format(date).replace(',', '')} CLT`;
+  } catch {
+    return typeof dateOrRaw === 'string' ? dateOrRaw : date.toISOString();
+  }
+}
+
+export interface LogFileEntry {
+  fullPath: string;
+  name: string;
+}
+
+export async function collectLogFiles(logsDir: string): Promise<{ userFiles: LogFileEntry[]; connFiles: LogFileEntry[] }> {
+  const userFiles: LogFileEntry[] = [];
+  const connFiles: LogFileEntry[] = [];
+
+  async function scanDir(currentDir: string): Promise<void> {
+    try {
+      const items = await fs.promises.readdir(currentDir);
+      for (const item of items) {
+        const itemName = typeof item === 'string' ? item : (item as { name: string }).name;
+        if (!itemName) continue;
+        const fullPath = path.join(currentDir, itemName);
+        if (itemName.startsWith('logs_')) {
+          await scanDir(fullPath);
+        } else if (itemName.endsWith('_user.txt')) {
+          userFiles.push({ fullPath, name: itemName });
+        } else if (itemName.endsWith('_connections.txt')) {
+          connFiles.push({ fullPath, name: itemName });
+        }
+      }
+    } catch {
+      // Ignore read errors for inaccessible folders
+    }
+  }
+
+  await scanDir(logsDir);
+  userFiles.sort((a, b) => b.name.localeCompare(a.name));
+  connFiles.sort((a, b) => b.name.localeCompare(a.name));
+  return { userFiles, connFiles };
+}
+
 export async function getLiveConnectedPlayers(): Promise<ConnectedPlayer[]> {
   return getOrSetCache('live_connected_players', CACHE_TTL_MS, async () => {
     const activeUserMap = new Map<string, ConnectedPlayer>();
@@ -60,9 +129,7 @@ export async function getLiveConnectedPlayers(): Promise<ConnectedPlayer[]> {
     // 1. Primary Strategy: Parse PZ session log files in data/Logs/
     if (fs.existsSync(logsDir)) {
       try {
-        const allFiles = await fs.promises.readdir(logsDir);
-        const userFiles = allFiles.filter((f) => f.endsWith('_user.txt')).sort().reverse();
-        const connFiles = allFiles.filter((f) => f.endsWith('_connections.txt')).sort().reverse();
+        const { userFiles, connFiles } = await collectLogFiles(logsDir);
 
         if (userFiles.length > 0 || connFiles.length > 0) {
           logFilesFound = true;
@@ -70,7 +137,7 @@ export async function getLiveConnectedPlayers(): Promise<ConnectedPlayer[]> {
 
         // Parse latest user.txt for connection/disconnection lifecycles
         if (userFiles.length > 0) {
-          const latestUserFile = path.join(logsDir, userFiles[0]);
+          const latestUserFile = userFiles[0].fullPath;
           const content = await fs.promises.readFile(latestUserFile, 'utf-8');
           const lines = content.split(/\r?\n/);
 
@@ -78,11 +145,11 @@ export async function getLiveConnectedPlayers(): Promise<ConnectedPlayer[]> {
             // e.g. [02-09-26 04:29:21.534] 76561198044212417 "wiccano112" fully connected (8117,12232,0).
             const connectMatch = line.match(/\[(.*?)\]\s+(\d+)\s+"(.*?)"\s+fully connected/);
             if (connectMatch) {
-              const [, timestamp, steamid, username] = connectMatch;
+              const [, rawTimestamp, steamid, username] = connectMatch;
               activeUserMap.set(username, {
                 username,
                 steamid,
-                connectedSince: timestamp,
+                connectedSince: formatToClt(rawTimestamp),
                 role: 'Player',
               });
               continue;
@@ -100,7 +167,7 @@ export async function getLiveConnectedPlayers(): Promise<ConnectedPlayer[]> {
 
         // Parse latest connections.txt for richer network metadata (IP, role) for currently active users
         if (connFiles.length > 0 && activeUserMap.size > 0) {
-          const latestConnFile = path.join(logsDir, connFiles[0]);
+          const latestConnFile = connFiles[0].fullPath;
           const content = await fs.promises.readFile(latestConnFile, 'utf-8');
           const lines = content.split(/\r?\n/);
 
@@ -183,46 +250,64 @@ export async function getPlayerConnectionHistory(limit = 100): Promise<PlayerCon
   return getOrSetCache('player_connection_history', CACHE_TTL_MS, async () => {
     const logsDir = path.join(CONFIG.serverDir, 'data', 'Logs');
     const events: PlayerConnectionEvent[] = [];
-    const ipMap = new Map<string, string>();
-    const steamMap = new Map<string, string>();
 
     if (!fs.existsSync(logsDir)) {
       return [];
     }
 
     try {
-      const allFiles = await fs.promises.readdir(logsDir);
-      const userFiles = allFiles.filter((f) => f.endsWith('_user.txt')).sort().reverse();
-      const connFiles = allFiles.filter((f) => f.endsWith('_connections.txt')).sort().reverse();
+      const { userFiles, connFiles } = await collectLogFiles(logsDir);
 
-      // 1. Build IP & Steam mapping from connections.txt
-      for (const file of connFiles.slice(0, 10)) {
+      const globalIpMap = new Map<string, string>();
+      const globalSteamMap = new Map<string, string>();
+      const sessionIpMap = new Map<string, Map<string, string>>();
+      const sessionSteamMap = new Map<string, Map<string, string>>();
+
+      // 1. Build session-specific & global IP / Steam mapping from connections.txt
+      for (const file of connFiles) {
+        const prefix = file.name.replace(/_connections\.txt$/, '');
+        const sIpMap = new Map<string, string>();
+        const sSteamMap = new Map<string, string>();
+
         try {
-          const content = await fs.promises.readFile(path.join(logsDir, file), 'utf-8');
+          const content = await fs.promises.readFile(file.fullPath, 'utf-8');
           const lines = content.split(/\r?\n/);
           for (const line of lines) {
             const userMatch = line.match(/username="([^"]+)"/);
             const ipMatch = line.match(/ip="([^"]+)"/);
             const steamMatch = line.match(/steam-id="([^"]+)"/);
-            if (userMatch && userMatch[1]) {
+            if (userMatch && userMatch[1] && userMatch[1] !== 'null') {
               const u = userMatch[1];
-              if (ipMatch && ipMatch[1] && ipMatch[1] !== 'null' && !ipMap.has(u)) {
-                ipMap.set(u, ipMatch[1]);
+              if (ipMatch && ipMatch[1] && ipMatch[1] !== 'null') {
+                sIpMap.set(u, ipMatch[1]);
+                if (!globalIpMap.has(u)) {
+                  globalIpMap.set(u, ipMatch[1]);
+                }
               }
-              if (steamMatch && steamMatch[1] && steamMatch[1] !== '0' && !steamMap.has(u)) {
-                steamMap.set(u, steamMatch[1]);
+              if (steamMatch && steamMatch[1] && steamMatch[1] !== '0') {
+                sSteamMap.set(u, steamMatch[1]);
+                if (!globalSteamMap.has(u)) {
+                  globalSteamMap.set(u, steamMatch[1]);
+                }
               }
             }
           }
         } catch {
           // ignore error reading single file
         }
+
+        sessionIpMap.set(prefix, sIpMap);
+        sessionSteamMap.set(prefix, sSteamMap);
       }
 
       // 2. Parse user.txt files (from newest file to oldest, lines in reverse order)
-      for (const file of userFiles.slice(0, 10)) {
+      for (const file of userFiles) {
+        const prefix = file.name.replace(/_user\.txt$/, '');
+        const sessIp = sessionIpMap.get(prefix);
+        const sessSteam = sessionSteamMap.get(prefix);
+
         try {
-          const content = await fs.promises.readFile(path.join(logsDir, file), 'utf-8');
+          const content = await fs.promises.readFile(file.fullPath, 'utf-8');
           const lines = content.split(/\r?\n/);
 
           for (let i = lines.length - 1; i >= 0; i--) {
@@ -232,13 +317,14 @@ export async function getPlayerConnectionHistory(limit = 100): Promise<PlayerCon
             // Connection pattern
             const connectMatch = line.match(/\[(.*?)\]\s+(?:(\d+)\s+)?"(.*?)"\s+fully connected(?:\s+\((.*?)\))?/);
             if (connectMatch) {
-              const [, timestamp, steamid, username, coordinates] = connectMatch;
+              const [, rawTimestamp, steamid, username, coordinates] = connectMatch;
               events.push({
-                id: `${timestamp}-${username}-CONNECT-${events.length}`,
-                timestamp,
+                id: `${rawTimestamp}-${username}-CONNECT-${events.length}`,
+                timestamp: formatToClt(rawTimestamp),
+                rawTimestamp,
                 username,
-                steamid: steamid || steamMap.get(username) || undefined,
-                ip: ipMap.get(username),
+                steamid: steamid || sessSteam?.get(username) || globalSteamMap.get(username) || undefined,
+                ip: sessIp?.get(username) || globalIpMap.get(username) || undefined,
                 type: 'CONNECTED',
                 coordinates: coordinates ? coordinates.replace(/,/g, ', ') : undefined,
               });
@@ -249,13 +335,14 @@ export async function getPlayerConnectionHistory(limit = 100): Promise<PlayerCon
             // Disconnection pattern
             const disconnectMatch = line.match(/\[(.*?)\]\s+(?:(\d+)\s+)?"(.*?)"\s+disconnected(?:\s+player(?:\s+"(?:.*?)")?(?:\s+\((.*?)\))?)?/);
             if (disconnectMatch) {
-              const [, timestamp, steamid, username, coordinates] = disconnectMatch;
+              const [, rawTimestamp, steamid, username, coordinates] = disconnectMatch;
               events.push({
-                id: `${timestamp}-${username}-DISCONNECT-${events.length}`,
-                timestamp,
+                id: `${rawTimestamp}-${username}-DISCONNECT-${events.length}`,
+                timestamp: formatToClt(rawTimestamp),
+                rawTimestamp,
                 username,
-                steamid: steamid || steamMap.get(username) || undefined,
-                ip: ipMap.get(username),
+                steamid: steamid || sessSteam?.get(username) || globalSteamMap.get(username) || undefined,
+                ip: sessIp?.get(username) || globalIpMap.get(username) || undefined,
                 type: 'DISCONNECTED',
                 coordinates: coordinates ? coordinates.replace(/,/g, ', ') : undefined,
               });

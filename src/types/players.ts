@@ -31,6 +31,7 @@ export interface ConnectedPlayer {
 export interface PlayerConnectionEvent {
   id: string;
   timestamp: string;
+  rawTimestamp?: string;
   username: string;
   steamid?: string;
   ip?: string;

@@ -6,6 +6,7 @@ WORKDIR /app
 RUN npm install -g pnpm@11.24.0
 
 COPY package.json pnpm-lock.yaml ./
+COPY scripts ./scripts
 RUN pnpm install --frozen-lockfile --dangerously-allow-all-builds
 
 
