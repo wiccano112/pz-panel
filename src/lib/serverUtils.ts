@@ -192,6 +192,19 @@ export async function applyStagedConfigurations(): Promise<void> {
   }
 }
 
+async function getComposeUpArgs(composeFile: string): Promise<string[]> {
+  const args = ['compose', '--project-directory', CONFIG.hostServerDir];
+  const envPath = path.join(CONFIG.serverDir, '.env');
+  try {
+    await fs.access(envPath);
+    args.push('--env-file', envPath);
+  } catch {
+    // Staged or explicit .env not found; rely on default project directory resolution
+  }
+  args.push('-f', composeFile, 'up', '-d');
+  return args;
+}
+
 export async function executeServerAction(action: 'start' | 'stop' | 'restart') {
   try {
     const exists = await isContainerPresent(CONFIG.containerName);
@@ -203,15 +216,8 @@ export async function executeServerAction(action: 'start' | 'stop' | 'restart') 
       if (exists) {
         await execFileAsync('docker', ['start', CONFIG.containerName]);
       } else if (composeFile) {
-        await execFileAsync('docker', [
-          'compose',
-          '--project-directory',
-          CONFIG.hostServerDir,
-          '-f',
-          composeFile,
-          'up',
-          '-d',
-        ]);
+        const composeArgs = await getComposeUpArgs(composeFile);
+        await execFileAsync('docker', composeArgs);
       } else {
         throw new Error(
           `Container "${CONFIG.containerName}" does not exist and no docker-compose file was found in ${CONFIG.serverDir}`
@@ -233,29 +239,19 @@ export async function executeServerAction(action: 'start' | 'stop' | 'restart') 
         await applyStagedConfigurations();
 
         if (composeFile) {
-          await execFileAsync('docker', [
-            'compose',
-            '--project-directory',
-            CONFIG.hostServerDir,
-            '-f',
-            composeFile,
-            'up',
-            '-d',
-          ]);
+          try {
+            const composeArgs = await getComposeUpArgs(composeFile);
+            await execFileAsync('docker', composeArgs);
+          } catch {
+            await execFileAsync('docker', ['start', CONFIG.containerName]);
+          }
         } else {
           await execFileAsync('docker', ['start', CONFIG.containerName]);
         }
       } else if (composeFile) {
         await applyStagedConfigurations();
-        await execFileAsync('docker', [
-          'compose',
-          '--project-directory',
-          CONFIG.hostServerDir,
-          '-f',
-          composeFile,
-          'up',
-          '-d',
-        ]);
+        const composeArgs = await getComposeUpArgs(composeFile);
+        await execFileAsync('docker', composeArgs);
       } else {
         throw new Error(
           `Container "${CONFIG.containerName}" does not exist and no docker-compose file was found in ${CONFIG.serverDir}`

@@ -248,6 +248,34 @@ PublicName=My PZ Server
       ]);
     });
 
+    it('should include --env-file when .env exists in serverDir', async () => {
+      vi.mocked(fs.access).mockImplementation(async (targetPath) => {
+        if (String(targetPath).endsWith('.env')) return undefined;
+        throw new Error('ENOENT');
+      });
+      mockCustomPromisify.mockImplementation((cmd, args) => {
+        if (args[0] === 'inspect') return Promise.reject(new Error('No such container'));
+        if (args[0] === 'compose') return Promise.resolve({ stdout: 'Started', stderr: '' });
+        return Promise.resolve({ stdout: '', stderr: '' });
+      });
+
+      vi.mocked(fs.stat).mockResolvedValue({} as never);
+
+      const result = await executeServerAction('start');
+      expect(result.success).toBe(true);
+      expect(mockCustomPromisify).toHaveBeenCalledWith('docker', [
+        'compose',
+        '--project-directory',
+        CONFIG.hostServerDir,
+        '--env-file',
+        expect.stringContaining('.env'),
+        '-f',
+        expect.stringContaining('docker-compose.yml'),
+        'up',
+        '-d',
+      ]);
+    });
+
     it('should return error if container does not exist and no compose file is found', async () => {
       vi.mocked(fs.access).mockRejectedValue(new Error('ENOENT'));
       mockCustomPromisify.mockImplementation((cmd, args) => {
