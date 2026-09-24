@@ -1,7 +1,7 @@
 ---
 name: pz-config-engine
 description: >-
-  Complete guide and runbook for parsing, validating, escaping, and staging Project Zomboid
+  Complete guide and runbook for parsing, validating, serializing, and staging Project Zomboid
   INI and Lua Sandbox configuration files. Use when modifying server settings, sandbox variables,
   mods lists, map orders, or implementing configuration staging mechanisms.
 ---
@@ -25,14 +25,16 @@ File | Location | Format | Critical Details
 
 ## 2. Critical PZ Domain Quirks & Rules
 
-### A. Semicolon Escaping in INI Lists (`\;`)
-Project Zomboid uses semicolons to separate items in list properties (`Mods`, `WorkshopItems`, `Map`), but requires an escaped backslash (`\;`) in the `.ini` file:
+### A. Semicolon Delimiters in INI Lists (NEVER Escape with Backslash `\`)
+Project Zomboid uses standard semicolons (`;`) to separate items in list properties (`Mods`, `WorkshopItems`, `Map`):
 ```ini
-Mods=modA\;modB\;modC
-WorkshopItems=123456\;789012
-Map=Muldraugh, KY\;West Point, KY
+Mods=modA;modB;modC
+WorkshopItems=123456;789012
+Map=CustomMap;Muldraugh, KY
 ```
-* **Rule:** Always format array values with `.join('\\;')` when writing to the `.ini` file.
+* **CRITICAL INVARIANT:** Do **NOT** escape semicolons (`\;`).
+* **Why?** The PZ Java backend reads properties and invokes `.split(";")` without unescaping. If formatted as `123456\;789012`, tokens become `123456\` and `789012`. SteamCMD fails to parse numeric IDs ending in `\`, skipping mod downloads, and the game engine reports `required mod "X\" not found`.
+* **Rule:** Always format array values with `.join(';')` when serializing to `.ini`.
 
 ### B. Lua String Sanitization & Injection Prevention
 When generating Lua code for `_SandboxVars.lua`:
@@ -46,11 +48,11 @@ When generating Lua code for `_SandboxVars.lua`:
   ```
 
 ### C. The `map_sand.bin` Persistence Gotcha
-* **Warning:** In Project Zomboid, editing `_SandboxVars.lua` **does NOT apply to already explored chunks or existing worlds** because the server reads `map_sand.bin` from the active save folder.
+* **Warning:** In Project Zomboid, editing `_SandboxVars.lua` **does NOT retroactively apply to already explored chunks or existing worlds** because the server prioritizes `map_sand.bin` inside the active save directory.
 * **UI Banner Requirement:** Always show an informational alert in the UI explaining that some sandbox changes require a world reset or manual `map_sand.bin` synchronization.
 
 ### D. Staging Mechanism (`.staged` files)
-* **The Problem:** Modifying `.ini` or `.lua` files while `pz-server` is actively running can cause Java to overwrite changes on server shutdown due to RAM caching.
+* **The Problem:** Modifying `.ini` or `.lua` files while `pz-server` is actively running causes Java to overwrite disk files on server shutdown during memory flush.
 * **The Solution:** 
   1. Write modifications to `<file>.staged`.
   2. Display a pending restart indicator in the UI.
@@ -60,7 +62,7 @@ When generating Lua code for `_SandboxVars.lua`:
 
 ## 3. Safe Editing Checklist
 - [ ] Zod schema validation passes.
-- [ ] INI list values are joined with `\;`.
+- [ ] INI list values are joined with standard semicolon `;` (NO backslashes).
 - [ ] Lua strings are sanitized against code injection.
 - [ ] If the server is running, write to `.staged` first.
 - [ ] Run unit tests: `pnpm test tests/sandboxUtils.test.ts tests/serverUtils.test.ts`.

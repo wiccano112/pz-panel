@@ -72,6 +72,12 @@ El servidor de Project Zomboid desplegado se encuentra en la ruta parametrizada 
 - **`data/backups/`:** Copias de seguridad automáticas y snapshots del servidor.
 - **`data/options.ini`:** Parámetros de renderizado, audio y rendimiento del motor dedicado.
 
+#### Invariantes Críticos de Configuración del Servidor:
+1. **Delimitador de Listas INI (`;` estándar):** Las listas en `.ini` (`Mods`, `WorkshopItems`, `Map`) deben separarse ÚNICAMENTE con punto y coma estándar (`;`). NUNCA escapar con barras invertidas (`\;`), ya que el backend Java no desescapa las barras y corrompe los IDs numéricos de Steam y nombres de mods.
+2. **Correlación Workshop-Mod (1:1):** Todo Workshop ID en `WorkshopItems` DEBE tener su Mod ID correspondiente en `Mods`.
+3. **Preservación de `WorldDictionary`:** NUNCA quitar mods que añaden objetos, construcciones o sprites de un mundo guardado activo (`WorldDictionary.bin`). Provoca excepción fatal en clientes al conectar (`Missing dictionary script on client`).
+4. **Skills de Referencia:** Consultar `.agents/skills/pz-config-engine`, `.agents/skills/pz-mod-management` y `.agents/skills/pz-server-topology`.
+
 ### 8. Versionamiento Semántico (SemVer) y Flujo de Releases
 - **Archivos de Versionamiento Sincronizados:**
   - `package.json`: Mantiene el campo `"version": "X.Y.Z"`.
