@@ -8,6 +8,7 @@ import { WorkshopApiResponse, WorkshopModItem } from '@/types/workshop';
 export interface ModCatalogProps {
   onAddMod: (mod: { name: string; workshopId: string; modId: string; mapId?: string }) => void;
   installedWorkshopIds: string[];
+  installedModIds: string[];
 }
 
 const fetcher = async (url: string): Promise<WorkshopApiResponse> => {
@@ -28,7 +29,7 @@ function formatSubscribers(count: number): string {
   return count.toString();
 }
 
-export default function ModCatalog({ onAddMod, installedWorkshopIds }: ModCatalogProps) {
+export default function ModCatalog({ onAddMod, installedWorkshopIds, installedModIds }: ModCatalogProps) {
   const [searchInput, setSearchInput] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [days, setDays] = useState('0');
@@ -195,7 +196,7 @@ export default function ModCatalog({ onAddMod, installedWorkshopIds }: ModCatalo
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {data.mods.map((mod) => {
-              const isInstalled = installedWorkshopIds.includes(mod.workshopId);
+              const isInstalled = installedWorkshopIds.includes(mod.workshopId) && (!mod.modId || installedModIds.includes(mod.modId));
 
               return (
                 <div

@@ -230,6 +230,7 @@ export default function ModManagerClient({ initialData }: ModManagerClientProps)
       <ModCatalog 
         onAddMod={addModFromCatalog} 
         installedWorkshopIds={workshopItems} 
+        installedModIds={mods}
       />
 
       {/* Configured Mods, Maps, and Workshop Items Cards */}
