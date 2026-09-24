@@ -360,11 +360,11 @@ export async function saveIniFile(workshopItems: string[], mods: string[], maps:
 
       // Ensure CORE_MAP_NAME is saved and strictly at the end
       const nonCoreMaps = maps.filter(m => m && m !== CORE_MAP_NAME);
-      const mapVal = [...nonCoreMaps, CORE_MAP_NAME].join('\\;');
+      const mapVal = [...nonCoreMaps, CORE_MAP_NAME].join(';');
 
       const updated = updatePzIni(content, {
-        WorkshopItems: workshopItems.filter(Boolean).join('\\;'),
-        Mods: mods.filter(Boolean).join('\\;'),
+        WorkshopItems: workshopItems.filter(Boolean).join(';'),
+        Mods: mods.filter(Boolean).join(';'),
         Map: mapVal,
       });
       

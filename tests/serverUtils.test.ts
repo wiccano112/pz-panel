@@ -77,7 +77,7 @@ Map=CustomMap;${CORE_MAP_NAME}
   });
 
   describe('saveIniFile (SEC-01 & SEC-03)', () => {
-    it('should update WorkshopItems, Mods, Map with \\; delimiter escaping and create staging copy', async () => {
+    it('should update WorkshopItems, Mods, Map with standard semicolon delimiter and create staging copy', async () => {
       const initialIni = `
 # Existing config
 WorkshopItems=old_item
@@ -100,9 +100,9 @@ Public=true
       const stagedPath = vi.mocked(fs.writeFile).mock.calls[1][0] as string;
       const stagedContent = vi.mocked(fs.writeFile).mock.calls[1][1] as string;
 
-      expect(writtenContent).toContain('WorkshopItems=111\\;222');
-      expect(writtenContent).toContain('Mods=Mod1\\;Mod2');
-      expect(writtenContent).toContain(`Map=CustomMap\\;${CORE_MAP_NAME}`);
+      expect(writtenContent).toContain('WorkshopItems=111;222');
+      expect(writtenContent).toContain('Mods=Mod1;Mod2');
+      expect(writtenContent).toContain(`Map=CustomMap;${CORE_MAP_NAME}`);
       expect(writtenContent).toContain('Public=true');
       expect(writtenContent).toContain('# Existing config');
 
