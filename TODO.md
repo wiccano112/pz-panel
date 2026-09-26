@@ -22,6 +22,14 @@ Mantenimiento continuo, nuevas integraciones y monitoreo de rendimiento.
     - [x] Visor de logs con altura responsiva y controles táctiles cómodos.
     - [x] Reordenamiento de Mods y Workshop con botones táctiles accesibles (`ChevronUp`/`ChevronDown`).
 
+- [x] **2. Actualización de Opciones de Sandbox para Generadores y Gasolineras (Build 42)**
+  - [x] Implementar nuevas variables y correcciones de rangos/defaults según spec en [`REQUERIMIENTO_OPCIONES_GENERADORES.md`](file:///home/perro/pz-panel/REQUERIMIENTO_OPCIONES_GENERADORES.md).
+  - [x] Agregar `GeneratorVerticalPowerRange` (pisos/niveles verticales).
+  - [x] Corregir escala y default de `GeneratorFuelConsumption` (default `0.10`, min `0.0`, step `0.01`).
+  - [x] Corregir opciones de `GeneratorSpawning` (7 niveles de PZ en lugar de 5, default `4 = Rare`).
+  - [x] Ajustar label/descripción de `AllowExteriorGenerator` y min de `GeneratorTileRange`.
+  - [x] Agregar variables granulares de combustible: `FuelStationGasEmptyChance`, `FuelStationGasMin`, `FuelStationGasMax`.
+
 ---
 
 ### ✅ Características Completadas (v1.0.7)

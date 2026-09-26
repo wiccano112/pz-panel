@@ -9,6 +9,7 @@ import {
   formatLuaKey,
 } from '@/lib/sandboxUtils';
 import { CONFIG } from '@/lib/config';
+import { SANDBOX_CATEGORIES } from '@/constants/sandbox';
 
 vi.mock('fs/promises');
 
@@ -199,5 +200,147 @@ describe('sandboxUtils - Zod Schema Validation & Lua Sanitization', () => {
     expect(formatLuaKey('Custom.Key')).toBe('["Custom.Key"]');
     expect(formatLuaKey('Mod-Setting')).toBe('["Mod-Setting"]');
     expect(formatLuaKey('Key"Quote')).toBe('["Key\\"Quote"]');
+  });
+});
+
+describe('sandboxUtils - Generator & Fuel Station Build 42 Options', () => {
+  it('should correctly define all 9 generator and fuel station fields in SANDBOX_CATEGORIES', () => {
+    const advancedCat = SANDBOX_CATEGORIES.find((c) => c.id === 'advanced');
+    expect(advancedCat).toBeDefined();
+
+    const fieldsMap = new Map(advancedCat!.fields.map((f) => [f.key, f]));
+
+    // 1. GeneratorVerticalPowerRange
+    const vertRange = fieldsMap.get('GeneratorVerticalPowerRange');
+    expect(vertRange).toBeDefined();
+    expect(vertRange!.type).toBe('number');
+    expect(vertRange!.defaultValue).toBe(3);
+    expect(vertRange!.min).toBe(1);
+    expect(vertRange!.max).toBe(15);
+    expect(vertRange!.step).toBe(1);
+
+    // 2. GeneratorFuelConsumption
+    const fuelCons = fieldsMap.get('GeneratorFuelConsumption');
+    expect(fuelCons).toBeDefined();
+    expect(fuelCons!.type).toBe('number');
+    expect(fuelCons!.defaultValue).toBe(0.1);
+    expect(fuelCons!.min).toBe(0.0);
+    expect(fuelCons!.max).toBe(100.0);
+    expect(fuelCons!.step).toBe(0.01);
+
+    // 3. GeneratorSpawning
+    const genSpawn = fieldsMap.get('GeneratorSpawning');
+    expect(genSpawn).toBeDefined();
+    expect(genSpawn!.type).toBe('select');
+    expect(genSpawn!.defaultValue).toBe(4);
+    expect(genSpawn!.options).toHaveLength(7);
+    expect(genSpawn!.options!.map((o) => o.value)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+
+    // 4. AllowExteriorGenerator
+    const extGen = fieldsMap.get('AllowExteriorGenerator');
+    expect(extGen).toBeDefined();
+    expect(extGen!.type).toBe('boolean');
+    expect(extGen!.defaultValue).toBe(true);
+
+    // 5. GeneratorTileRange
+    const tileRange = fieldsMap.get('GeneratorTileRange');
+    expect(tileRange).toBeDefined();
+    expect(tileRange!.type).toBe('number');
+    expect(tileRange!.defaultValue).toBe(20);
+    expect(tileRange!.min).toBe(1);
+    expect(tileRange!.max).toBe(100);
+
+    // 6. FuelStationGasInfinite
+    const infinitePumps = fieldsMap.get('FuelStationGasInfinite');
+    expect(infinitePumps).toBeDefined();
+    expect(infinitePumps!.type).toBe('boolean');
+    expect(infinitePumps!.defaultValue).toBe(false);
+
+    // 7. FuelStationGasEmptyChance
+    const emptyChance = fieldsMap.get('FuelStationGasEmptyChance');
+    expect(emptyChance).toBeDefined();
+    expect(emptyChance!.type).toBe('number');
+    expect(emptyChance!.defaultValue).toBe(20);
+    expect(emptyChance!.min).toBe(0);
+    expect(emptyChance!.max).toBe(100);
+
+    // 8. FuelStationGasMin
+    const gasMin = fieldsMap.get('FuelStationGasMin');
+    expect(gasMin).toBeDefined();
+    expect(gasMin!.type).toBe('number');
+    expect(gasMin!.defaultValue).toBe(0.0);
+    expect(gasMin!.min).toBe(0.0);
+    expect(gasMin!.max).toBe(1.0);
+    expect(gasMin!.step).toBe(0.05);
+
+    // 9. FuelStationGasMax
+    const gasMax = fieldsMap.get('FuelStationGasMax');
+    expect(gasMax).toBeDefined();
+    expect(gasMax!.type).toBe('number');
+    expect(gasMax!.defaultValue).toBe(0.8);
+    expect(gasMax!.min).toBe(0.0);
+    expect(gasMax!.max).toBe(1.0);
+    expect(gasMax!.step).toBe(0.05);
+  });
+
+  it('should parse and serialize generator options including GeneratorVerticalPowerRange', async () => {
+    const lua = `
+      SandboxVars = {
+          VERSION = 6,
+          GeneratorFuelConsumption = 0.05,
+          GeneratorSpawning = 4,
+          AllowExteriorGenerator = true,
+          GeneratorTileRange = 25,
+          GeneratorVerticalPowerRange = 5,
+          FuelStationGasInfinite = false,
+          FuelStationGasEmptyChance = 15,
+          FuelStationGasMin = 0.1,
+          FuelStationGasMax = 0.9,
+      }
+    `;
+
+    const parsed = parseLuaTable(lua) as Record<string, unknown>;
+    expect(parsed.GeneratorFuelConsumption).toBe(0.05);
+    expect(parsed.GeneratorSpawning).toBe(4);
+    expect(parsed.AllowExteriorGenerator).toBe(true);
+    expect(parsed.GeneratorTileRange).toBe(25);
+    expect(parsed.GeneratorVerticalPowerRange).toBe(5);
+    expect(parsed.FuelStationGasInfinite).toBe(false);
+    expect(parsed.FuelStationGasEmptyChance).toBe(15);
+    expect(parsed.FuelStationGasMin).toBe(0.1);
+    expect(parsed.FuelStationGasMax).toBe(0.9);
+
+    // Test saving/serializing
+    vi.mocked(fs.readFile).mockResolvedValue(lua);
+    vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    vi.mocked(fs.rename).mockResolvedValue(undefined);
+
+    const saveResult = await saveSandboxVars({
+      GeneratorVerticalPowerRange: 7,
+      GeneratorFuelConsumption: 0.15,
+    });
+    expect(saveResult.success).toBe(true);
+
+    const writtenLua = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+    expect(writtenLua).toContain('GeneratorVerticalPowerRange = 7');
+    expect(writtenLua).toContain('GeneratorFuelConsumption = 0.15');
+    expect(writtenLua).toContain('GeneratorTileRange = 25');
+  });
+
+  it('should validate generator options against sandboxVarsSchema', () => {
+    const validGeneratorConfig = {
+      GeneratorFuelConsumption: 0.1,
+      GeneratorSpawning: 4,
+      AllowExteriorGenerator: true,
+      GeneratorTileRange: 20,
+      GeneratorVerticalPowerRange: 3,
+      FuelStationGasInfinite: false,
+      FuelStationGasEmptyChance: 20,
+      FuelStationGasMin: 0.0,
+      FuelStationGasMax: 0.8,
+    };
+
+    const result = sandboxVarsSchema.safeParse(validGeneratorConfig);
+    expect(result.success).toBe(true);
   });
 });
