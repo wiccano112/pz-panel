@@ -1,6 +1,7 @@
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import fs from 'fs/promises';
+import type { Dirent } from 'fs';
 import path from 'path';
 import { CONFIG } from '@/lib/config';
 
@@ -125,6 +126,129 @@ export async function getConnectedPlayers(): Promise<number> {
   } catch {
     return 0;
   }
+}
+
+async function extractVersionFromFile(filePath: string): Promise<string | null> {
+  try {
+    const handle = await fs.open(filePath, 'r');
+    try {
+      const buffer = Buffer.alloc(65536);
+      const { bytesRead } = await handle.read(buffer, 0, 65536, 0);
+      const text = buffer.toString('utf-8', 0, bytesRead);
+      const match = text.match(/version=([0-9]+(?:\.[0-9]+)+)/i);
+      if (match) {
+        return match[1];
+      }
+    } finally {
+      await handle.close();
+    }
+  } catch {
+    // If handle.read fails or fs.open is not mocked in tests, fallback to readFile
+    try {
+      const content = await fs.readFile(filePath, 'utf-8');
+      const match = content.match(/version=([0-9]+(?:\.[0-9]+)+)/i);
+      if (match) {
+        return match[1];
+      }
+    } catch {
+      // Ignore read errors
+    }
+  }
+  return null;
+}
+
+async function findLatestDebugLog(logsDir: string): Promise<string | null> {
+  try {
+    const rawEntries = await fs.readdir(logsDir, { withFileTypes: true });
+    const entries = rawEntries as unknown as Array<Dirent | string>;
+    const rootLogs = entries
+      .filter((e) =>
+        typeof e === 'string'
+          ? e.includes('DebugLog-server.txt')
+          : e.isFile() && e.name.includes('DebugLog-server.txt')
+      )
+      .map((e) => (typeof e === 'string' ? e : e.name))
+      .sort()
+      .reverse();
+
+    if (rootLogs.length > 0) {
+      return path.join(logsDir, rootLogs[0]);
+    }
+
+    const subdirs = entries
+      .filter((e) =>
+        typeof e === 'string'
+          ? e.startsWith('logs_')
+          : e.isDirectory() && e.name.startsWith('logs_')
+      )
+      .map((e) => (typeof e === 'string' ? e : e.name))
+      .sort()
+      .reverse();
+
+    for (const subdir of subdirs) {
+      const subRawEntries = await fs.readdir(path.join(logsDir, subdir), { withFileTypes: true });
+      const subEntries = subRawEntries as unknown as Array<Dirent | string>;
+      const subLogs = subEntries
+        .filter((e) =>
+          typeof e === 'string'
+            ? e.includes('DebugLog-server.txt')
+            : e.isFile() && e.name.includes('DebugLog-server.txt')
+        )
+        .map((e) => (typeof e === 'string' ? e : e.name))
+        .sort()
+        .reverse();
+
+      if (subLogs.length > 0) {
+        return path.join(logsDir, subdir, subLogs[0]);
+      }
+    }
+  } catch {
+    // Ignore read errors
+  }
+  return null;
+}
+
+export async function getGameVersion(): Promise<string | null> {
+  return getOrSetCache('game_version', 30000, async () => {
+    // 1. Explicit override via environment
+    if (CONFIG.gameVersion && CONFIG.gameVersion.trim()) {
+      return CONFIG.gameVersion.trim();
+    }
+
+    // 2. Primary: inspect data/server-console.txt
+    const fromConsole = await extractVersionFromFile(CONFIG.consoleLogPath);
+    if (fromConsole) {
+      return fromConsole;
+    }
+
+    // 3. Fallback: inspect latest DebugLog-server.txt in data/Logs
+    const latestLog = await findLatestDebugLog(CONFIG.logsDir);
+    if (latestLog) {
+      const fromDebugLog = await extractVersionFromFile(latestLog);
+      if (fromDebugLog) {
+        return fromDebugLog;
+      }
+    }
+
+    // 4. Fallback: inspect docker logs if container is running
+    try {
+      const { stdout, stderr } = await execFileAsync('docker', [
+        'logs',
+        '--tail',
+        '500',
+        CONFIG.containerName,
+      ]);
+      const combined = `${stdout} ${stderr}`;
+      const match = combined.match(/version=([0-9]+(?:\.[0-9]+)+)/i);
+      if (match) {
+        return match[1];
+      }
+    } catch {
+      // Docker logs unavailable or container not running
+    }
+
+    return null;
+  });
 }
 
 async function findComposeFile(): Promise<string | null> {

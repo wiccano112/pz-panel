@@ -6,7 +6,11 @@ import { Menu, X, Calendar, ExternalLink } from "lucide-react";
 import NavLinks from "./NavLinks";
 import buildInfo from "../version.json";
 
-export default function MobileNav() {
+interface MobileNavProps {
+  gameVersion?: string | null;
+}
+
+export default function MobileNav({ gameVersion }: MobileNavProps = {}) {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const [prevPathname, setPrevPathname] = useState(pathname);
@@ -87,23 +91,33 @@ export default function MobileNav() {
         }`}
       >
         {/* Drawer Header */}
-        <div className="mb-5 px-1 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2">
+        <div className="mb-5 px-1 flex items-start justify-between shrink-0">
+          <div>
             <h2 className="text-xl font-bold tracking-tight text-white">
               PZ-Panel
             </h2>
+            <div className="flex items-center gap-1.5 mt-1">
+              <span
+                className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-zinc-800/90 text-zinc-300 border border-zinc-700/70"
+                title="Project Zomboid Game Version"
+              >
+                PZ v{gameVersion || '42.20.4'}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
             <span className="text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
               Dedicated
             </span>
+            <button
+              type="button"
+              onClick={closeDrawer}
+              aria-label="Close navigation drawer"
+              className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={closeDrawer}
-            aria-label="Close navigation drawer"
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
 
         {/* Drawer Navigation Links */}

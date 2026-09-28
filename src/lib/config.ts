@@ -7,6 +7,7 @@ export const CONFIG = {
   serverName: process.env.PZ_SERVER_NAME || 'servertest',
   containerName: process.env.PZ_DOCKER_CONTAINER || 'pz-server',
   steamApiKey: process.env.STEAM_API_KEY || '',
+  gameVersion: process.env.PZ_GAME_VERSION || '',
 
   get serverCpus(): string {
     if (process.env.PZ_SERVER_CPUS && process.env.PZ_SERVER_CPUS.trim()) {
@@ -64,6 +65,14 @@ export const CONFIG = {
 
   get spawnregionsPath(): string {
     return path.join(this.serverDir, 'data', 'Server', `${this.serverName}_spawnregions.lua`);
+  },
+
+  get consoleLogPath(): string {
+    return path.join(this.serverDir, 'data', 'server-console.txt');
+  },
+
+  get logsDir(): string {
+    return path.join(this.serverDir, 'data', 'Logs');
   },
 };
 

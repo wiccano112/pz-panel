@@ -1,16 +1,33 @@
 import NavLinks from './NavLinks';
 import buildInfo from '../version.json';
 import { Calendar, ExternalLink } from 'lucide-react';
+import { getGameVersion } from '@/lib/serverUtils';
 
-export default function Sidebar() {
+interface SidebarProps {
+  gameVersion?: string | null;
+}
+
+export default async function Sidebar({ gameVersion }: SidebarProps = {}) {
+  const resolvedGameVersion = gameVersion !== undefined ? gameVersion : await getGameVersion();
+
   return (
     <aside className="w-64 bg-zinc-900 text-white p-4 pb-5 hidden md:flex flex-col border-r border-zinc-800 h-screen max-h-screen md:h-dvh md:max-h-dvh sticky top-0 shrink-0 select-none">
       {/* Header */}
-      <div className="mb-5 px-1 flex items-center justify-between shrink-0">
-        <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-          <span>PZ-Panel</span>
-        </h1>
-        <span className="text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+      <div className="mb-5 px-1 flex items-start justify-between shrink-0">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+            <span>PZ-Panel</span>
+          </h1>
+          <div className="flex items-center gap-1.5 mt-1">
+            <span
+              className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-zinc-800/90 text-zinc-300 border border-zinc-700/70"
+              title="Project Zomboid Game Version"
+            >
+              PZ v{resolvedGameVersion || '42.20.4'}
+            </span>
+          </div>
+        </div>
+        <span className="text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 mt-0.5">
           Dedicated
         </span>
       </div>

@@ -73,6 +73,18 @@ test.describe('Mobile Responsive Layout Tests', () => {
       await page.getByRole('link', { name: 'Players & Moderation' }).click();
       await expect(page).toHaveURL(/.*\/players/);
     });
+
+    test('should show mounted PZ game version badge in mobile navigation drawer', async ({ page }) => {
+      await page.goto('/');
+
+      const menuBtn = page.getByRole('button', { name: 'Open navigation menu' });
+      await menuBtn.click();
+
+      const drawer = page.locator('header .fixed.inset-y-0.left-0');
+      const gameVersionBadge = drawer.locator('span[title="Project Zomboid Game Version"]');
+      await expect(gameVersionBadge).toBeVisible();
+      await expect(gameVersionBadge).toContainText(/PZ v/);
+    });
   });
 
   test.describe('Desktop Viewport', () => {
@@ -139,6 +151,17 @@ test.describe('Mobile Responsive Layout Tests', () => {
 
       const githubLink = sidebar.getByRole('link', { name: 'GitHub Release' });
       await expect(githubLink).toBeVisible();
+    });
+
+    test('should show mounted PZ game version badge in desktop sidebar header', async ({ page }) => {
+      await page.goto('/');
+
+      const sidebar = page.locator('aside');
+      await expect(sidebar).toBeVisible();
+
+      const gameVersionBadge = sidebar.locator('span[title="Project Zomboid Game Version"]');
+      await expect(gameVersionBadge).toBeVisible();
+      await expect(gameVersionBadge).toContainText(/PZ v/);
     });
   });
 });

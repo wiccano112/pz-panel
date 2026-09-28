@@ -9,6 +9,7 @@ import {
   executeServerAction,
   sendRconSaveCommand,
   applyStagedConfigurations,
+  getGameVersion,
 } from '@/lib/serverUtils';
 import { CORE_MAP_NAME } from '@/constants/game';
 import { invalidateCache } from '@/lib/cache';
@@ -207,6 +208,97 @@ PublicName=My PZ Server
 
       const uptime = await getServerUptime();
       expect(uptime).toContain('2h 30m');
+    });
+  });
+
+  describe('getGameVersion', () => {
+    it('should return version from CONFIG.gameVersion override if set', async () => {
+      const original = CONFIG.gameVersion;
+      Object.defineProperty(CONFIG, 'gameVersion', { value: '42.99.0', configurable: true });
+
+      try {
+        const version = await getGameVersion();
+        expect(version).toBe('42.99.0');
+      } finally {
+        Object.defineProperty(CONFIG, 'gameVersion', { value: original, configurable: true });
+      }
+    });
+
+    it('should extract game version from server-console.txt', async () => {
+      const consoleLog = `
+LOG  : General      f:0 st:369,960,602> version=42.20.4 b0bbce05d5 demo=false
+LOG  : General      f:0 st:369,960,609> checking server WorldVersion in map_t.bin
+`;
+      vi.mocked(fs.readFile).mockImplementation(async (targetPath) => {
+        if (String(targetPath).includes('server-console.txt')) {
+          return consoleLog;
+        }
+        throw new Error('ENOENT');
+      });
+
+      const version = await getGameVersion();
+      expect(version).toBe('42.20.4');
+    });
+
+    it('should fallback to latest DebugLog-server.txt in Logs directory when console log is absent', async () => {
+      vi.mocked(fs.readFile).mockImplementation(async (targetPath) => {
+        if (String(targetPath).includes('DebugLog-server.txt')) {
+          return '[28-09-26 08:00:41.247] LOG  : General> version=41.78.16 demo=false.';
+        }
+        throw new Error('ENOENT');
+      });
+
+      vi.mocked(fs.readdir).mockImplementation(async (dirPath) => {
+        if (String(dirPath).endsWith('Logs')) {
+          return ['2026-09-28_08-00_DebugLog-server.txt'] as never;
+        }
+        return [] as never;
+      });
+
+      const version = await getGameVersion();
+      expect(version).toBe('41.78.16');
+    });
+
+    it('should fallback to docker logs when log files are absent', async () => {
+      vi.mocked(fs.readFile).mockRejectedValue(new Error('ENOENT'));
+      vi.mocked(fs.readdir).mockRejectedValue(new Error('ENOENT'));
+      mockCustomPromisify.mockImplementation((cmd, args) => {
+        if (cmd === 'docker' && args[0] === 'logs') {
+          return Promise.resolve({
+            stdout: 'LOG  : General> version=42.20.4 b0bbce05d5 demo=false\nServer started',
+            stderr: '',
+          });
+        }
+        return Promise.resolve({ stdout: '', stderr: '' });
+      });
+
+      const version = await getGameVersion();
+      expect(version).toBe('42.20.4');
+    });
+
+    it('should return null when no version information can be extracted', async () => {
+      vi.mocked(fs.readFile).mockRejectedValue(new Error('ENOENT'));
+      vi.mocked(fs.readdir).mockRejectedValue(new Error('ENOENT'));
+      mockCustomPromisify.mockRejectedValue(new Error('Docker not available'));
+
+      const version = await getGameVersion();
+      expect(version).toBeNull();
+    });
+
+    it('should cache game version and invalidate correctly', async () => {
+      vi.mocked(fs.readFile).mockResolvedValueOnce('LOG: version=42.20.4');
+      const version1 = await getGameVersion();
+      expect(version1).toBe('42.20.4');
+
+      // Second call should return from cache without re-reading
+      vi.mocked(fs.readFile).mockRejectedValue(new Error('ENOENT'));
+      const version2 = await getGameVersion();
+      expect(version2).toBe('42.20.4');
+
+      // After invalidateCache, should re-read
+      invalidateCache();
+      const version3 = await getGameVersion();
+      expect(version3).toBeNull();
     });
   });
 

@@ -10,6 +10,8 @@ describe('config - Parameterization & Fallback Integrity', () => {
     expect(CONFIG.sandboxPath).toContain(`${CONFIG.serverName}_SandboxVars.lua`);
     expect(CONFIG.dbPath).toContain(`${CONFIG.serverName}.db`);
     expect(CONFIG.spawnregionsPath).toContain(`${CONFIG.serverName}_spawnregions.lua`);
+    expect(CONFIG.consoleLogPath).toContain('server-console.txt');
+    expect(CONFIG.logsDir).toContain('Logs');
   });
 
   it('should resolve serverCpus with fallback or environment variable', () => {
