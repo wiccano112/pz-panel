@@ -249,6 +249,22 @@ export const SERVER_PROPERTIES_SCHEMA: PropertyMeta[] = [
     min: 1.0,
     max: 100.0,
   },
+  {
+    key: 'AnnounceAnimalDeath',
+    label: 'Announce Animal Deaths in Chat',
+    description: 'Broadcast a global chat notification whenever a livestock or farm animal dies.',
+    type: 'boolean',
+    category: 'gameplay',
+    defaultValue: false,
+  },
+  {
+    key: 'UltraSpeedDoesnotAffectToAnimals',
+    label: 'Ultra Speed Does Not Affect Animals',
+    description: 'Prevent fast-forward / sleep time-skip acceleration from affecting animal stats and needs.',
+    type: 'boolean',
+    category: 'gameplay',
+    defaultValue: false,
+  },
 
   // 4. Network & Voice
   {

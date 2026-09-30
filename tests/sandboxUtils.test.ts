@@ -344,3 +344,207 @@ describe('sandboxUtils - Generator & Fuel Station Build 42 Options', () => {
     expect(result.success).toBe(true);
   });
 });
+
+describe('sandboxUtils - Animal, Wildlife & Vermin Build 42 Options', () => {
+  it('should correctly define all animal, wildlife, and vermin fields in SANDBOX_CATEGORIES', () => {
+    const advancedCat = SANDBOX_CATEGORIES.find((c) => c.id === 'advanced');
+    expect(advancedCat).toBeDefined();
+
+    const fieldsMap = new Map(advancedCat!.fields.map((f) => [f.key, f]));
+
+    // Animal stats
+    const statsMod = fieldsMap.get('AnimalStatsModifier');
+    expect(statsMod).toBeDefined();
+    expect(statsMod!.type).toBe('select');
+    expect(statsMod!.defaultValue).toBe(4);
+    expect(statsMod!.options).toHaveLength(6);
+
+    const metaStatsMod = fieldsMap.get('AnimalMetaStatsModifier');
+    expect(metaStatsMod).toBeDefined();
+    expect(metaStatsMod!.type).toBe('select');
+    expect(metaStatsMod!.defaultValue).toBe(4);
+
+    const pregTime = fieldsMap.get('AnimalPregnancyTime');
+    expect(pregTime).toBeDefined();
+    expect(pregTime!.type).toBe('select');
+    expect(pregTime!.defaultValue).toBe(4);
+
+    const ageMod = fieldsMap.get('AnimalAgeModifier');
+    expect(ageMod).toBeDefined();
+    expect(ageMod!.type).toBe('select');
+    expect(ageMod!.defaultValue).toBe(4);
+
+    const milkMod = fieldsMap.get('AnimalMilkIncModifier');
+    expect(milkMod).toBeDefined();
+    expect(milkMod!.type).toBe('select');
+    expect(milkMod!.defaultValue).toBe(4);
+
+    const woolMod = fieldsMap.get('AnimalWoolIncModifier');
+    expect(woolMod).toBeDefined();
+    expect(woolMod!.type).toBe('select');
+    expect(woolMod!.defaultValue).toBe(4);
+
+    const eggHatch = fieldsMap.get('AnimalEggHatch');
+    expect(eggHatch).toBeDefined();
+    expect(eggHatch!.type).toBe('select');
+    expect(eggHatch!.defaultValue).toBe(4);
+
+    const ranchChance = fieldsMap.get('AnimalRanchChance');
+    expect(ranchChance).toBeDefined();
+    expect(ranchChance!.type).toBe('select');
+    expect(ranchChance!.defaultValue).toBe(5);
+    expect(ranchChance!.options).toHaveLength(7);
+
+    const matingSeason = fieldsMap.get('AnimalMatingSeason');
+    expect(matingSeason).toBeDefined();
+    expect(matingSeason!.type).toBe('boolean');
+    expect(matingSeason!.defaultValue).toBe(true);
+
+    const metaPredator = fieldsMap.get('AnimalMetaPredator');
+    expect(metaPredator).toBeDefined();
+    expect(metaPredator!.type).toBe('boolean');
+    expect(metaPredator!.defaultValue).toBe(false);
+
+    const soundZombies = fieldsMap.get('AnimalSoundAttractZombies');
+    expect(soundZombies).toBeDefined();
+    expect(soundZombies!.type).toBe('boolean');
+    expect(soundZombies!.defaultValue).toBe(true);
+
+    const grassRegrow = fieldsMap.get('AnimalGrassRegrowTime');
+    expect(grassRegrow).toBeDefined();
+    expect(grassRegrow!.type).toBe('number');
+    expect(grassRegrow!.defaultValue).toBe(240);
+    expect(grassRegrow!.min).toBe(1);
+    expect(grassRegrow!.max).toBe(9999);
+
+    const trackChance = fieldsMap.get('AnimalTrackChance');
+    expect(trackChance).toBeDefined();
+    expect(trackChance!.type).toBe('select');
+    expect(trackChance!.defaultValue).toBe(4);
+
+    const pathChance = fieldsMap.get('AnimalPathChance');
+    expect(pathChance).toBeDefined();
+    expect(pathChance!.type).toBe('select');
+    expect(pathChance!.defaultValue).toBe(4);
+
+    const maxRat = fieldsMap.get('MaximumRatIndex');
+    expect(maxRat).toBeDefined();
+    expect(maxRat!.type).toBe('number');
+    expect(maxRat!.defaultValue).toBe(25);
+    expect(maxRat!.min).toBe(0);
+    expect(maxRat!.max).toBe(50);
+
+    const daysRat = fieldsMap.get('DaysUntilMaximumRatIndex');
+    expect(daysRat).toBeDefined();
+    expect(daysRat!.type).toBe('number');
+    expect(daysRat!.defaultValue).toBe(90);
+    expect(daysRat!.min).toBe(0);
+    expect(daysRat!.max).toBe(365);
+
+    // MultiplierConfig skills
+    const husbandry = fieldsMap.get('Husbandry');
+    expect(husbandry).toBeDefined();
+    expect(husbandry!.subTable).toBe('MultiplierConfig');
+
+    const tracking = fieldsMap.get('Tracking');
+    expect(tracking).toBeDefined();
+    expect(tracking!.subTable).toBe('MultiplierConfig');
+
+    const butchering = fieldsMap.get('Butchering');
+    expect(butchering).toBeDefined();
+    expect(butchering!.subTable).toBe('MultiplierConfig');
+  });
+
+  it('should parse and serialize animal options in Lua SandboxVars', async () => {
+    const lua = `
+      SandboxVars = {
+          VERSION = 6,
+          AnimalStatsModifier = 4,
+          AnimalMetaStatsModifier = 4,
+          AnimalPregnancyTime = 3,
+          AnimalAgeModifier = 4,
+          AnimalMilkIncModifier = 5,
+          AnimalWoolIncModifier = 4,
+          AnimalEggHatch = 4,
+          AnimalRanchChance = 5,
+          AnimalGrassRegrowTime = 240,
+          AnimalMetaPredator = false,
+          AnimalMatingSeason = true,
+          AnimalSoundAttractZombies = true,
+          AnimalTrackChance = 4,
+          AnimalPathChance = 4,
+          MaximumRatIndex = 25,
+          DaysUntilMaximumRatIndex = 90,
+          MultiplierConfig = {
+              Husbandry = 1.5,
+              Tracking = 2.0,
+              Butchering = 1.0,
+          },
+      }
+    `;
+
+    const parsed = parseLuaTable(lua) as Record<string, unknown>;
+    expect(parsed.AnimalStatsModifier).toBe(4);
+    expect(parsed.AnimalPregnancyTime).toBe(3);
+    expect(parsed.AnimalGrassRegrowTime).toBe(240);
+    expect(parsed.AnimalMetaPredator).toBe(false);
+    expect(parsed.AnimalMatingSeason).toBe(true);
+    expect(parsed.AnimalSoundAttractZombies).toBe(true);
+    expect(parsed.AnimalTrackChance).toBe(4);
+    expect(parsed.AnimalPathChance).toBe(4);
+    expect(parsed.MaximumRatIndex).toBe(25);
+    expect(parsed.DaysUntilMaximumRatIndex).toBe(90);
+
+    const multConfig = parsed.MultiplierConfig as Record<string, number>;
+    expect(multConfig.Husbandry).toBe(1.5);
+    expect(multConfig.Tracking).toBe(2.0);
+    expect(multConfig.Butchering).toBe(1.0);
+
+    // Test saving/serializing
+    vi.mocked(fs.readFile).mockResolvedValue(lua);
+    vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    vi.mocked(fs.rename).mockResolvedValue(undefined);
+
+    const saveResult = await saveSandboxVars({
+      AnimalMetaPredator: true,
+      AnimalGrassRegrowTime: 120,
+      AnimalStatsModifier: 5,
+    });
+    expect(saveResult.success).toBe(true);
+
+    const writtenLua = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+    expect(writtenLua).toContain('AnimalMetaPredator = true');
+    expect(writtenLua).toContain('AnimalGrassRegrowTime = 120');
+    expect(writtenLua).toContain('AnimalStatsModifier = 5');
+  });
+
+  it('should validate animal options against sandboxVarsSchema', () => {
+    const validAnimalConfig = {
+      AnimalStatsModifier: 4,
+      AnimalMetaStatsModifier: 4,
+      AnimalPregnancyTime: 4,
+      AnimalAgeModifier: 4,
+      AnimalMilkIncModifier: 4,
+      AnimalWoolIncModifier: 4,
+      AnimalEggHatch: 4,
+      AnimalRanchChance: 5,
+      AnimalGrassRegrowTime: 240,
+      AnimalMetaPredator: false,
+      AnimalMatingSeason: true,
+      AnimalSoundAttractZombies: true,
+      AnimalTrackChance: 4,
+      AnimalPathChance: 4,
+      MaximumRatIndex: 25,
+      DaysUntilMaximumRatIndex: 90,
+      MultiplierConfig: {
+        Husbandry: 1.0,
+        Tracking: 1.0,
+        Butchering: 1.0,
+      },
+    };
+
+    const result = sandboxVarsSchema.safeParse(validAnimalConfig);
+    expect(result.success).toBe(true);
+  });
+});
+

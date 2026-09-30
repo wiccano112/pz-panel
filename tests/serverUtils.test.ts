@@ -14,6 +14,7 @@ import {
 import { CORE_MAP_NAME } from '@/constants/game';
 import { invalidateCache } from '@/lib/cache';
 import { CONFIG } from '@/lib/config';
+import { SERVER_PROPERTIES_SCHEMA } from '@/constants/serverProperties';
 
 const mockCustomPromisify = vi.fn();
 
@@ -450,6 +451,22 @@ LOG  : General      f:0 st:369,960,609> checking server WorldVersion in map_t.bi
         'up',
         '-d',
       ]);
+    });
+  });
+
+  describe('SERVER_PROPERTIES_SCHEMA - Animal Settings', () => {
+    it('should include AnnounceAnimalDeath and UltraSpeedDoesnotAffectToAnimals in gameplay category', () => {
+      const announceDeath = SERVER_PROPERTIES_SCHEMA.find((p) => p.key === 'AnnounceAnimalDeath');
+      expect(announceDeath).toBeDefined();
+      expect(announceDeath!.type).toBe('boolean');
+      expect(announceDeath!.category).toBe('gameplay');
+      expect(announceDeath!.defaultValue).toBe(false);
+
+      const ultraSpeed = SERVER_PROPERTIES_SCHEMA.find((p) => p.key === 'UltraSpeedDoesnotAffectToAnimals');
+      expect(ultraSpeed).toBeDefined();
+      expect(ultraSpeed!.type).toBe('boolean');
+      expect(ultraSpeed!.category).toBe('gameplay');
+      expect(ultraSpeed!.defaultValue).toBe(false);
     });
   });
 });
