@@ -163,5 +163,18 @@ test.describe('Mobile Responsive Layout Tests', () => {
       await expect(gameVersionBadge).toBeVisible();
       await expect(gameVersionBadge).toContainText(/PZ v/);
     });
+
+    test('should display both PZ server uptime and host machine uptime on dashboard', async ({ page }) => {
+      await page.goto('/');
+
+      const serverUptimeBadge = page.getByTestId('server-uptime-badge');
+      const hostUptimeBadge = page.getByTestId('host-uptime-badge');
+
+      await expect(serverUptimeBadge).toBeVisible();
+      await expect(serverUptimeBadge).toContainText('PZ');
+
+      await expect(hostUptimeBadge).toBeVisible();
+      await expect(hostUptimeBadge).toContainText('Host');
+    });
   });
 });

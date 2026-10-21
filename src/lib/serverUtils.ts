@@ -2,6 +2,7 @@ import { execFile } from 'child_process';
 import { promisify } from 'util';
 import fs from 'fs/promises';
 import type { Dirent } from 'fs';
+import os from 'os';
 import path from 'path';
 import { CONFIG } from '@/lib/config';
 
@@ -81,6 +82,26 @@ export async function getServerStats(): Promise<{ cpu: string; ram: string; net:
   });
 }
 
+export function formatDurationSeconds(totalSeconds: number): string | null {
+  let diffSec = Math.floor(totalSeconds);
+  if (isNaN(diffSec) || diffSec < 0) return null;
+
+  const days = Math.floor(diffSec / 86400);
+  diffSec %= 86400;
+  const hours = Math.floor(diffSec / 3600);
+  diffSec %= 3600;
+  const minutes = Math.floor(diffSec / 60);
+  const seconds = diffSec % 60;
+
+  if (days > 0) {
+    return `${days}d ${hours}h ${minutes}m`;
+  } else if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  } else {
+    return `${minutes}m ${seconds}s`;
+  }
+}
+
 export async function getServerUptime(): Promise<string | null> {
   return getOrSetCache('server_uptime', CACHE_TTL_MS, async () => {
     try {
@@ -96,23 +117,28 @@ export async function getServerUptime(): Promise<string | null> {
       const startMs = new Date(startedAt).getTime();
       if (isNaN(startMs)) return null;
 
-      let diffSec = Math.floor((Date.now() - startMs) / 1000);
-      if (diffSec < 0) return null;
+      const diffSec = Math.floor((Date.now() - startMs) / 1000);
+      return formatDurationSeconds(diffSec);
+    } catch {
+      return null;
+    }
+  });
+}
 
-      const days = Math.floor(diffSec / 86400);
-      diffSec %= 86400;
-      const hours = Math.floor(diffSec / 3600);
-      diffSec %= 3600;
-      const minutes = Math.floor(diffSec / 60);
-      const seconds = diffSec % 60;
-
-      if (days > 0) {
-        return `${days}d ${hours}h ${minutes}m`;
-      } else if (hours > 0) {
-        return `${hours}h ${minutes}m`;
-      } else {
-        return `${minutes}m ${seconds}s`;
+export async function getHostUptime(): Promise<string | null> {
+  return getOrSetCache('host_uptime', CACHE_TTL_MS, async () => {
+    try {
+      const content = await fs.readFile('/proc/uptime', 'utf-8');
+      const rawSeconds = parseFloat(content.trim().split(/\s+/)[0]);
+      if (!isNaN(rawSeconds) && rawSeconds >= 0) {
+        return formatDurationSeconds(rawSeconds);
       }
+    } catch {
+      // Fallback to os.uptime() when /proc/uptime is unavailable
+    }
+
+    try {
+      return formatDurationSeconds(os.uptime());
     } catch {
       return null;
     }

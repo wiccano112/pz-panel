@@ -5,6 +5,7 @@ describe('hardwareUtils - CPU Core Parsing & Metrics', () => {
   it('should correctly parse single numbers and standard ranges', () => {
     expect(parseCpuRange('0')).toEqual([0]);
     expect(parseCpuRange('0-3')).toEqual([0, 1, 2, 3]);
+    expect(parseCpuRange('8-11')).toEqual([8, 9, 10, 11]);
     expect(parseCpuRange('12-15')).toEqual([12, 13, 14, 15]);
     expect(parseCpuRange('12-17')).toEqual([12, 13, 14, 15, 16, 17]);
   });

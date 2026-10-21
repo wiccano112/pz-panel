@@ -34,7 +34,7 @@ export const CONFIG = {
     } catch {
       // Ignore read errors
     }
-    return '12-17';
+    return '8-11';
   },
 
   get composeFile(): string {

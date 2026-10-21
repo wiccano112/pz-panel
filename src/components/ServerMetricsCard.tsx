@@ -91,14 +91,33 @@ export default function ServerMetricsCard({ status: initialStatus }: ServerMetri
             </span>
           </div>
 
-          <div className="flex items-center justify-between p-2.5 bg-zinc-800/80 rounded-md border border-zinc-700/60">
-            <div className="flex items-center space-x-2 text-zinc-300">
+          <div className="flex items-center justify-between p-2.5 bg-zinc-800/80 rounded-md border border-zinc-700/60 gap-2">
+            <div className="flex items-center space-x-2 text-zinc-300 shrink-0">
               <Clock className="w-4 h-4 text-amber-400" />
               <span className="text-sm font-medium">Uptime</span>
             </div>
-            <span className="text-sm font-semibold font-mono text-white">
-              {isOnlineLike ? (data?.uptime ?? '—') : 'Offline'}
-            </span>
+            <div className="flex items-center flex-wrap justify-end gap-2 font-mono text-xs sm:text-sm">
+              <span
+                data-testid="server-uptime-badge"
+                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-zinc-900/90 border border-zinc-700/80 text-white font-semibold"
+                title="Project Zomboid Server Uptime"
+              >
+                <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-indigo-400">
+                  PZ
+                </span>
+                <span>{isOnlineLike ? (data?.uptime ?? '—') : 'Offline'}</span>
+              </span>
+              <span
+                data-testid="host-uptime-badge"
+                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-zinc-900/90 border border-zinc-700/80 text-zinc-200 font-semibold"
+                title="Host Machine Uptime"
+              >
+                <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-amber-400">
+                  Host
+                </span>
+                <span>{data?.hostUptime ?? '—'}</span>
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center justify-between p-2.5 bg-zinc-800/80 rounded-md border border-zinc-700/60">

@@ -6,6 +6,8 @@ import {
   readServerProperties,
   saveServerProperties,
   getServerUptime,
+  getHostUptime,
+  formatDurationSeconds,
   executeServerAction,
   sendRconSaveCommand,
   applyStagedConfigurations,
@@ -202,13 +204,35 @@ PublicName=My PZ Server
     });
   });
 
-  describe('getServerUptime', () => {
-    it('should calculate and format uptime correctly', async () => {
+  describe('getServerUptime & getHostUptime', () => {
+    it('should calculate and format server uptime correctly', async () => {
       const pastTime = new Date(Date.now() - 3600 * 1000 * 2.5).toISOString(); // 2h 30m ago
       mockCustomPromisify.mockResolvedValue({ stdout: pastTime, stderr: '' });
 
       const uptime = await getServerUptime();
       expect(uptime).toContain('2h 30m');
+    });
+
+    it('should format duration seconds across days, hours, minutes, and seconds', () => {
+      expect(formatDurationSeconds(45)).toBe('0m 45s');
+      expect(formatDurationSeconds(3665)).toBe('1h 1m');
+      expect(formatDurationSeconds(90061)).toBe('1d 1h 1m');
+      expect(formatDurationSeconds(-5)).toBeNull();
+    });
+
+    it('should read host uptime from /proc/uptime when available', async () => {
+      vi.mocked(fs.readFile).mockResolvedValueOnce('167031.91 3198638.15\n');
+
+      const hostUptime = await getHostUptime();
+      expect(hostUptime).toBe('1d 22h 23m');
+    });
+
+    it('should fallback to os.uptime() when /proc/uptime is unavailable', async () => {
+      vi.mocked(fs.readFile).mockRejectedValueOnce(new Error('ENOENT'));
+
+      const hostUptime = await getHostUptime();
+      expect(hostUptime).not.toBeNull();
+      expect(typeof hostUptime).toBe('string');
     });
   });
 
