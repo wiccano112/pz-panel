@@ -1,7 +1,7 @@
 {
-  "version": "1.2.5",
-  "releaseDate": "2026-10-21",
-  "buildNumber": "20261021.1",
+  "version": "1.2.6",
+  "releaseDate": "2026-11-03",
+  "buildNumber": "20261103.1",
   "channel": "stable",
   "repoUrl": "https://github.com/wiccano112/pz-panel"
 }
