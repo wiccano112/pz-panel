@@ -148,7 +148,12 @@ export default function ServerSettingsClient({
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newRegionName, setNewRegionName] = useState('');
   const [newRegionFile, setNewRegionFile] = useState('');
+  const [newRegionMode, setNewRegionMode] = useState<'file' | 'serverfile'>('file');
   const [addModalError, setAddModalError] = useState('');
+
+  const serverFileTemplates = useMemo(() => {
+    return initialSpawnRegions.filter((r) => Boolean(r.serverfile));
+  }, [initialSpawnRegions]);
 
   // Server Action hooks
   const [propState, propAction] = useActionState(handleSaveServerPropertiesAction, null);
@@ -276,22 +281,19 @@ export default function ServerSettingsClient({
   const handleAddCustomSpawn = (e: React.FormEvent) => {
     e.preventDefault();
     const name = newRegionName.trim();
-    let file = newRegionFile.trim();
+    let targetPath = newRegionFile.trim();
 
     if (!name) {
       setAddModalError('Region name is required.');
       return;
     }
-    if (!file) {
-      setAddModalError('Map spawnpoints.lua file path is required.');
+    if (!targetPath) {
+      setAddModalError(
+        newRegionMode === 'serverfile'
+          ? 'Server spawnpoints script filename is required.'
+          : 'Map spawnpoints.lua file path is required.'
+      );
       return;
-    }
-
-    if (!file.startsWith('media/maps/')) {
-      file = `media/maps/${file}`;
-    }
-    if (!file.endsWith('spawnpoints.lua')) {
-      file = `${file.replace(/\/+$/, '')}/spawnpoints.lua`;
     }
 
     if (spawnRegions.some((r) => r.name.toLowerCase() === name.toLowerCase())) {
@@ -299,9 +301,24 @@ export default function ServerSettingsClient({
       return;
     }
 
-    setSpawnRegions((prev) => [...prev, { name, file, isOfficial: false }]);
+    if (newRegionMode === 'serverfile') {
+      if (!targetPath.endsWith('.lua')) {
+        targetPath = `${targetPath}.lua`;
+      }
+      setSpawnRegions((prev) => [...prev, { name, serverfile: targetPath, isOfficial: false }]);
+    } else {
+      if (!targetPath.startsWith('media/maps/')) {
+        targetPath = `media/maps/${targetPath}`;
+      }
+      if (!targetPath.endsWith('spawnpoints.lua')) {
+        targetPath = `${targetPath.replace(/\/+$/, '')}/spawnpoints.lua`;
+      }
+      setSpawnRegions((prev) => [...prev, { name, file: targetPath, isOfficial: false }]);
+    }
+
     setNewRegionName('');
     setNewRegionFile('');
+    setNewRegionMode('file');
     setAddModalError('');
     setIsAddModalOpen(false);
   };
@@ -786,7 +803,7 @@ export default function ServerSettingsClient({
                   <span>Official Kentucky Spawn Regions</span>
                 </h4>
                 <p className="text-xs text-zinc-400 mt-1">
-                  Quickly enable or disable canonical spawn points for vanilla towns.
+                  Quickly enable or disable canonical spawn points for all 11 vanilla Kentucky towns (Build 41 &amp; Build 42).
                 </p>
               </div>
 
@@ -833,6 +850,50 @@ export default function ServerSettingsClient({
                 );
               })}
             </div>
+
+            {serverFileTemplates.length > 0 && (
+              <div className="pt-4 border-t border-zinc-800 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-zinc-300">
+                    Preconfigured Server Spawn Files (serverfile)
+                  </span>
+                  <span className="text-[10px] text-zinc-400">
+                    Preserved custom server spawn scripts in data/Server/
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                  {serverFileTemplates.map((srvRegion) => {
+                    const isEnabled = spawnRegions.some(
+                      (r) => r.name.toLowerCase() === srvRegion.name.toLowerCase()
+                    );
+                    return (
+                      <button
+                        key={srvRegion.name}
+                        type="button"
+                        onClick={() => handleToggleOfficialSpawn(srvRegion)}
+                        className={`p-3 min-h-[44px] rounded-lg border text-left transition-all cursor-pointer flex flex-col justify-between space-y-2 ${
+                          isEnabled
+                            ? 'bg-emerald-950/30 border-emerald-500/80 text-white shadow-sm'
+                            : 'bg-zinc-800/40 border-zinc-700/60 text-zinc-400 hover:border-zinc-600'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold">{srvRegion.name}</span>
+                          <span
+                            className={`w-2 h-2 rounded-full ${
+                              isEnabled ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-600'
+                            }`}
+                          />
+                        </div>
+                        <span className="text-[10px] font-mono text-zinc-500 truncate">
+                          serverfile: {srvRegion.serverfile}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Active Spawn Regions List */}
@@ -859,13 +920,19 @@ export default function ServerSettingsClient({
                           <span className="text-[9px] px-1.5 py-0.2 bg-zinc-800 text-indigo-300 rounded border border-indigo-800/50">
                             Official
                           </span>
+                        ) : region.serverfile ? (
+                          <span className="text-[9px] px-1.5 py-0.2 bg-emerald-950/50 text-emerald-300 rounded border border-emerald-800/50">
+                            Server File (serverfile)
+                          </span>
                         ) : (
                           <span className="text-[9px] px-1.5 py-0.2 bg-purple-950/50 text-purple-300 rounded border border-purple-800/50">
                             Workshop Mod Map
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] font-mono text-zinc-400 mt-0.5">{region.file}</p>
+                      <p className="text-[11px] font-mono text-zinc-400 mt-0.5">
+                        {region.serverfile ? `serverfile = "${region.serverfile}"` : region.file}
+                      </p>
                     </div>
                   </div>
 
@@ -953,17 +1020,62 @@ export default function ServerSettingsClient({
 
               <div>
                 <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                  Spawnpoints File Path
+                  Source Type
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setNewRegionMode('file')}
+                    className={`px-3 py-2 text-xs font-medium rounded border transition-colors cursor-pointer ${
+                      newRegionMode === 'file'
+                        ? 'bg-indigo-600/30 border-indigo-500 text-white'
+                        : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    Map Folder (file)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewRegionMode('serverfile')}
+                    className={`px-3 py-2 text-xs font-medium rounded border transition-colors cursor-pointer ${
+                      newRegionMode === 'serverfile'
+                        ? 'bg-emerald-600/30 border-emerald-500 text-white'
+                        : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    Server Script (serverfile)
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                  {newRegionMode === 'serverfile'
+                    ? 'Server Spawnpoints Filename'
+                    : 'Spawnpoints File Path'}
                 </label>
                 <input
                   type="text"
-                  placeholder="media/maps/RavenCreek/spawnpoints.lua"
+                  placeholder={
+                    newRegionMode === 'serverfile'
+                      ? 'servertest_louisville_spawnpoints.lua'
+                      : 'media/maps/RavenCreek/spawnpoints.lua'
+                  }
                   value={newRegionFile}
                   onChange={(e) => setNewRegionFile(e.target.value)}
                   className="w-full px-3 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-zinc-800 border border-zinc-700 rounded text-base sm:text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500 font-mono"
                 />
                 <p className="text-[10px] text-zinc-400 mt-1">
-                  Standard format: <code className="text-zinc-300">media/maps/[MapFolder]/spawnpoints.lua</code>
+                  {newRegionMode === 'serverfile' ? (
+                    <>
+                      Relative to <code className="text-zinc-300">data/Server/</code> (e.g.{' '}
+                      <code className="text-zinc-300">ServerName_louisville_spawnpoints.lua</code>)
+                    </>
+                  ) : (
+                    <>
+                      Standard format: <code className="text-zinc-300">media/maps/[MapFolder]/spawnpoints.lua</code>
+                    </>
+                  )}
                 </p>
               </div>
 

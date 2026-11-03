@@ -265,10 +265,16 @@ export async function handleSaveServerPropertiesAction(
 }
 
 const spawnRegionsSchema = z.array(
-  z.object({
-    name: z.string().min(1, 'Region name cannot be empty'),
-    file: z.string().min(1, 'Region file path cannot be empty'),
-  })
+  z
+    .object({
+      name: z.string().min(1, 'Region name cannot be empty'),
+      file: z.string().min(1, 'Region file path cannot be empty').optional(),
+      serverfile: z.string().min(1, 'Server file path cannot be empty').optional(),
+      isOfficial: z.boolean().optional(),
+    })
+    .refine((data) => Boolean(data.file || data.serverfile), {
+      message: 'Either file or serverfile path must be provided',
+    })
 );
 
 export async function handleSaveSpawnRegionsAction(

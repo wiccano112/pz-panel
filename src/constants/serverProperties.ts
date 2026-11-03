@@ -344,4 +344,11 @@ export const OFFICIAL_SPAWN_REGIONS: SpawnRegionItem[] = [
   { name: 'West Point, KY', file: 'media/maps/West Point, KY/spawnpoints.lua', isOfficial: true },
   { name: 'Rosewood, KY', file: 'media/maps/Rosewood, KY/spawnpoints.lua', isOfficial: true },
   { name: 'Riverside, KY', file: 'media/maps/Riverside, KY/spawnpoints.lua', isOfficial: true },
+  { name: 'Echo Creek, KY', file: 'media/maps/Echo Creek, KY/spawnpoints.lua', isOfficial: true },
+  { name: 'Ekron, KY', file: 'media/maps/Ekron, KY/spawnpoints.lua', isOfficial: true },
+  { name: 'Fallas Lake, KY', file: 'media/maps/Fallas Lake, KY/spawnpoints.lua', isOfficial: true },
+  { name: 'Irvington, KY', file: 'media/maps/Irvington, KY/spawnpoints.lua', isOfficial: true },
+  { name: 'Brandenburg, KY', file: 'media/maps/Brandenburg, KY/spawnpoints.lua', isOfficial: true },
+  { name: 'March Ridge, KY', file: 'media/maps/March Ridge, KY/spawnpoints.lua', isOfficial: true },
+  { name: 'Valley Station, KY', file: 'media/maps/Valley Station, KY/spawnpoints.lua', isOfficial: true },
 ];

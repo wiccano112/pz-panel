@@ -14,7 +14,8 @@ export interface PropertyMeta {
 
 export interface SpawnRegionItem {
   name: string;
-  file: string;
+  file?: string;
+  serverfile?: string;
   isOfficial?: boolean;
 }
 

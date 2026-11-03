@@ -219,19 +219,28 @@ describe('Server Actions - Validation & Execution Contracts', () => {
   });
 
   describe('handleSaveSpawnRegionsAction', () => {
-    it('should reject items with empty name or file', async () => {
+    it('should reject items with empty name or missing both file and serverfile', async () => {
       const formData = new FormData();
       formData.append('spawnRegions', JSON.stringify([{ name: '', file: 'some/path' }]));
 
       const result = await handleSaveSpawnRegionsAction(null, formData);
       expect(result.success).toBe(false);
       expect(result.message).toContain('Invalid spawn regions format');
+
+      const missingPathFormData = new FormData();
+      missingPathFormData.append('spawnRegions', JSON.stringify([{ name: 'Louisville, KY' }]));
+      const missingPathResult = await handleSaveSpawnRegionsAction(null, missingPathFormData);
+      expect(missingPathResult.success).toBe(false);
+      expect(missingPathResult.message).toContain('Either file or serverfile path must be provided');
     });
 
-    it('should save valid spawn regions', async () => {
+    it('should save valid spawn regions with both file and serverfile', async () => {
       vi.mocked(spawnRegionUtils.saveSpawnRegions).mockResolvedValue({ success: true });
 
-      const validRegions = [{ name: 'Muldraugh', file: 'media/maps/Muldraugh/spawnpoints.lua' }];
+      const validRegions = [
+        { name: 'Muldraugh, KY', file: 'media/maps/Muldraugh, KY/spawnpoints.lua', isOfficial: true },
+        { name: 'Louisville, KY', serverfile: 'servertest_louisville_spawnpoints.lua', isOfficial: false },
+      ];
       const formData = new FormData();
       formData.append('spawnRegions', JSON.stringify(validRegions));
 

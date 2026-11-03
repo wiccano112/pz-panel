@@ -27,12 +27,15 @@ export async function readSpawnRegions(): Promise<SpawnRegionItem[]> {
         const obj = val as Record<string, unknown>;
         const name = typeof obj.name === 'string' ? obj.name.trim() : '';
         const file = typeof obj.file === 'string' ? obj.file.trim() : '';
-        if (name && file) {
-          items.push({
+        const serverfile = typeof obj.serverfile === 'string' ? obj.serverfile.trim() : '';
+        if (name && (file || serverfile)) {
+          const entry: SpawnRegionItem = {
             name,
-            file,
-            isOfficial: officialNames.has(name.toLowerCase()),
-          });
+            isOfficial: Boolean(file && officialNames.has(name.toLowerCase())),
+          };
+          if (file) entry.file = file;
+          if (serverfile) entry.serverfile = serverfile;
+          items.push(entry);
         }
       }
     };
@@ -68,8 +71,11 @@ export async function saveSpawnRegions(
 
       for (const region of regions) {
         const cleanName = sanitize(region.name);
-        const cleanFile = sanitize(region.file);
-        if (cleanName && cleanFile) {
+        const cleanServerFile = region.serverfile ? sanitize(region.serverfile) : '';
+        const cleanFile = region.file ? sanitize(region.file) : '';
+        if (cleanName && cleanServerFile) {
+          lua += `        { name = "${cleanName}", serverfile = "${cleanServerFile}" },\n`;
+        } else if (cleanName && cleanFile) {
           lua += `        { name = "${cleanName}", file = "${cleanFile}" },\n`;
         }
       }
