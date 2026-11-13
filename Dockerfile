@@ -28,8 +28,8 @@ RUN pnpm run build
 FROM node:current-alpine AS runner
 WORKDIR /app
 
-# Install Docker CLI and Compose plugin to allow container management
-RUN apk add --no-cache docker-cli docker-cli-compose bash
+# Install Docker CLI, Compose plugin, Bash and Python3 for container & world freeze management
+RUN apk add --no-cache docker-cli docker-cli-compose bash python3
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1

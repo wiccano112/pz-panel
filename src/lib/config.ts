@@ -74,5 +74,13 @@ export const CONFIG = {
   get logsDir(): string {
     return path.join(this.serverDir, 'data', 'Logs');
   },
+
+  get freezeScriptPath(): string {
+    return path.join(this.serverDir, 'scripts', 'freeze_manager.sh');
+  },
+
+  get frozenDir(): string {
+    return path.join(this.serverDir, 'frozen');
+  },
 };
 

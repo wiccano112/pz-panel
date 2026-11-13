@@ -9,11 +9,13 @@ import {
   handleSaveSpawnRegionsAction,
   handleSaveSandboxAction,
   getLiveConnectedPlayersAction,
+  handleFreezeOperationAction,
 } from '@/app/actions';
 import * as playerUtils from '@/lib/playerUtils';
 import * as serverUtils from '@/lib/serverUtils';
 import * as spawnRegionUtils from '@/lib/spawnRegionUtils';
 import * as sandboxUtils from '@/lib/sandboxUtils';
+import * as freezeUtils from '@/lib/freezeUtils';
 
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
@@ -44,6 +46,11 @@ vi.mock('@/lib/sandboxUtils', async (importOriginal) => {
     saveSandboxVars: vi.fn(),
   };
 });
+
+vi.mock('@/lib/freezeUtils', () => ({
+  executeFreezeOperation: vi.fn(),
+  getFreezeCatalog: vi.fn(),
+}));
 
 describe('Server Actions - Validation & Execution Contracts', () => {
   beforeEach(() => {
@@ -348,6 +355,52 @@ describe('Server Actions - Validation & Execution Contracts', () => {
       const result = await handleSaveSandboxAction(null, formData);
       expect(result.success).toBe(false);
       expect(result.message).toContain('Failed to save sandbox vars: Disk write error');
+    });
+  });
+
+  describe('handleFreezeOperationAction', () => {
+    it('should reject invalid or missing freeze operation mode', async () => {
+      const formData = new FormData();
+      formData.append('mode', 'invalid-mode');
+
+      const result = await handleFreezeOperationAction(null, formData);
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('Invalid world freeze operation mode');
+    });
+
+    it('should delegate valid freeze-and-new operation and return updated catalog', async () => {
+      const mockCatalog = {
+        active: {
+          hasActiveWorld: true,
+          instanceName: 'Fresh World',
+          instanceSlug: 'fresh-1',
+          restoredFrom: 'fresh_start',
+          startedAt: '2026-11-13 20:00:00',
+          serverName: 'NobaraZomboid',
+          serverBranch: 'stable',
+        },
+        frozenServers: [],
+      };
+      vi.mocked(freezeUtils.executeFreezeOperation).mockResolvedValue({
+        success: true,
+        message: 'World frozen as "Season 1"',
+      });
+      vi.mocked(freezeUtils.getFreezeCatalog).mockResolvedValue(mockCatalog);
+
+      const formData = new FormData();
+      formData.append('mode', 'freeze-and-new');
+      formData.append('name', 'Season 1');
+      formData.append('notes', 'End of season');
+
+      const result = await handleFreezeOperationAction(null, formData);
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(mockCatalog);
+      expect(freezeUtils.executeFreezeOperation).toHaveBeenCalledWith({
+        mode: 'freeze-and-new',
+        name: 'Season 1',
+        notes: 'End of season',
+        target: undefined,
+      });
     });
   });
 });

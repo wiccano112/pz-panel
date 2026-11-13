@@ -18,6 +18,8 @@ import {
 } from '@/lib/playerUtils';
 import { ActionResult } from '@/types/actions';
 import { ConnectedPlayer } from '@/types/players';
+import { executeFreezeOperation, getFreezeCatalog } from '@/lib/freezeUtils';
+import { FreezeCatalogData, FreezeOperationMode } from '@/types/freeze';
 
 export async function getLiveConnectedPlayersAction(): Promise<ConnectedPlayer[]> {
   try {
@@ -305,4 +307,63 @@ export async function handleSaveSpawnRegionsAction(
     return { success: false, message: 'Failed to parse spawn regions payload', error: true };
   }
 }
+
+const VALID_FREEZE_MODES: FreezeOperationMode[] = [
+  'freeze-and-new',
+  'swap',
+  'freeze-only',
+  'unfreeze',
+  'delete',
+];
+
+export async function getFreezeCatalogAction(): Promise<FreezeCatalogData> {
+  return await getFreezeCatalog();
+}
+
+export async function handleFreezeOperationAction(
+  prevState: unknown,
+  formData: FormData
+): Promise<ActionResult<FreezeCatalogData>> {
+  const mode = (formData.get('mode') as string || '').trim() as FreezeOperationMode;
+  if (!mode || !VALID_FREEZE_MODES.includes(mode)) {
+    return { success: false, message: 'Invalid world freeze operation mode', error: true };
+  }
+
+  const name = (formData.get('name') as string || '').trim();
+  const notes = (formData.get('notes') as string || '').trim();
+  const target = (formData.get('target') as string || '').trim();
+
+  const result = await executeFreezeOperation({
+    mode,
+    name: name || undefined,
+    notes: notes || undefined,
+    target: target || undefined,
+  });
+
+  revalidatePath('/');
+  revalidatePath('/worlds');
+  revalidatePath('/mods');
+  revalidatePath('/sandbox');
+  revalidatePath('/settings');
+  revalidatePath('/players');
+
+  const updatedCatalog = await getFreezeCatalog();
+
+  if (result.success) {
+    return {
+      success: true,
+      message: result.message,
+      error: false,
+      data: updatedCatalog,
+    };
+  } else {
+    return {
+      success: false,
+      message: result.message,
+      error: true,
+      data: updatedCatalog,
+    };
+  }
+}
+
 

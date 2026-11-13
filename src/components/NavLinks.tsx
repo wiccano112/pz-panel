@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, PackagePlus, Sliders, Users, Settings } from 'lucide-react';
+import { LayoutDashboard, PackagePlus, Sliders, Users, Settings, Snowflake } from 'lucide-react';
 import { useUnsavedChanges } from '@/context/UnsavedChangesContext';
 
 interface NavLinksProps {
@@ -16,6 +16,7 @@ export default function NavLinks({ onNavigate }: NavLinksProps = {}) {
 
   const links = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/worlds', label: 'World Vault & Freeze', icon: Snowflake },
     { href: '/mods', label: 'Mods Manager', icon: PackagePlus },
     { href: '/sandbox', label: 'Sandbox Settings', icon: Sliders },
     { href: '/settings', label: 'Server Properties', icon: Settings },

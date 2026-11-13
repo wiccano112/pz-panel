@@ -58,6 +58,12 @@ test.describe('Mobile Responsive Layout Tests', () => {
       
       const menuBtn = page.getByRole('button', { name: 'Open navigation menu' });
 
+      // Navigate to Worlds Vault
+      await menuBtn.click();
+      await page.getByRole('link', { name: 'World Vault & Freeze' }).click();
+      await expect(page).toHaveURL(/.*\/worlds/);
+      await expect(page.getByRole('heading', { name: 'World Vault & Freeze Manager' })).toBeVisible();
+
       // Navigate to Sandbox
       await menuBtn.click();
       await page.getByRole('link', { name: 'Sandbox Settings' }).click();
@@ -175,6 +181,26 @@ test.describe('Mobile Responsive Layout Tests', () => {
 
       await expect(hostUptimeBadge).toBeVisible();
       await expect(hostUptimeBadge).toContainText('Host');
+    });
+
+    test('should display World Vault & Freeze Manager and open confirmation modal without executing destructive actions', async ({ page }) => {
+      await page.goto('/worlds');
+
+      await expect(page.getByRole('heading', { name: 'World Vault & Freeze Manager' })).toBeVisible();
+      await expect(page.getByTestId('active-world-card')).toBeVisible();
+
+      // Open Freeze & Start Fresh modal and cancel safely
+      const freshBtn = page.getByRole('button', { name: /Freeze & Start Fresh/i });
+      await expect(freshBtn).toBeVisible();
+      await freshBtn.click();
+
+      const modalDialog = page.getByRole('dialog');
+      await expect(modalDialog).toBeVisible();
+      await expect(page.getByLabel(/Archive Name for Current World/i)).toBeVisible();
+
+      const cancelBtn = modalDialog.getByRole('button', { name: 'Cancel' });
+      await cancelBtn.click();
+      await expect(modalDialog).toBeHidden();
     });
   });
 });
