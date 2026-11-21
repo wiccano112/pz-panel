@@ -34,6 +34,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# local hardware core allocation config (host-specific)
+config/hardware.json
+
 # vercel
 .vercel
 

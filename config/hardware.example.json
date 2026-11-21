@@ -1,0 +1,6 @@
+{
+  "serverCpus": "auto",
+  "otherCpus": "auto",
+  "serverLabel": "PZ Server",
+  "otherLabel": "System & Other"
+}

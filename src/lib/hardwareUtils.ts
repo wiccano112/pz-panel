@@ -1,7 +1,7 @@
 import fs from 'fs';
 import os from 'os';
-import { CONFIG } from '@/lib/config';
-import { HardwareCpuStats, CpuCoreMetric } from '@/types/hardware';
+import { CONFIG, HardwareConfigFile, isExplicitCpuRange, readHardwareConfig } from '@/lib/config';
+import { HardwareCpuStats, CpuCoreMetric, HardwareConfigSource } from '@/types/hardware';
 
 interface ProcStatSnapshot {
   timestamp: number;
@@ -30,6 +30,94 @@ export function parseCpuRange(rangeStr: string): number[] {
     }
   }
   return Array.from(result).sort((a, b) => a - b);
+}
+
+export function formatCpuRange(cpus: number[]): string {
+  if (cpus.length === 0) return 'None';
+  const sorted = Array.from(new Set(cpus)).sort((a, b) => a - b);
+  const ranges: string[] = [];
+  let start = sorted[0];
+  let end = sorted[0];
+
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i] === end + 1) {
+      end = sorted[i];
+    } else {
+      ranges.push(start === end ? `${start}` : `${start}-${end}`);
+      start = sorted[i];
+      end = sorted[i];
+    }
+  }
+  ranges.push(start === end ? `${start}` : `${start}-${end}`);
+  return ranges.join(',');
+}
+
+export interface CoreAllocationInput {
+  totalCores: number;
+  fileConfig: HardwareConfigFile | null;
+  envServerCpus?: string;
+  envOtherCpus?: string;
+  dockerCpuset?: string;
+  composeCpuset?: string;
+}
+
+export interface CoreAllocationResult {
+  assignedCpus: number[];
+  assignedRangeString: string;
+  otherCpus: number[];
+  otherRangeString: string;
+  serverLabel: string;
+  otherLabel: string;
+  configSource: HardwareConfigSource;
+}
+
+export function resolveCoreAllocation(input: CoreAllocationInput): CoreAllocationResult {
+  const { totalCores, fileConfig, envServerCpus, envOtherCpus, dockerCpuset, composeCpuset } = input;
+  const clamp = (ids: number[]): number[] => ids.filter((id) => id >= 0 && id < totalCores);
+
+  let configSource: HardwareConfigSource = 'auto';
+  let assignedCpus: number[] = [];
+
+  if (isExplicitCpuRange(fileConfig?.serverCpus)) {
+    assignedCpus = clamp(parseCpuRange(fileConfig.serverCpus));
+    configSource = 'file';
+  } else if (isExplicitCpuRange(envServerCpus)) {
+    assignedCpus = clamp(parseCpuRange(envServerCpus));
+    configSource = 'env';
+  } else if (isExplicitCpuRange(dockerCpuset)) {
+    assignedCpus = clamp(parseCpuRange(dockerCpuset));
+    configSource = 'docker';
+  } else if (isExplicitCpuRange(composeCpuset)) {
+    assignedCpus = clamp(parseCpuRange(composeCpuset));
+    configSource = 'compose';
+  } else {
+    assignedCpus = Array.from({ length: totalCores }, (_, i) => i);
+    configSource = 'auto';
+  }
+
+  const assignedSet = new Set(assignedCpus);
+
+  let otherCpus: number[];
+  if (isExplicitCpuRange(fileConfig?.otherCpus)) {
+    otherCpus = clamp(parseCpuRange(fileConfig.otherCpus)).filter((id) => !assignedSet.has(id));
+    if (configSource !== 'file') {
+      configSource = 'file';
+    }
+  } else if (isExplicitCpuRange(envOtherCpus)) {
+    otherCpus = clamp(parseCpuRange(envOtherCpus)).filter((id) => !assignedSet.has(id));
+  } else {
+    otherCpus = Array.from({ length: totalCores }, (_, i) => i).filter((id) => !assignedSet.has(id));
+  }
+
+  return {
+    assignedCpus,
+    assignedRangeString: formatCpuRange(assignedCpus),
+    otherCpus,
+    otherRangeString: formatCpuRange(otherCpus),
+    serverLabel: fileConfig?.serverLabel || 'PZ Server',
+    otherLabel: fileConfig?.otherLabel || 'System & Other',
+    configSource,
+  };
 }
 
 function getHwmonPath(): string | null {
@@ -248,27 +336,37 @@ export async function getHardwareCpuStats(): Promise<HardwareCpuStats> {
   // 3. Temperatures
   const { package: packageTempC, cores: coreTemps } = getCpuTemps();
 
-  // 4. Assigned Cores resolution
-  let assignedRangeString = CONFIG.serverCpus;
-  try {
-    const { execFile } = await import('child_process');
-    const { promisify } = await import('util');
-    const execFileAsync = promisify(execFile);
-    const { stdout } = await execFileAsync('docker', [
-      'inspect',
-      '-f',
-      '{{.HostConfig.CpusetCpus}}',
-      CONFIG.containerName,
-    ]);
-    const inspected = stdout.trim();
-    if (inspected) {
-      assignedRangeString = inspected;
+  // 4. Assigned & Other Cores resolution (config file -> env -> docker inspect -> compose -> auto)
+  const fileConfig = readHardwareConfig();
+  let dockerCpuset = '';
+  if (!isExplicitCpuRange(fileConfig?.serverCpus) && !isExplicitCpuRange(process.env.PZ_SERVER_CPUS)) {
+    try {
+      const { execFile } = await import('child_process');
+      const { promisify } = await import('util');
+      const execFileAsync = promisify(execFile);
+      const { stdout } = await execFileAsync('docker', [
+        'inspect',
+        '-f',
+        '{{.HostConfig.CpusetCpus}}',
+        CONFIG.containerName,
+      ]);
+      dockerCpuset = stdout.trim();
+    } catch {
+      // Ignore docker inspect errors (e.g. container stopped or non-docker env)
     }
-  } catch {
-    // Ignore docker inspect errors (e.g. container stopped or non-docker env)
   }
-  const assignedCpus = parseCpuRange(assignedRangeString);
-  const assignedSet = new Set(assignedCpus);
+
+  const allocation = resolveCoreAllocation({
+    totalCores,
+    fileConfig,
+    envServerCpus: process.env.PZ_SERVER_CPUS,
+    envOtherCpus: process.env.PZ_OTHER_CPUS,
+    dockerCpuset,
+    composeCpuset: CONFIG.composeCpus,
+  });
+
+  const assignedSet = new Set(allocation.assignedCpus);
+  const otherSet = new Set(allocation.otherCpus);
 
   // 5. Map per-core metrics
   const cores: CpuCoreMetric[] = [];
@@ -305,33 +403,29 @@ export async function getHardwareCpuStats(): Promise<HardwareCpuStats> {
       frequencyMhz: freq,
       temperatureC: coreTemp,
       isAssignedToServer: assignedSet.has(i),
+      isOtherCore: otherSet.has(i),
     });
   }
 
-  // 6. Assigned cores summary stats
-  const assignedCoreMetrics = cores.filter((c) => assignedSet.has(c.id));
-  let assignedUsagePercent = 0;
-  let assignedAvgFrequencyMhz = 0;
-  let assignedMaxTempC: number | null = null;
-
-  if (assignedCoreMetrics.length > 0) {
-    assignedUsagePercent =
-      Math.round(
-        (assignedCoreMetrics.reduce((sum, c) => sum + c.usagePercent, 0) / assignedCoreMetrics.length) * 10
-      ) / 10;
-    assignedAvgFrequencyMhz = Math.round(
-      assignedCoreMetrics.reduce((sum, c) => sum + c.frequencyMhz, 0) / assignedCoreMetrics.length
+  // 6. Summary stats helper for core groups
+  const summarizeGroup = (group: CpuCoreMetric[]): { usagePercent: number; avgFrequencyMhz: number; maxTempC: number | null } => {
+    if (group.length === 0) {
+      return { usagePercent: 0, avgFrequencyMhz: 0, maxTempC: null };
+    }
+    const usagePercent =
+      Math.round((group.reduce((sum, c) => sum + c.usagePercent, 0) / group.length) * 10) / 10;
+    const avgFrequencyMhz = Math.round(
+      group.reduce((sum, c) => sum + c.frequencyMhz, 0) / group.length
     );
-
-    const temps = assignedCoreMetrics
+    const temps = group
       .map((c) => c.temperatureC)
       .filter((t): t is number => t !== null);
-    if (temps.length > 0) {
-      assignedMaxTempC = Math.max(...temps);
-    } else {
-      assignedMaxTempC = packageTempC;
-    }
-  }
+    const maxTempC = temps.length > 0 ? Math.max(...temps) : packageTempC;
+    return { usagePercent, avgFrequencyMhz, maxTempC };
+  };
+
+  const assignedSummary = summarizeGroup(cores.filter((c) => assignedSet.has(c.id)));
+  const otherSummary = summarizeGroup(cores.filter((c) => otherSet.has(c.id)));
 
   return {
     model,
@@ -340,11 +434,19 @@ export async function getHardwareCpuStats(): Promise<HardwareCpuStats> {
     overallUsagePercent,
     averageFrequencyMhz: avgFrequency,
     packageTempC,
-    assignedCpus,
-    assignedRangeString,
-    assignedUsagePercent,
-    assignedAvgFrequencyMhz,
-    assignedMaxTempC,
+    assignedCpus: allocation.assignedCpus,
+    assignedRangeString: allocation.assignedRangeString,
+    assignedUsagePercent: assignedSummary.usagePercent,
+    assignedAvgFrequencyMhz: assignedSummary.avgFrequencyMhz,
+    assignedMaxTempC: assignedSummary.maxTempC,
+    otherCpus: allocation.otherCpus,
+    otherRangeString: allocation.otherRangeString,
+    otherUsagePercent: otherSummary.usagePercent,
+    otherAvgFrequencyMhz: otherSummary.avgFrequencyMhz,
+    otherMaxTempC: otherSummary.maxTempC,
+    serverLabel: allocation.serverLabel,
+    otherLabel: allocation.otherLabel,
+    configSource: allocation.configSource,
     cores,
     timestamp: currentSnapshot.timestamp,
   };

@@ -1,5 +1,43 @@
 import fs from 'fs';
 import path from 'path';
+import { z } from 'zod';
+
+const cpuRangeSchema = z
+  .string()
+  .trim()
+  .refine(
+    (val) => val.toLowerCase() === 'auto' || val === '' || /^[0-9,\s-]+$/.test(val),
+    { message: 'Must be "auto" or a valid CPU range (e.g. "3-5" or "0,2,4")' }
+  );
+
+const hardwareConfigSchema = z.object({
+  serverCpus: cpuRangeSchema.optional(),
+  otherCpus: cpuRangeSchema.optional(),
+  serverLabel: z.string().trim().min(1).max(40).optional(),
+  otherLabel: z.string().trim().min(1).max(40).optional(),
+});
+
+export type HardwareConfigFile = z.infer<typeof hardwareConfigSchema>;
+
+export function isExplicitCpuRange(value?: string | null): value is string {
+  if (!value) return false;
+  const trimmed = value.trim();
+  return trimmed.length > 0 && trimmed.toLowerCase() !== 'auto';
+}
+
+export function readHardwareConfig(customPath?: string): HardwareConfigFile | null {
+  const configPath = customPath || CONFIG.hardwareConfigPath;
+  try {
+    if (!fs.existsSync(configPath)) return null;
+    const raw = fs.readFileSync(configPath, 'utf8');
+    const parsedJson: unknown = JSON.parse(raw);
+    const result = hardwareConfigSchema.safeParse(parsedJson);
+    if (!result.success) return null;
+    return result.data;
+  } catch {
+    return null;
+  }
+}
 
 export const CONFIG = {
   serverDir: process.env.PZ_SERVER_DIR ? path.resolve(process.cwd(), process.env.PZ_SERVER_DIR) : '/opt/pz-server',
@@ -9,10 +47,14 @@ export const CONFIG = {
   steamApiKey: process.env.STEAM_API_KEY || '',
   gameVersion: process.env.PZ_GAME_VERSION || '',
 
-  get serverCpus(): string {
-    if (process.env.PZ_SERVER_CPUS && process.env.PZ_SERVER_CPUS.trim()) {
-      return process.env.PZ_SERVER_CPUS.trim();
+  get hardwareConfigPath(): string {
+    if (process.env.PZ_HARDWARE_CONFIG_PATH && process.env.PZ_HARDWARE_CONFIG_PATH.trim()) {
+      return path.resolve(process.cwd(), process.env.PZ_HARDWARE_CONFIG_PATH.trim());
     }
+    return path.resolve(process.cwd(), 'config', 'hardware.json');
+  },
+
+  get composeCpus(): string {
     try {
       const candidates = [
         path.join(this.serverDir, 'docker-compose.yml'),
@@ -34,7 +76,33 @@ export const CONFIG = {
     } catch {
       // Ignore read errors
     }
-    return '8-11';
+    return '';
+  },
+
+  get serverCpus(): string {
+    const fileConfig = readHardwareConfig();
+    if (isExplicitCpuRange(fileConfig?.serverCpus)) {
+      return fileConfig.serverCpus.trim();
+    }
+    if (isExplicitCpuRange(process.env.PZ_SERVER_CPUS)) {
+      return process.env.PZ_SERVER_CPUS.trim();
+    }
+    const fromCompose = this.composeCpus;
+    if (fromCompose) {
+      return fromCompose;
+    }
+    return 'auto';
+  },
+
+  get otherCpus(): string {
+    const fileConfig = readHardwareConfig();
+    if (isExplicitCpuRange(fileConfig?.otherCpus)) {
+      return fileConfig.otherCpus.trim();
+    }
+    if (isExplicitCpuRange(process.env.PZ_OTHER_CPUS)) {
+      return process.env.PZ_OTHER_CPUS.trim();
+    }
+    return 'auto';
   },
 
   get composeFile(): string {
@@ -83,4 +151,3 @@ export const CONFIG = {
     return path.join(this.serverDir, 'frozen');
   },
 };
-

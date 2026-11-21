@@ -6,7 +6,6 @@ services:
     image: pz-panel:latest
     container_name: pz-panel
     restart: unless-stopped
-    cpuset: "${PANEL_CPUSET:-12-19}"
     ports:
       - "${PANEL_PORT:-3000}:3000"
     env_file:
@@ -19,8 +18,11 @@ services:
       - PZ_SERVER_DIR=/pz-server
       - PZ_HOST_SERVER_DIR=${PZ_HOST_SERVER_DIR:-/opt/pz-server}
       - PZ_SERVER_CPUS=${PZ_SERVER_CPUS:-}
+      - PZ_OTHER_CPUS=${PZ_OTHER_CPUS:-}
+      - PZ_HARDWARE_CONFIG_PATH=${PZ_HARDWARE_CONFIG_PATH:-/app/config/hardware.json}
     volumes:
-
+      # Local hardware core allocation config (editable without rebuilding the image)
+      - ./config:/app/config:ro
       # Docker socket to allow managing the PZ server container
       - /var/run/docker.sock:/var/run/docker.sock
       # PZ server directory containing data/Server and data/db

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import useSWR from 'swr';
-import { Cpu, RotateCw, Thermometer, Zap, Activity, ChevronDown, ChevronUp, Server } from 'lucide-react';
+import { Cpu, RotateCw, Thermometer, Zap, Activity, ChevronDown, ChevronUp, Server, Layers } from 'lucide-react';
 import { HardwareCpuStats, CpuCoreMetric } from '@/types/hardware';
 
 const fetcher = async (url: string): Promise<HardwareCpuStats> => {
@@ -35,26 +35,47 @@ function getTempColor(temp: number | null): string {
   return 'text-emerald-300 bg-emerald-950/60 border-emerald-800/80';
 }
 
+function getConfigSourceLabel(source: HardwareCpuStats['configSource']): string {
+  switch (source) {
+    case 'file':
+      return 'config/hardware.json';
+    case 'env':
+      return 'Environment Variables';
+    case 'docker':
+      return 'Docker Container Cpuset';
+    case 'compose':
+      return 'Server docker-compose.yml';
+    default:
+      return 'Auto-detected Host Topology';
+  }
+}
+
 function CoreRow({ core }: { core: CpuCoreMetric }) {
   const usageColor = getUsageColor(core.usagePercent);
   const tempBadgeClass = getTempColor(core.temperatureC);
 
+  const rowTheme = core.isAssignedToServer
+    ? 'bg-indigo-950/20 border-indigo-800/50 hover:bg-indigo-950/30'
+    : core.isOtherCore
+      ? 'bg-cyan-950/15 border-cyan-900/50 hover:bg-cyan-950/25'
+      : 'bg-zinc-950/40 border-zinc-800/70 hover:bg-zinc-800/50';
+
   return (
-    <div className={`flex items-center space-x-2.5 p-2 rounded-md border transition-colors text-xs ${
-      core.isAssignedToServer
-        ? 'bg-indigo-950/20 border-indigo-800/50 hover:bg-indigo-950/30'
-        : 'bg-zinc-950/40 border-zinc-800/70 hover:bg-zinc-800/50'
-    }`}>
+    <div className={`flex items-center space-x-2.5 p-2 rounded-md border transition-colors text-xs ${rowTheme}`}>
       {/* Core ID Badge */}
-      <div className="flex items-center space-x-1.5 w-24">
+      <div className="flex items-center space-x-1.5 w-24 shrink-0">
         <span className="font-mono font-semibold text-[11px] text-zinc-300 px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 select-none">
           {core.label}
         </span>
-        {core.isAssignedToServer && (
+        {core.isAssignedToServer ? (
           <span className="text-[9px] font-bold px-1 py-0.2 rounded bg-indigo-900/60 text-indigo-300 border border-indigo-700 select-none uppercase">
             PZ
           </span>
-        )}
+        ) : core.isOtherCore ? (
+          <span className="text-[9px] font-bold px-1 py-0.2 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-800 select-none uppercase">
+            SYS
+          </span>
+        ) : null}
       </div>
 
       {/* Progress bar (HTOP style) */}
@@ -89,7 +110,7 @@ function CoreRow({ core }: { core: CpuCoreMetric }) {
 export default function CpuCoresCard() {
   const [pollInterval, setPollInterval] = useState<number>(5000);
   // Collapsed by default as requested
-  const [showAllCores, setShowAllCores] = useState<boolean>(false);
+  const [showOtherCores, setShowOtherCores] = useState<boolean>(false);
 
   const { data, error, isLoading, isValidating, mutate } = useSWR<HardwareCpuStats>(
     '/api/stats/hardware',
@@ -101,7 +122,10 @@ export default function CpuCoresCard() {
   );
 
   const assignedCores = data?.cores.filter((c) => c.isAssignedToServer) || [];
+  const otherCores = data?.cores.filter((c) => c.isOtherCore) || [];
+  const unassignedCores = data?.cores.filter((c) => !c.isAssignedToServer && !c.isOtherCore) || [];
   const assignedUsageColor = getUsageColor(data?.assignedUsagePercent ?? 0);
+  const otherUsageColor = getUsageColor(data?.otherUsagePercent ?? 0);
   const hostUsageColor = getUsageColor(data?.overallUsagePercent ?? 0);
 
   return (
@@ -109,21 +133,41 @@ export default function CpuCoresCard() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center space-x-2.5">
-          <div className="p-2 bg-indigo-950/60 border border-indigo-800/60 rounded-lg">
+          <div className="p-2 bg-indigo-950/60 border border-indigo-800/60 rounded-lg shrink-0">
             <Cpu className="w-5 h-5 text-indigo-400" />
           </div>
-          <div>
-            <div className="flex items-center space-x-2">
+          <div className="min-w-0">
+            <div className="flex items-center flex-wrap gap-2">
               <h3 className="text-lg font-semibold text-white">Server CPU Cores</h3>
               {data && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-950/80 border border-indigo-700/80 text-indigo-300 font-mono font-medium flex items-center space-x-1">
-                  <Server className="w-3 h-3 inline mr-1" />
-                  <span>Cores {data.assignedRangeString} ({assignedCores.length} Cores)</span>
-                </span>
+                <>
+                  <span
+                    className="text-xs px-2 py-0.5 rounded-full bg-indigo-950/80 border border-indigo-700/80 text-indigo-300 font-mono font-medium inline-flex items-center space-x-1"
+                    title={`Source: ${getConfigSourceLabel(data.configSource)}`}
+                  >
+                    <Server className="w-3 h-3 inline mr-1" />
+                    <span>
+                      {data.serverLabel}: {data.assignedRangeString} ({assignedCores.length})
+                    </span>
+                  </span>
+                  {otherCores.length > 0 && (
+                    <span
+                      className="text-xs px-2 py-0.5 rounded-full bg-cyan-950/70 border border-cyan-800/80 text-cyan-300 font-mono font-medium inline-flex items-center space-x-1"
+                      title={`Source: ${getConfigSourceLabel(data.configSource)}`}
+                    >
+                      <Layers className="w-3 h-3 inline mr-1" />
+                      <span>
+                        {data.otherLabel}: {data.otherRangeString} ({otherCores.length})
+                      </span>
+                    </span>
+                  )}
+                </>
               )}
             </div>
-            <p className="text-xs text-zinc-400 truncate max-w-xs md:max-w-md" title={data?.model}>
-              {data?.model || 'Detecting processor topology...'}
+            <p className="text-xs text-zinc-400 truncate max-w-xs md:max-w-lg" title={data?.model}>
+              {data
+                ? `${data.model} • ${data.totalCores} Total Cores • Config: ${getConfigSourceLabel(data.configSource)}`
+                : 'Detecting processor topology...'}
             </p>
           </div>
         </div>
@@ -215,7 +259,7 @@ export default function CpuCoresCard() {
         <div className="animate-pulse space-y-3 pt-2">
           <div className="h-10 bg-zinc-800 rounded-md"></div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {Array.from({ length: 5 }).map((_, i) => (
+            {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="h-8 bg-zinc-800/70 rounded-md"></div>
             ))}
           </div>
@@ -234,59 +278,122 @@ export default function CpuCoresCard() {
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs text-zinc-400 pt-1">
             <span className="font-medium text-zinc-300 flex items-center space-x-1.5">
-              <span>Dedicated Cores Breakdown ({data.assignedRangeString})</span>
+              <span>
+                {data.serverLabel} Cores ({data.assignedRangeString})
+              </span>
             </span>
             <span className="text-[11px] text-zinc-500 font-mono">
-              {assignedCores.length} active threads
+              {assignedCores.length} active {assignedCores.length === 1 ? 'core' : 'cores'}
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-            {assignedCores.map((core) => (
-              <CoreRow key={core.id} core={core} />
-            ))}
-          </div>
+          {assignedCores.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+              {assignedCores.map((core) => (
+                <CoreRow key={core.id} core={core} />
+              ))}
+            </div>
+          ) : (
+            <div className="p-3 rounded-md bg-zinc-950/50 border border-zinc-800 text-xs text-zinc-400">
+              No cores assigned to {data.serverLabel} in current hardware configuration.
+            </div>
+          )}
         </div>
       )}
 
-      {/* Collapsible Section: All Host Cores (Closed by default) */}
+      {/* Collapsible Section: System & Other Cores + Full Host Summary */}
       {data && (
         <div className="pt-2 border-t border-zinc-800/80 space-y-3">
           <button
             type="button"
-            onClick={() => setShowAllCores((prev) => !prev)}
+            onClick={() => setShowOtherCores((prev) => !prev)}
             className="w-full flex items-center justify-between p-2 rounded-md bg-zinc-950/50 hover:bg-zinc-800/60 border border-zinc-800 text-xs text-zinc-300 hover:text-white transition-colors cursor-pointer"
           >
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center flex-wrap gap-2">
               <span className="font-medium">
-                {showAllCores ? 'Hide all host cores' : 'View all host cores'}
+                {showOtherCores
+                  ? `Hide ${data.otherLabel.toLowerCase()} & host cores`
+                  : `View ${data.otherLabel.toLowerCase()} & host cores`}
+              </span>
+              <span className="text-[11px] px-1.5 py-0.2 rounded bg-cyan-950/80 border border-cyan-900/70 text-cyan-300 font-mono">
+                {data.otherRangeString} ({otherCores.length})
               </span>
               <span className="text-[11px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 font-mono">
-                {data.totalCores} Cores
+                {data.totalCores} Total
               </span>
             </div>
-            <div className="flex items-center space-x-2 text-zinc-400">
+            <div className="flex items-center space-x-3 text-zinc-400 shrink-0">
+              {otherCores.length > 0 && (
+                <span className="text-[11px] hidden sm:inline">
+                  Other: <strong className={otherUsageColor.text}>{data.otherUsagePercent.toFixed(1)}%</strong>
+                </span>
+              )}
               <span className="text-[11px]">
-                Host Load: <strong className={hostUsageColor.text}>{data.overallUsagePercent.toFixed(1)}%</strong>
+                Host: <strong className={hostUsageColor.text}>{data.overallUsagePercent.toFixed(1)}%</strong>
               </span>
-              {showAllCores ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              {showOtherCores ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </div>
           </button>
 
-          {/* Expanded All Cores Grid */}
-          {showAllCores && (
+          {/* Expanded Remaining & Host Cores */}
+          {showOtherCores && (
             <div className="space-y-3 pt-1">
-              <div className="grid grid-cols-3 gap-2 p-2.5 bg-zinc-950/40 rounded border border-zinc-800 text-xs text-zinc-400">
-                <div>Host Total Load: <span className={`font-mono font-bold ${hostUsageColor.text}`}>{data.overallUsagePercent.toFixed(1)}%</span></div>
-                <div>Host Avg Clock: <span className="font-mono font-bold text-zinc-200">{formatFrequency(data.averageFrequencyMhz)}</span></div>
-                <div>Host Pkg Temp: <span className={`font-mono font-bold px-1 rounded border text-[11px] ${getTempColor(data.packageTempC)}`}>{data.packageTempC !== null ? `${data.packageTempC}°C` : 'N/A'}</span></div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-2.5 bg-zinc-950/40 rounded border border-zinc-800 text-xs text-zinc-400">
+                <div>
+                  {data.otherLabel} Load:{' '}
+                  <span className={`font-mono font-bold ${otherUsageColor.text}`}>
+                    {data.otherUsagePercent.toFixed(1)}%
+                  </span>
+                </div>
+                <div>
+                  {data.otherLabel} Clock:{' '}
+                  <span className="font-mono font-bold text-zinc-200">
+                    {formatFrequency(data.otherAvgFrequencyMhz)}
+                  </span>
+                </div>
+                <div>
+                  Host Pkg Temp:{' '}
+                  <span
+                    className={`font-mono font-bold px-1 rounded border text-[11px] ${getTempColor(data.packageTempC)}`}
+                  >
+                    {data.packageTempC !== null ? `${data.packageTempC}°C` : 'N/A'}
+                  </span>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-96 overflow-y-auto pr-1">
-                {data.cores.map((core) => (
-                  <CoreRow key={core.id} core={core} />
-                ))}
-              </div>
+              {otherCores.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs text-zinc-400">
+                    <span className="font-medium text-cyan-300">
+                      {data.otherLabel} Cores ({data.otherRangeString})
+                    </span>
+                    <span className="text-[11px] text-zinc-500 font-mono">
+                      {otherCores.length} {otherCores.length === 1 ? 'core' : 'cores'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-96 overflow-y-auto pr-1">
+                    {otherCores.map((core) => (
+                      <CoreRow key={core.id} core={core} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {unassignedCores.length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-zinc-800/60">
+                  <div className="flex items-center justify-between text-xs text-zinc-400">
+                    <span className="font-medium text-zinc-400">Unallocated Host Cores</span>
+                    <span className="text-[11px] text-zinc-500 font-mono">
+                      {unassignedCores.length} {unassignedCores.length === 1 ? 'core' : 'cores'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-96 overflow-y-auto pr-1">
+                    {unassignedCores.map((core) => (
+                      <CoreRow key={core.id} core={core} />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
